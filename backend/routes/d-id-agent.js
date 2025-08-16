@@ -15,8 +15,13 @@ const OtherNonAlcoholic = require('../models/OtherNonAlcoholic');
 
 const router = express.Router();
 
-// Initialize Gemini AI client
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Initialize Gemini AI client if API key is available
+let genAI;
+if (!process.env.GEMINI_API_KEY) {
+  console.warn('[D-ID Agent] GEMINI_API_KEY is not set; webhook running in degraded mode');
+} else {
+  genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+}
 
 // D-ID Agent Configuration
 const DID_AGENT_CONFIG = {
@@ -170,6 +175,13 @@ router.post('/webhook', [
         success: false,
         message: 'Validation failed',
         errors: errors.array()
+      });
+    }
+
+    if (!genAI) {
+      return res.status(503).json({
+        success: false,
+        message: 'Gemini service not configured'
       });
     }
 
