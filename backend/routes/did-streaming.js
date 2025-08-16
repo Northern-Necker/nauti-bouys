@@ -157,10 +157,33 @@ router.post('/send-message', [
 
     console.log(`[D-ID Streaming API] Processing message for stream: ${streamId}`);
 
+    const isSSE = req.headers.accept === 'text/event-stream';
+
+    if (isSSE) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      if (res.flushHeaders) res.flushHeaders();
+
+      const result = await didStreamingService.processMessageAndCreateTalk(
+        streamId,
+        sessionId,
+        message,
+        req.user.id,
+        (token) => {
+          res.write(`data: ${token}\n\n`);
+        }
+      );
+
+      res.write(`data: ${JSON.stringify({ done: true, aiResponse: result.aiResponse })}\n\n`);
+      res.end();
+      return;
+    }
+
     const result = await didStreamingService.processMessageAndCreateTalk(
-      streamId, 
-      sessionId, 
-      message, 
+      streamId,
+      sessionId,
+      message,
       req.user.id
     );
 
