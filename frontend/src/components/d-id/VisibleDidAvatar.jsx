@@ -387,7 +387,8 @@ const VisibleDidAvatar = ({
       })
 
       if (!response.ok) {
-        throw new Error(`Webhook failed: ${response.status}`)
+        const errorText = await response.text()
+        throw new Error(errorText || `Webhook failed: ${response.status}`)
       }
 
       const data = await response.json()
@@ -420,10 +421,19 @@ const VisibleDidAvatar = ({
 
     } catch (error) {
       console.error('[D-ID Avatar] Send message error:', error)
+      let content = `Avatar error: ${error.message}`
+      try {
+        const errData = JSON.parse(error.message)
+        content = errData.response || content
+      } catch (parseError) {
+        if (error.response) {
+          content = error.response
+        }
+      }
       const errorMessage = {
         id: Date.now() + 1,
         type: 'error',
-        content: `Avatar error: ${error.message}. Please try again with a shorter message.`,
+        content,
         timestamp: new Date()
       }
       setMessages(prev => [...prev, errorMessage])
