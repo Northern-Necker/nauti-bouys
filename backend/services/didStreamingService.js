@@ -510,12 +510,19 @@ ${contextualPrompt}`;
         model: complexity === 'low' ? 'gemini-2.5-flash-lite' : 'gemini-2.5-flash'
       });
 
-      await conversationSession.save();
+      // Persist conversation and create talk concurrently
+      const [saveResult, talkResponse] = await Promise.all([
+        conversationSession.save().then(() => ({ success: true })).catch(error => ({ success: false, error })),
+        this.createTalk(streamId, sessionId, aiResponse)
+      ]);
 
-      // Create D-ID talk with the AI response
-      const talkResponse = await this.createTalk(streamId, sessionId, aiResponse);
+      if (!saveResult.success) {
+        console.error('[D-ID Streaming] Conversation save error:', saveResult.error);
+      } else {
+        console.log('[D-ID Streaming] Conversation saved successfully');
+      }
 
-      console.log('[D-ID Streaming] Message processed and talk created successfully');
+      console.log('[D-ID Streaming] Talk creation result:', talkResponse);
 
       return {
         aiResponse,
