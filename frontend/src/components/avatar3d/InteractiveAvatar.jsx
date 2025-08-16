@@ -1,9 +1,9 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { useGLTF, useFBX, useAnimations, OrbitControls } from '@react-three/drei';
+import { useGLTF, useAnimations, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 
-// GLB Avatar component that attempts to load the SavannahAvatar.glb model
+// GLB Avatar component that loads the SavannahAvatar.glb model
 function GLBAvatar({ mousePosition, onError }) {
   const group = useRef();
   const [glbModel, setGlbModel] = useState(null);
@@ -51,8 +51,8 @@ function GLBAvatar({ mousePosition, onError }) {
         console.log('No GLB animations found');
       }
       
-      // Scale the model appropriately - try different scales to make it visible
-      gltf.scene.scale.setScalar(0.02); // Much smaller scale to fit in view
+      // Scale the model appropriately
+      gltf.scene.scale.setScalar(0.02);
       
       // Center the model
       gltf.scene.position.set(0, 0, 0);
@@ -68,11 +68,11 @@ function GLBAvatar({ mousePosition, onError }) {
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (!glbModel && !hasError) {
-        console.log('GLB loading timeout, switching to FBX');
+        console.log('GLB loading timeout, switching to fallback');
         setHasError(true);
         onError?.(new Error('GLB loading timeout'));
       }
-    }, 5000); // 5 second timeout
+    }, 10000); // 10 second timeout for GLB
     
     return () => clearTimeout(timeout);
   }, [glbModel, hasError, onError]);
@@ -103,229 +103,108 @@ function GLBAvatar({ mousePosition, onError }) {
   );
 }
 
-// FBX Avatar component that attempts to load FBX models as fallback
-function FBXAvatar({ mousePosition, onError, modelPath = '/assets/SavannahAvatar.fbx' }) {
-  const group = useRef();
-  const [fbxModel, setFbxModel] = useState(null);
-  const [headBone, setHeadBone] = useState(null);
-  const [hasError, setHasError] = useState(false);
+// Image Fallback component - displays a static image when 3D model fails
+function ImageFallback({ mousePosition }) {
+  const imageRef = useRef();
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   
-  // Load the FBX model - hooks must be called unconditionally
-  const fbx = useFBX(modelPath);
-  const { actions } = useAnimations(fbx?.animations || [], group);
-  
-  useEffect(() => {
-    if (!fbx && !hasError) {
-      console.log('FBX model not loaded yet...');
-      return;
-    }
-    
-    if (fbx && !hasError) {
-      console.log('FBX model loaded successfully:', modelPath, fbx);
-      setFbxModel(fbx);
-      
-      // Find head bone for mouse tracking
-      fbx.traverse((child) => {
-        if (child.isBone) {
-          console.log('Found FBX bone:', child.name);
-          if (child.name.toLowerCase().includes('head') || 
-              child.name.toLowerCase().includes('neck') ||
-              child.name.toLowerCase().includes('skull')) {
-            setHeadBone(child);
-            console.log('Using FBX bone for head tracking:', child.name);
-          }
-        }
-      });
-      
-      // Play first available animation
-      if (actions && Object.keys(actions).length > 0) {
-        const firstAction = Object.values(actions)[0];
-        firstAction.play();
-        console.log('Playing FBX animation:', Object.keys(actions)[0]);
-      }
-      
-      // Scale the model appropriately
-      fbx.scale.setScalar(0.01); // Adjust scale as needed
-    }
-  }, [fbx, actions, hasError, modelPath]);
-  
-  // Handle loading errors with a timeout
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (!fbxModel && !hasError) {
-        console.log('FBX loading timeout, switching to fallback');
-        setHasError(true);
-        onError?.(new Error('FBX loading timeout'));
-      }
-    }, 5000); // 5 second timeout
-    
-    return () => clearTimeout(timeout);
-  }, [fbxModel, hasError, onError]);
-  
-  // Mouse tracking animation
+  // Subtle mouse tracking animation for the image
   useFrame(() => {
-    if (headBone && mousePosition && !hasError) {
-      const targetRotationY = (mousePosition.x - 0.5) * 0.5;
-      const targetRotationX = (mousePosition.y - 0.5) * 0.3;
+    if (imageRef.current && mousePosition && imageLoaded) {
+      // Very subtle parallax effect
+      const offsetX = (mousePosition.x - 0.5) * 0.02;
+      const offsetY = (mousePosition.y - 0.5) * 0.02;
       
-      headBone.rotation.y = THREE.MathUtils.lerp(headBone.rotation.y, targetRotationY, 0.1);
-      headBone.rotation.x = THREE.MathUtils.lerp(headBone.rotation.x, -targetRotationX, 0.1);
+      imageRef.current.position.x = THREE.MathUtils.lerp(imageRef.current.position.x, offsetX, 0.1);
+      imageRef.current.position.y = THREE.MathUtils.lerp(imageRef.current.position.y, -offsetY, 0.1);
     }
   });
   
-  if (hasError) {
-    return null; // Let parent handle fallback
-  }
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+    console.log('Avatar fallback image loaded successfully');
+  };
   
-  if (!fbxModel) {
-    return null; // Loading
-  }
+  const handleImageError = () => {
+    setImageError(true);
+    console.log('Avatar fallback image failed to load');
+  };
   
-  return (
-    <group ref={group} position={[0, -1, 0]}>
-      <primitive object={fbxModel} />
-    </group>
-  );
-}
-
-// Fallback Avatar component using basic 3D shapes
-function FallbackAvatar({ mousePosition }) {
-  const headRef = useRef();
-  const bodyRef = useRef();
-  const leftEyeRef = useRef();
-  const rightEyeRef = useRef();
-  
-  // Mouse tracking animation
-  useFrame(() => {
-    if (headRef.current && mousePosition) {
-      // Convert mouse position to rotation
-      const targetRotationY = (mousePosition.x - 0.5) * 0.8;
-      const targetRotationX = (mousePosition.y - 0.5) * 0.4;
-      
-      // Smooth interpolation for head movement
-      headRef.current.rotation.y = THREE.MathUtils.lerp(headRef.current.rotation.y, targetRotationY, 0.1);
-      headRef.current.rotation.x = THREE.MathUtils.lerp(headRef.current.rotation.x, -targetRotationX, 0.1);
-      
-      // Eye tracking (more subtle)
-      if (leftEyeRef.current && rightEyeRef.current) {
-        const eyeRotationY = targetRotationY * 0.3;
-        const eyeRotationX = -targetRotationX * 0.3;
-        
-        leftEyeRef.current.rotation.y = THREE.MathUtils.lerp(leftEyeRef.current.rotation.y, eyeRotationY, 0.15);
-        leftEyeRef.current.rotation.x = THREE.MathUtils.lerp(leftEyeRef.current.rotation.x, eyeRotationX, 0.15);
-        
-        rightEyeRef.current.rotation.y = THREE.MathUtils.lerp(rightEyeRef.current.rotation.y, eyeRotationY, 0.15);
-        rightEyeRef.current.rotation.x = THREE.MathUtils.lerp(rightEyeRef.current.rotation.x, eyeRotationX, 0.15);
-      }
-    }
-    
-    // Add subtle breathing animation to body
-    if (bodyRef.current) {
-      bodyRef.current.scale.y = 1 + Math.sin(Date.now() * 0.001) * 0.02;
-    }
-  });
-  
-  return (
-    <group position={[0, -0.5, 0]}>
-      {/* Body */}
-      <mesh ref={bodyRef} position={[0, -0.8, 0]}>
-        <cylinderGeometry args={[0.4, 0.5, 1.2, 8]} />
-        <meshStandardMaterial color="#4a90e2" />
-      </mesh>
-      
-      {/* Head */}
-      <group ref={headRef} position={[0, 0.3, 0]}>
+  if (imageError) {
+    // Final fallback - simple text message
+    return (
+      <group position={[0, 0, 0]}>
         <mesh>
-          <sphereGeometry args={[0.4, 16, 16]} />
-          <meshStandardMaterial color="#ffdbac" />
-        </mesh>
-        
-        {/* Left Eye */}
-        <group ref={leftEyeRef} position={[-0.15, 0.1, 0.3]}>
-          <mesh>
-            <sphereGeometry args={[0.05, 8, 8]} />
-            <meshStandardMaterial color="#ffffff" />
-          </mesh>
-          <mesh position={[0, 0, 0.02]}>
-            <sphereGeometry args={[0.025, 8, 8]} />
-            <meshStandardMaterial color="#333333" />
-          </mesh>
-        </group>
-        
-        {/* Right Eye */}
-        <group ref={rightEyeRef} position={[0.15, 0.1, 0.3]}>
-          <mesh>
-            <sphereGeometry args={[0.05, 8, 8]} />
-            <meshStandardMaterial color="#ffffff" />
-          </mesh>
-          <mesh position={[0, 0, 0.02]}>
-            <sphereGeometry args={[0.025, 8, 8]} />
-            <meshStandardMaterial color="#333333" />
-          </mesh>
-        </group>
-        
-        {/* Nose */}
-        <mesh position={[0, 0, 0.35]}>
-          <coneGeometry args={[0.03, 0.1, 4]} />
-          <meshStandardMaterial color="#ffdbac" />
-        </mesh>
-        
-        {/* Mouth */}
-        <mesh position={[0, -0.1, 0.35]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[0.08, 0.02, 4, 8, Math.PI]} />
-          <meshStandardMaterial color="#ff6b6b" />
+          <planeGeometry args={[4, 3]} />
+          <meshBasicMaterial color="#667eea" transparent opacity={0.8} />
         </mesh>
       </group>
-      
-      {/* Arms */}
-      <mesh position={[-0.6, -0.3, 0]} rotation={[0, 0, Math.PI / 6]}>
-        <cylinderGeometry args={[0.08, 0.08, 0.8, 8]} />
-        <meshStandardMaterial color="#ffdbac" />
+    );
+  }
+  
+  return (
+    <group ref={imageRef} position={[0, 0, 0]}>
+      <mesh>
+        <planeGeometry args={[3, 4]} />
+        <meshBasicMaterial>
+          <primitive 
+            object={(() => {
+              const loader = new THREE.TextureLoader();
+              const texture = loader.load(
+                '/assets/SavannahAvatar.jpg', // Try JPG first
+                handleImageLoad,
+                undefined,
+                () => {
+                  // If JPG fails, try PNG
+                  const pngTexture = loader.load(
+                    '/assets/SavannahAvatar.png',
+                    handleImageLoad,
+                    undefined,
+                    handleImageError
+                  );
+                  return pngTexture;
+                }
+              );
+              texture.flipY = false;
+              return texture;
+            })()} 
+            attach="map" 
+          />
+        </meshBasicMaterial>
       </mesh>
-      <mesh position={[0.6, -0.3, 0]} rotation={[0, 0, -Math.PI / 6]}>
-        <cylinderGeometry args={[0.08, 0.08, 0.8, 8]} />
-        <meshStandardMaterial color="#ffdbac" />
+      
+      {/* Subtle glow effect around the image */}
+      <mesh position={[0, 0, -0.01]}>
+        <planeGeometry args={[3.2, 4.2]} />
+        <meshBasicMaterial 
+          color="#ffffff" 
+          transparent 
+          opacity={0.1}
+        />
       </mesh>
     </group>
   );
 }
 
-// Main Avatar component that tries GLB first, then FBX, then falls back to simple shapes
+// Main Avatar component - simplified to GLB → Fallback only
 function Avatar({ mousePosition }) {
   const [useGLB, setUseGLB] = useState(true);
-  const [useFBX, setUseFBX] = useState(false);
   const [useFallback, setUseFallback] = useState(false);
   
   const handleGLBError = useCallback((error) => {
-    console.log('GLB failed, trying FBX:', error);
+    console.log('GLB failed, switching to fallback avatar:', error);
     setUseGLB(false);
-    setUseFBX(true);
-  }, []);
-  
-  const handleFBXError = useCallback((error) => {
-    console.log('FBX failed, switching to fallback avatar:', error);
-    setUseFBX(false);
     setUseFallback(true);
   }, []);
   
   if (useFallback) {
-    return <FallbackAvatar mousePosition={mousePosition} />;
-  }
-  
-  if (useFBX) {
-    return (
-      <React.Suspense fallback={<FallbackAvatar mousePosition={mousePosition} />}>
-        <FBXAvatar 
-          mousePosition={mousePosition} 
-          onError={handleFBXError}
-        />
-      </React.Suspense>
-    );
+    return <ImageFallback mousePosition={mousePosition} />;
   }
   
   if (useGLB) {
     return (
-      <React.Suspense fallback={<FallbackAvatar mousePosition={mousePosition} />}>
+      <React.Suspense fallback={<ImageFallback mousePosition={mousePosition} />}>
         <GLBAvatar 
           mousePosition={mousePosition} 
           onError={handleGLBError}
@@ -334,7 +213,7 @@ function Avatar({ mousePosition }) {
     );
   }
   
-  return <FallbackAvatar mousePosition={mousePosition} />;
+  return <ImageFallback mousePosition={mousePosition} />;
 }
 
 // Main Interactive Avatar component
@@ -391,19 +270,35 @@ export default function InteractiveAvatar({ className = "" }) {
         <Avatar mousePosition={mousePosition} />
         
         <OrbitControls
-          enablePan={false}
+          enablePan={true}
           enableZoom={true}
           enableRotate={true}
-          minDistance={3}
-          maxDistance={10}
-          minPolarAngle={Math.PI / 4}
-          maxPolarAngle={Math.PI / 2}
+          minDistance={2}
+          maxDistance={15}
+          minPolarAngle={0}
+          maxPolarAngle={Math.PI}
+          panSpeed={1.0}
+          rotateSpeed={1.0}
+          zoomSpeed={1.0}
+          enableDamping={true}
+          dampingFactor={0.05}
+          screenSpacePanning={true}
+          mouseButtons={{
+            LEFT: THREE.MOUSE.ROTATE,
+            MIDDLE: THREE.MOUSE.DOLLY,
+            RIGHT: THREE.MOUSE.PAN
+          }}
+          touches={{
+            ONE: THREE.TOUCH.ROTATE,
+            TWO: THREE.TOUCH.DOLLY_PAN
+          }}
         />
       </Canvas>
       
       <div className="avatar-info">
         <p>Move your mouse to interact with the avatar</p>
-        <p>Use mouse wheel to zoom, drag to rotate view</p>
+        <p>Left-click + drag: Rotate • Right-click + drag: Pan • Scroll: Zoom</p>
+        <p>Trackpad: One finger drag to rotate • Two finger drag to pan/zoom</p>
       </div>
       
       <style>{`
