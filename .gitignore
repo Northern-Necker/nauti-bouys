@@ -119,3 +119,7 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 node_modules
+!backend/node_modules
+backend/node_modules/*
+!backend/node_modules/node-cache
+!backend/node_modules/node-cache/**
