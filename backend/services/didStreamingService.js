@@ -57,6 +57,10 @@ class DIDStreamingService {
 
   // Watch for inventory changes and refresh cache when updates occur
   startInventoryWatchers() {
+    // Temporarily disable change stream watchers for standalone MongoDB
+    console.log('[Cache] Change stream watchers disabled for standalone MongoDB');
+    return;
+    
     const setupWatcher = (Model, key) => {
       try {
         Model.watch().on('change', () => {

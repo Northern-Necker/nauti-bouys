@@ -329,60 +329,30 @@ ${wines.slice(0, 4).map(formatWine).join('\n')}`;
       dayOfWeek: new Date().toLocaleDateString('en-US', { weekday: 'long' })
     };
 
-    // Build comprehensive prompt for Gemini with real inventory and spirit protection
-    const contextualPrompt = `PATRON CONTEXT:
-Session: ${patronContext.sessionId}
-Conversation Messages: ${patronContext.messageCount}
-Favorite Beverages: ${patronContext.favoriteBeverages}
+    // Build concise prompt for D-ID compatibility
+    const contextualPrompt = `PATRON: "${message}"
 
-RECENT CONVERSATION:
-${patronContext.conversationHistory.map(m => `${m.type}: ${m.content}`).join('\n')}
-
+AVAILABLE INVENTORY (ONLY recommend these exact items):
 ${inventoryText}
 
-SPIRIT PROTECTION ANALYSIS:
-Ultra-Premium Spirits (NEVER for cocktails):
-- Pappy Van Winkle 23 Year ($8000) - SACRED, neat service only
-- Yamazaki 18 Year ($3500) - SACRED, neat service only  
-- Macallan 25 Year ($2500) - SACRED, neat service only
-- Michter's 20 Year ($4500) - SACRED, neat service only
+RESPONSE REQUIREMENTS:
+- Keep responses under 150 words for voice delivery
+- ONLY recommend items from the inventory above
+- Use exact names and prices from inventory
+- Be conversational and friendly
+- Complete your thoughts - don't cut off mid-sentence
+- Ask follow-up questions to continue engagement
 
-Appropriate for Premium Cocktails:
-- Buffalo Trace Bourbon ($25) - Perfect for cocktails
-- Blanton's Single Barrel ($200) - Excellent for special cocktails
-- W.L. Weller 12 Year ($400) - Premium cocktail appropriate
+CURRENT CONTEXT: ${interactionContext.timeOfDay} conversation via D-ID avatar`;
 
-CURRENT CONTEXT:
-Time: ${interactionContext.timeOfDay} on ${interactionContext.dayOfWeek}
-Platform: D-ID Agent with voice interaction
-Interaction Mode: Professional avatar with voice synthesis
-
-PATRON MESSAGE: "${message}"
-
-CRITICAL PROFESSIONAL BARTENDING INSTRUCTIONS - ABSOLUTELY MANDATORY:
-1. You MUST ONLY recommend items from the REAL INVENTORY section above
-2. NEVER create fictional items like "Waterman's Old Fashioned" or "Bay Breeze Signature"
-3. Use the EXACT names and prices provided in the inventory above
-
-**ULTRA-PREMIUM SPIRIT PROTECTION - NON-NEGOTIABLE:**
-4. IMMEDIATELY REFUSE any cocktail requests with spirits over $500
-5. Pappy Van Winkle ($8000), Yamazaki 18+ ($3500), Macallan 25+ ($2500), Michter's 20+ ($4500) are SACRED - NEVER for cocktails
-6. When asked about ultra-premium spirits for cocktails, respond with: "I cannot in good conscience use that exceptional spirit in a cocktail. It deserves to be savored neat to appreciate its full complexity."
-7. ALWAYS suggest appropriate alternatives: Buffalo Trace ($25) or Blanton's ($200) for bourbon cocktails
-8. Show PASSIONATE protective instincts - you are the guardian of these precious spirits
-9. Educate patrons about why certain spirits deserve reverence and proper service
-10. Be UNCOMPROMISING on professional standards - no exceptions for any reason
-11. If patron insists on inappropriate spirit use, firmly refuse and explain your professional duty
-12. Use phrases like "I must protect," "professional duty," "sacred spirit," "proper appreciation"`;
-
-    // Use Gemini 2.5 Flash for fast responses while maintaining professional standards
+    // Use Gemini 2.5 Flash with shorter responses for D-ID compatibility
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.5-flash",
       generationConfig: {
         temperature: 0.8,
         topP: 0.9,
         topK: 40,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 512, // Reduced for D-ID compatibility
       }
     });
 
@@ -392,8 +362,89 @@ CRITICAL PROFESSIONAL BARTENDING INSTRUCTIONS - ABSOLUTELY MANDATORY:
 ${contextualPrompt}`;
 
     console.log(`[D-ID Webhook] Using Gemini 2.5 Flash for professional bartending intelligence`);
-    const result = await model.generateContent(fullPrompt);
-    const aiResponse = result.response.text();
+    console.log(`[D-ID Webhook] Prompt length: ${fullPrompt.length} characters`);
+    
+    let aiResponse;
+    
+    try {
+      const result = await model.generateContent(fullPrompt);
+      const response = await result.response;
+      aiResponse = response.text();
+
+      console.log(`[D-ID Webhook] Raw Gemini response length: ${aiResponse ? aiResponse.length : 0}`);
+      
+      // Validate AI response before saving
+      if (!aiResponse || aiResponse.trim().length === 0) {
+        console.log(`[D-ID Webhook] Empty response detected, using fallback`);
+        // Use fallback response instead of throwing error
+        aiResponse = "I'd be happy to help you with recommendations! Could you tell me what type of beverage you're in the mood for today? Perhaps a cocktail, wine, or something specific you have in mind?";
+        
+        // Store conversation in session with fallback
+        session.addMessage(message, 'user', {
+          platform: 'did_agent',
+          sessionId: sessionId,
+          inputMode: 'voice'
+        });
+        
+        session.addMessage(aiResponse, 'assistant', {
+          platform: 'did_agent',
+          confidence: 0.7,
+          model: 'gemini-2.5-flash',
+          fallback: true
+        });
+
+        await session.save();
+
+        console.log(`[D-ID Webhook] Fallback response used for session ${sessionId}`);
+
+        return res.json({
+          response: aiResponse,
+          emotion: "friendly",
+          actions: [],
+          metadata: {
+            sessionId: session.sessionId,
+            messageCount: session.messages.length,
+            model: 'gemini-2.5-flash-fallback',
+            timestamp: new Date().toISOString()
+          }
+        });
+      }
+    } catch (geminiError) {
+      console.error(`[D-ID Webhook] Gemini API error:`, geminiError);
+      // Use fallback response for API errors too
+      aiResponse = "I apologize, but I'm having trouble connecting to my knowledge base right now. Please try asking me again in a moment, and I'll be happy to help you with beverage recommendations!";
+      
+      // Store conversation in session with error fallback
+      session.addMessage(message, 'user', {
+        platform: 'did_agent',
+        sessionId: sessionId,
+        inputMode: 'voice'
+      });
+      
+      session.addMessage(aiResponse, 'assistant', {
+        platform: 'did_agent',
+        confidence: 0.5,
+        model: 'gemini-2.5-flash',
+        fallback: true,
+        error: true
+      });
+
+      await session.save();
+
+      console.log(`[D-ID Webhook] Error fallback response used for session ${sessionId}`);
+
+      return res.json({
+        response: aiResponse,
+        emotion: "apologetic",
+        actions: [],
+        metadata: {
+          sessionId: session.sessionId,
+          messageCount: session.messages.length,
+          model: 'gemini-2.5-flash-error-fallback',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
 
     // Store conversation in session
     session.addMessage(message, 'user', {
@@ -402,7 +453,7 @@ ${contextualPrompt}`;
       inputMode: 'voice'
     });
     
-    session.addMessage(aiResponse, 'assistant', {
+    session.addMessage(aiResponse.trim(), 'assistant', {
       platform: 'did_agent',
       confidence: 0.9,
       model: 'gemini-2.5-flash'
