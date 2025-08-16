@@ -5,6 +5,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.54.2",
+    "jsdom": "^26.1.0",
     "puppeteer": "^24.16.0",
     "three": "^0.168.0",
     "three-stdlib": "^2.29.11",

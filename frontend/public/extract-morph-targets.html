@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extract Morph Targets from FBX</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .file-input {
+            margin: 20px 0;
+            padding: 10px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .download-btn {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .download-btn:hover {
+            background-color: #0056b3;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Extract Morph Targets from FBX File</h1>
+        <p>This tool extracts morph target names from FBX files to help configure ActorCore lip sync systems.</p>
+        
+        <div class="file-input">
+            <input type="file" id="fbxFile" accept=".fbx" />
+            <p>Select an FBX file to analyze</p>
+        </div>
+        
+        <div id="status"></div>
+        <div id="results" class="results" style="display: none;"></div>
+        
+        <div id="downloadSection" style="display: none;">
+            <button class="download-btn" onclick="downloadJSON()">Download JSON Results</button>
+            <button class="download-btn" onclick="downloadMorphTargetList()">Download Morph Target List</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/FBXLoader.js"></script>
+
+    <script>
+        let analysisResults = null;
+
+        document.getElementById('fbxFile').addEventListener('change', handleFileSelect);
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = type;
+            statusDiv.textContent = message;
+        }
+
+        function showResults(text) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.textContent = text;
+            resultsDiv.style.display = 'block';
+            document.getElementById('downloadSection').style.display = 'block';
+        }
+
+        async function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            showStatus('Loading FBX file...', 'loading');
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('downloadSection').style.display = 'none';
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const loader = new THREE.FBXLoader();
+                
+                loader.parse(arrayBuffer, '', (object) => {
+                    try {
+                        const results = extractMorphTargets(object, file.name);
+                        analysisResults = results;
+                        
+                        const displayText = formatResults(results);
+                        showResults(displayText);
+                        showStatus('Analysis complete!', 'success');
+                        
+                        // Also log to console for easy copying
+                        console.log('=== MORPH TARGET ANALYSIS RESULTS ===');
+                        console.log(JSON.stringify(results, null, 2));
+                        
+                    } catch (error) {
+                        console.error('Error extracting morph targets:', error);
+                        showStatus(`Error extracting morph targets: ${error.message}`, 'error');
+                    }
+                }, undefined, (error) => {
+                    console.error('Error loading FBX:', error);
+                    showStatus(`Error loading FBX file: ${error.message}`, 'error');
+                });
+
+            } catch (error) {
+                console.error('Error reading file:', error);
+                showStatus(`Error reading file: ${error.message}`, 'error');
+            }
+        }
+
+        function extractMorphTargets(object, fileName) {
+            const morphTargets = [];
+            let totalTargets = 0;
+
+            object.traverse((child) => {
+                if (child.isMesh && child.geometry && child.geometry.morphAttributes) {
+                    const morphAttributes = child.geometry.morphAttributes;
+                    
+                    if (morphAttributes.position) {
+                        const morphTargetNames = child.morphTargetDictionary || {};
+                        const morphTargetInfluences = child.morphTargetInfluences || [];
+                        
+                        const targetInfo = [];
+                        for (let i = 0; i < morphAttributes.position.length; i++) {
+                            const targetName = Object.keys(morphTargetNames).find(key => morphTargetNames[key] === i) || `Target_${i}`;
+                            const influence = morphTargetInfluences[i] || 0;
+                            
+                            targetInfo.push({
+                                index: i,
+                                name: targetName,
+                                influence: influence
+                            });
+                        }
+                        
+                        morphTargets.push({
+                            meshName: child.name || 'Unnamed',
+                            targets: targetInfo
+                        });
+                        
+                        totalTargets += targetInfo.length;
+                    }
+                }
+            });
+
+            return {
+                file: fileName,
+                timestamp: new Date().toISOString(),
+                morphTargets: morphTargets,
+                totalMeshesWithMorphTargets: morphTargets.length,
+                totalMorphTargets: totalTargets
+            };
+        }
+
+        function formatResults(results) {
+            let output = `=== MORPH TARGET ANALYSIS ===\n`;
+            output += `File: ${results.file}\n`;
+            output += `Timestamp: ${results.timestamp}\n`;
+            output += `Total meshes with morph targets: ${results.totalMeshesWithMorphTargets}\n`;
+            output += `Total morph targets: ${results.totalMorphTargets}\n\n`;
+
+            if (results.morphTargets.length > 0) {
+                output += `=== DETAILED BREAKDOWN ===\n\n`;
+                
+                results.morphTargets.forEach(mesh => {
+                    output += `Mesh: ${mesh.meshName}\n`;
+                    output += `Morph targets count: ${mesh.targets.length}\n`;
+                    output += `Morph Target Names:\n`;
+                    
+                    mesh.targets.forEach((target, index) => {
+                        output += `  ${index}: ${target.name} (influence: ${target.influence})\n`;
+                    });
+                    output += `\n`;
+                });
+
+                output += `=== ALL MORPH TARGET NAMES ===\n\n`;
+                results.morphTargets.forEach(mesh => {
+                    output += `${mesh.meshName}:\n`;
+                    mesh.targets.forEach(target => {
+                        output += `  - ${target.name}\n`;
+                    });
+                    output += `\n`;
+                });
+            }
+
+            return output;
+        }
+
+        function downloadJSON() {
+            if (!analysisResults) return;
+            
+            const dataStr = JSON.stringify(analysisResults, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'morph-targets-analysis.json';
+            link.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadMorphTargetList() {
+            if (!analysisResults) return;
+            
+            let output = '// ActorCore Morph Target Names\n';
+            output += `// Extracted from: ${analysisResults.file}\n`;
+            output += `// Date: ${analysisResults.timestamp}\n\n`;
+            
+            analysisResults.morphTargets.forEach(mesh => {
+                output += `// ${mesh.meshName} (${mesh.targets.length} targets)\n`;
+                output += `const ${mesh.meshName.replace(/[^a-zA-Z0-9]/g, '_')}_MORPH_TARGETS = [\n`;
+                mesh.targets.forEach(target => {
+                    output += `  "${target.name}",\n`;
+                });
+                output += `];\n\n`;
+            });
+            
+            const dataBlob = new Blob([output], {type: 'text/plain'});
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'actorcore-morph-targets.js';
+            link.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        // Make functions available globally for console access
+        window.extractMorphTargets = extractMorphTargets;
+        window.analysisResults = () => analysisResults;
+    </script>
+</body>
+</html>

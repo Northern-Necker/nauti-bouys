@@ -20,6 +20,7 @@ const FbxViewer = lazy(() => import('./pages/FbxViewer'))
 const InteractiveAvatarPage = lazy(() => import('./pages/InteractiveAvatarPage'))
 const GLBInspectorPage = lazy(() => import('./pages/GLBInspectorPage'))
 const MorphTargetAnalyzerPage = lazy(() => import('./pages/MorphTargetAnalyzerPage'))
+const ActorCoreLipSyncTestPage = lazy(() => import('./pages/ActorCoreLipSyncTestPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 
 function App() {
@@ -71,6 +72,14 @@ function App() {
             element={
               <Suspense fallback={<div>Loading...</div>}>
                 <MorphTargetAnalyzerPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/actorcore-test"
+            element={
+              <Suspense fallback={<div>Loading...</div>}>
+                <ActorCoreLipSyncTestPage />
               </Suspense>
             }
           />
