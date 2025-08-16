@@ -232,10 +232,27 @@ const DIDTalksStreaming = ({
     }
   }, [avatarImageUrl, createPeerConnection, onAgentError, onSessionStart])
 
-  // Send message to AI and create D-ID talk
+  // Send message to AI and stream incremental response
   const sendMessage = useCallback(async (message) => {
     if (!message.trim() || !streamIdRef.current || !sessionIdRef.current || isProcessing) {
       return
+    }
+
+    // Helper to send speech segments to D-ID
+    const speakSegment = async (text) => {
+      if (!text.trim()) return
+      try {
+        await apiCall('/did-streaming/create-talk', {
+          method: 'POST',
+          body: JSON.stringify({
+            streamId: streamIdRef.current,
+            sessionId: sessionIdRef.current,
+            text
+          })
+        })
+      } catch (err) {
+        console.warn('[D-ID Streaming] Failed to send talk segment:', err)
+      }
     }
 
     try {
@@ -253,41 +270,127 @@ const DIDTalksStreaming = ({
       setMessages(prev => [...prev, userMessage])
       setMessageCount(prev => prev + 1)
 
-      // Send to backend for AI processing and D-ID talk creation
-      const response = await apiCall('/did-streaming/send-message', {
-        method: 'POST',
-        body: JSON.stringify({
-          streamId: streamIdRef.current,
-          sessionId: sessionIdRef.current,
-          message: message
-        })
-      })
-
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to process message')
-      }
-
-      // Add AI response to chat
+      // Placeholder for AI response
+      const aiMessageId = Date.now() + 1
       const aiMessage = {
-        id: Date.now() + 1,
+        id: aiMessageId,
         type: 'assistant',
-        content: response.aiResponse,
-        timestamp: new Date(),
-        model: response.model,
-        usage: response.usage
+        content: '',
+        timestamp: new Date()
       }
       setMessages(prev => [...prev, aiMessage])
-      setMessageCount(prev => prev + 1)
 
-      if (onMessage) {
-        onMessage(aiMessage)
+      let fullText = ''
+      let spokenLength = 0
+
+      const finalize = (finalText, meta = {}) => {
+        setMessages(prev =>
+          prev.map(m => m.id === aiMessageId ? { ...m, content: finalText, ...meta } : m)
+        )
+        setMessageCount(prev => prev + 1)
+        if (onMessage) {
+          onMessage({ ...aiMessage, content: finalText, ...meta })
+        }
+        setIsProcessing(false)
+        setIsTyping(false)
+        setIsSpeaking(false)
       }
 
-      console.log('[D-ID Streaming] Message processed successfully')
+      try {
+        const sseUrl =
+          `${API_BASE_URL}/did-streaming/send-message-stream` +
+          `?streamId=${encodeURIComponent(streamIdRef.current)}` +
+          `&sessionId=${encodeURIComponent(sessionIdRef.current)}` +
+          `&message=${encodeURIComponent(message)}`
 
+        const eventSource = new EventSource(sseUrl)
+
+        eventSource.onmessage = async (event) => {
+          if (event.data === '[DONE]') {
+            eventSource.close()
+            if (fullText.length > spokenLength) {
+              await speakSegment(fullText.slice(spokenLength))
+            }
+            finalize(fullText)
+            return
+          }
+
+          let token = event.data
+          try {
+            const parsed = JSON.parse(event.data)
+            token = parsed.token || ''
+          } catch (err) {
+            // Not JSON, use raw token
+          }
+
+          fullText += token
+          setMessages(prev =>
+            prev.map(m => m.id === aiMessageId ? { ...m, content: fullText } : m)
+          )
+
+          if (fullText.length - spokenLength > 40 || /[.!?]\s$/.test(fullText)) {
+            const segment = fullText.slice(spokenLength)
+            await speakSegment(segment)
+            spokenLength = fullText.length
+          }
+        }
+
+        eventSource.onerror = async () => {
+          console.warn('[D-ID Streaming] SSE connection error, falling back to full response')
+          eventSource.close()
+
+          try {
+            const response = await apiCall('/did-streaming/send-message', {
+              method: 'POST',
+              body: JSON.stringify({
+                streamId: streamIdRef.current,
+                sessionId: sessionIdRef.current,
+                message
+              })
+            })
+
+            if (!response.success) {
+              throw new Error(response.message || 'Failed to process message')
+            }
+
+            fullText = response.aiResponse
+            await speakSegment(fullText)
+            finalize(fullText, { model: response.model, usage: response.usage })
+          } catch (fallbackError) {
+            console.error('[D-ID Streaming] Fallback error:', fallbackError)
+            finalize('', {})
+            const errorMessage = {
+              id: Date.now() + 2,
+              type: 'error',
+              content: `I apologize, but I encountered an error: ${fallbackError.message}. Please try again.`,
+              timestamp: new Date()
+            }
+            setMessages(prev => [...prev, errorMessage])
+          }
+        }
+      } catch (streamSetupError) {
+        console.warn('[D-ID Streaming] Streaming not available, using full response mode:', streamSetupError)
+
+        const response = await apiCall('/did-streaming/send-message', {
+          method: 'POST',
+          body: JSON.stringify({
+            streamId: streamIdRef.current,
+            sessionId: sessionIdRef.current,
+            message
+          })
+        })
+
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to process message')
+        }
+
+        fullText = response.aiResponse
+        await speakSegment(fullText)
+        finalize(fullText, { model: response.model, usage: response.usage })
+      }
     } catch (error) {
       console.error('[D-ID Streaming] Send message error:', error)
-      
+
       // Add error message to chat
       const errorMessage = {
         id: Date.now() + 2,
@@ -296,12 +399,11 @@ const DIDTalksStreaming = ({
         timestamp: new Date()
       }
       setMessages(prev => [...prev, errorMessage])
-    } finally {
       setIsProcessing(false)
       setIsTyping(false)
       setIsSpeaking(false)
     }
-  }, [isProcessing, onMessage])
+  }, [API_BASE_URL, apiCall, isProcessing, onMessage])
 
   // Handle form submission
   const handleSubmit = (e) => {
