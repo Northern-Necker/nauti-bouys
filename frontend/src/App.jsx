@@ -18,6 +18,8 @@ import DIDStreamingPage from './pages/DIDStreamingPage'
 import TestDidIntegration from './components/TestDidIntegration'
 const FbxViewer = lazy(() => import('./pages/FbxViewer'))
 const InteractiveAvatarPage = lazy(() => import('./pages/InteractiveAvatarPage'))
+const GLBInspectorPage = lazy(() => import('./pages/GLBInspectorPage'))
+const MorphTargetAnalyzerPage = lazy(() => import('./pages/MorphTargetAnalyzerPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 
 function App() {
@@ -53,6 +55,22 @@ function App() {
             element={
               <Suspense fallback={<div>Loading...</div>}>
                 <InteractiveAvatarPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/glb-inspector"
+            element={
+              <Suspense fallback={<div>Loading...</div>}>
+                <GLBInspectorPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/morph-analyzer"
+            element={
+              <Suspense fallback={<div>Loading...</div>}>
+                <MorphTargetAnalyzerPage />
               </Suspense>
             }
           />
