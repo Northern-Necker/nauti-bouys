@@ -69,7 +69,10 @@ function FbxViewer({ width = 800, height = 400 }) {
             const object = gltf.scene
             console.log('GLB object loaded:', object)
             
-            // Calculate bounding box BEFORE any transformations
+            // CRITICAL FIX #1: Force geometry computation and update matrices
+            object.updateMatrixWorld(true)
+            
+            // Calculate bounding box AFTER matrix updates
             const box = new THREE.Box3().setFromObject(object)
             const size = box.getSize(new THREE.Vector3())
             const center = box.getCenter(new THREE.Vector3())
@@ -77,73 +80,115 @@ function FbxViewer({ width = 800, height = 400 }) {
             console.log('Original model dimensions:', size.x.toFixed(3), size.y.toFixed(3), size.z.toFixed(3))
             console.log('Original model center:', center.x.toFixed(3), center.y.toFixed(3), center.z.toFixed(3))
             
-            // Fix #1: Proper scaling (research shows this is the #1 issue)
-            const maxDim = Math.max(size.x, size.y, size.z)
-            let targetScale = 3.0 // Larger target size for better visibility
-            
-            if (maxDim > 0) {
-              const scaleFactor = targetScale / maxDim
-              object.scale.setScalar(scaleFactor)
-              console.log('Applied scale factor:', scaleFactor.toFixed(3))
+            // CRITICAL FIX #2: Check if model has valid dimensions
+            if (size.x === 0 || size.y === 0 || size.z === 0) {
+              console.error('Model has zero dimensions - this is the visibility issue!')
+              console.log('Forcing visible dimensions...')
+              // Force a visible scale
+              object.scale.setScalar(1.0)
+            } else {
+              // Fix #3: Proper scaling (research shows this is the #1 issue)
+              const maxDim = Math.max(size.x, size.y, size.z)
+              let targetScale = 2.0 // Moderate target size for better visibility
+              
+              if (maxDim > 0) {
+                const scaleFactor = targetScale / maxDim
+                object.scale.setScalar(scaleFactor)
+                console.log('Applied scale factor:', scaleFactor.toFixed(3))
+              }
             }
             
-            // Fix #2: Proper centering (move to origin and adjust for ground)
-            object.position.copy(center).negate()
-            // Adjust Y to place feet on ground (model center is at mid-height)
-            object.position.y = -(center.y - size.y/2) * (targetScale / maxDim)
-            console.log('Centered at:', object.position.x.toFixed(3), object.position.y.toFixed(3), object.position.z.toFixed(3))
+            // CRITICAL FIX #4: Reset position to origin first
+            object.position.set(0, 0, 0)
             
-            // Fix #3: Material visibility fixes (research-based)
+            // Fix #5: Material visibility fixes (research-based)
             let meshCount = 0
+            let hasVisibleMesh = false
             object.traverse((child) => {
               if (child.isMesh) {
                 meshCount++
+                console.log(`Processing mesh: ${child.name || 'unnamed'}, geometry:`, child.geometry)
+                
+                // CRITICAL FIX #6: Force geometry attributes update
+                if (child.geometry) {
+                  child.geometry.computeBoundingBox()
+                  child.geometry.computeBoundingSphere()
+                  child.geometry.computeVertexNormals()
+                }
+                
                 child.castShadow = true
                 child.receiveShadow = true
+                child.frustumCulled = false // CRITICAL: Disable frustum culling
                 
                 if (child.material) {
-                  // Clone to avoid affecting other instances
-                  child.material = child.material.clone()
-                  
-                  // Research shows these fixes work for invisible models:
-                  child.material.side = THREE.DoubleSide // Show both sides
-                  child.material.transparent = false
-                  child.material.opacity = 1.0
-                  
-                  // Research-based fix: Use wireframe for better visibility
-                  if (!child.material.map) {
-                    child.material.wireframe = true
-                    child.material.color = new THREE.Color(0x00ff00) // Bright green wireframe
+                  // CRITICAL FIX #7: Force material to be visible
+                  if (Array.isArray(child.material)) {
+                    child.material.forEach(mat => {
+                      mat.visible = true
+                      mat.side = THREE.DoubleSide
+                      mat.transparent = false
+                      mat.opacity = 1.0
+                      mat.depthTest = true
+                      mat.depthWrite = true
+                      mat.needsUpdate = true
+                    })
                   } else {
-                    // If texture exists, ensure it's visible
-                    child.material.wireframe = false
+                    child.material.visible = true
+                    child.material.side = THREE.DoubleSide
+                    child.material.transparent = false
+                    child.material.opacity = 1.0
+                    child.material.depthTest = true
+                    child.material.depthWrite = true
+                    
+                    // CRITICAL FIX #8: Force bright color for visibility testing
+                    if (child.material.color) {
+                      child.material.color.setHex(0xff0000) // Bright red for visibility
+                    }
+                    
+                    child.material.needsUpdate = true
                   }
                   
-                  child.material.needsUpdate = true
+                  hasVisibleMesh = true
                   console.log(`Fixed material for mesh: ${child.name || 'unnamed'} (${child.material.type})`)
                 }
+                
+                // CRITICAL FIX #9: Force mesh to be visible
+                child.visible = true
               }
             })
             
-            console.log(`Processed ${meshCount} meshes`)
+            console.log(`Processed ${meshCount} meshes, hasVisibleMesh: ${hasVisibleMesh}`)
             
-            // Fix #4: Camera positioning based on model size
-            const distance = targetScale * 1.8 // Closer camera for better visibility
-            camera.position.set(distance, distance * 0.8, distance)
-            camera.lookAt(0, targetScale * 0.3, 0) // Look slightly up at the model
-            controls.target.set(0, targetScale * 0.3, 0)
+            // CRITICAL FIX #10: Force object visibility
+            object.visible = true
+            
+            // Fix #11: Camera positioning - start very close and simple
+            camera.position.set(0, 1, 3) // Simple, close position
+            camera.lookAt(0, 0, 0) // Look at origin
+            controls.target.set(0, 0, 0)
             controls.update()
             
             console.log('Camera positioned at:', camera.position.x.toFixed(2), camera.position.y.toFixed(2), camera.position.z.toFixed(2))
-            console.log('Looking at:', 0, (targetScale * 0.3).toFixed(2), 0)
+            console.log('Looking at origin (0, 0, 0)')
             
+            // CRITICAL FIX #12: Add to scene and force render
             scene.add(object)
+            
+            // Force immediate render to check visibility
+            renderer.render(scene, camera)
+            
             setLoading(false)
             console.log('GLB model loaded and positioned successfully')
             
-            // Start animation loop for GLB model
+            // CRITICAL FIX #13: Enhanced animation loop with debugging
             const animate = () => {
               controls.update()
+              
+              // Debug: Log first few frames
+              if (frameId < 5) {
+                console.log(`Frame ${frameId}: Rendering scene with ${scene.children.length} children`)
+              }
+              
               renderer.render(scene, camera)
               frameId = requestAnimationFrame(animate)
             }
@@ -163,57 +208,99 @@ function FbxViewer({ width = 800, height = 400 }) {
               (object) => {
                 console.log('FBX fallback loaded:', object)
                 
-                // Apply same processing as GLB
+                // CRITICAL FIX: Apply same comprehensive fixes as GLB
+                object.updateMatrixWorld(true)
+                
                 const box = new THREE.Box3().setFromObject(object)
                 const size = box.getSize(new THREE.Vector3())
                 const center = box.getCenter(new THREE.Vector3())
                 
                 console.log('FBX model dimensions:', size.x.toFixed(3), size.y.toFixed(3), size.z.toFixed(3))
                 
-                const maxDim = Math.max(size.x, size.y, size.z)
-                let targetScale = 3.0
-                
-                if (maxDim > 0) {
-                  const scaleFactor = targetScale / maxDim
-                  object.scale.setScalar(scaleFactor)
-                  console.log('FBX scale factor:', scaleFactor.toFixed(3))
+                // Check for zero dimensions
+                if (size.x === 0 || size.y === 0 || size.z === 0) {
+                  console.error('FBX Model has zero dimensions!')
+                  object.scale.setScalar(1.0)
+                } else {
+                  const maxDim = Math.max(size.x, size.y, size.z)
+                  let targetScale = 2.0 // Same as GLB
+                  
+                  if (maxDim > 0) {
+                    const scaleFactor = targetScale / maxDim
+                    object.scale.setScalar(scaleFactor)
+                    console.log('FBX scale factor:', scaleFactor.toFixed(3))
+                  }
                 }
                 
-                object.position.copy(center).negate()
-                object.position.y = -(center.y - size.y/2) * (targetScale / maxDim)
+                // Reset position to origin
+                object.position.set(0, 0, 0)
                 
                 let meshCount = 0
+                let hasVisibleMesh = false
                 object.traverse((child) => {
                   if (child.isMesh) {
                     meshCount++
+                    console.log(`Processing FBX mesh: ${child.name || 'unnamed'}`)
+                    
+                    // Force geometry updates
+                    if (child.geometry) {
+                      child.geometry.computeBoundingBox()
+                      child.geometry.computeBoundingSphere()
+                      child.geometry.computeVertexNormals()
+                    }
+                    
                     child.castShadow = true
                     child.receiveShadow = true
+                    child.frustumCulled = false
+                    child.visible = true
                     
                     if (child.material) {
-                      child.material = child.material.clone()
-                      child.material.side = THREE.DoubleSide
-                      child.material.transparent = false
-                      child.material.opacity = 1.0
-                      
-                      if (!child.material.map) {
-                        child.material.wireframe = true
-                        child.material.color = new THREE.Color(0x00ff00)
+                      // Handle both single and array materials
+                      if (Array.isArray(child.material)) {
+                        child.material.forEach(mat => {
+                          mat.visible = true
+                          mat.side = THREE.DoubleSide
+                          mat.transparent = false
+                          mat.opacity = 1.0
+                          mat.depthTest = true
+                          mat.depthWrite = true
+                          if (mat.color) mat.color.setHex(0x00ff00) // Bright green
+                          mat.needsUpdate = true
+                        })
+                      } else {
+                        child.material.visible = true
+                        child.material.side = THREE.DoubleSide
+                        child.material.transparent = false
+                        child.material.opacity = 1.0
+                        child.material.depthTest = true
+                        child.material.depthWrite = true
+                        
+                        // Force bright color for visibility
+                        if (child.material.color) {
+                          child.material.color.setHex(0x00ff00) // Bright green for FBX
+                        }
+                        
+                        child.material.needsUpdate = true
                       }
                       
-                      child.material.needsUpdate = true
+                      hasVisibleMesh = true
                     }
                   }
                 })
                 
-                console.log(`FBX processed ${meshCount} meshes`)
+                console.log(`FBX processed ${meshCount} meshes, hasVisibleMesh: ${hasVisibleMesh}`)
                 
-                const distance = targetScale * 1.8
-                camera.position.set(distance, distance * 0.8, distance)
-                camera.lookAt(0, targetScale * 0.3, 0)
-                controls.target.set(0, targetScale * 0.3, 0)
+                // Force object visibility
+                object.visible = true
+                
+                // Simple camera positioning
+                camera.position.set(0, 1, 3)
+                camera.lookAt(0, 0, 0)
+                controls.target.set(0, 0, 0)
                 controls.update()
                 
                 scene.add(object)
+                renderer.render(scene, camera) // Force immediate render
                 setLoading(false)
                 console.log('FBX fallback loaded successfully')
                 
