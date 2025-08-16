@@ -9,6 +9,18 @@ const Wine = require('../models/Wine');
 const Beer = require('../models/Beer');
 const Mocktail = require('../models/Mocktail');
 const OtherNonAlcoholic = require('../models/OtherNonAlcoholic');
+let NodeCache;
+try {
+  NodeCache = require('node-cache');
+} catch (err) {
+  // Fallback simple cache if node-cache isn't installed
+  console.warn('node-cache module not found, using basic Map cache');
+  NodeCache = class {
+    constructor() { this.store = new Map(); }
+    get(key) { return this.store.get(key); }
+    set(key, value) { this.store.set(key, value); return true; }
+  };
+}
 
 class DIDStreamingService {
   constructor() {
@@ -16,6 +28,95 @@ class DIDStreamingService {
     this.didApiKey = process.env.DID_API_KEY || 'bWV0b3JiZXJ0QGdtYWlsLmNvbQ:JAn6hh4wQ2TFoOAl-GD4F';
     this.didBaseUrl = process.env.DID_BASE_URL || 'https://api.d-id.com';
     this.activeStreams = new Map(); // Track active D-ID streams
+
+    // Initialize in-memory cache for inventory items
+    this.cache = new NodeCache({ stdTTL: 300, checkperiod: 60 }); // 5 minute TTL
+    this.cacheKeys = {
+      spirits: 'spirits',
+      cocktails: 'cocktails',
+      wines: 'wines'
+    };
+
+    // Set up automatic cache refresh mechanisms
+    this.startInventoryWatchers();
+    this.startCacheRefreshInterval();
+  }
+
+  // Periodically refresh cache to keep data current
+  startCacheRefreshInterval() {
+    const intervalMs = 5 * 60 * 1000; // 5 minutes
+    setInterval(() => {
+      this.refreshInventoryCache().catch(err =>
+        console.warn('[Cache] Refresh error:', err.message)
+      );
+    }, intervalMs);
+  }
+
+  // Watch for inventory changes and refresh cache when updates occur
+  startInventoryWatchers() {
+    const setupWatcher = (Model, key) => {
+      try {
+        Model.watch().on('change', () => {
+          this.refreshCache(key).catch(err =>
+            console.warn(`[Cache] ${key} watcher error:`, err.message)
+          );
+        });
+      } catch (err) {
+        // Change streams may not be available (e.g., non-replicaset)
+        console.warn(`[Cache] Change streams not enabled for ${key}:`, err.message);
+      }
+    };
+
+    setupWatcher(Spirit, this.cacheKeys.spirits);
+    setupWatcher(Cocktail, this.cacheKeys.cocktails);
+    setupWatcher(Wine, this.cacheKeys.wines);
+  }
+
+  // Retrieve inventory data from cache or database
+  async getCachedInventory(key) {
+    let data = this.cache.get(key);
+    if (!data) {
+      data = await this.refreshCache(key);
+    }
+    return data;
+  }
+
+  // Refresh a specific cache entry from the database
+  async refreshCache(key) {
+    let data;
+    switch (key) {
+      case this.cacheKeys.spirits:
+        data = await Spirit.find({ isAvailable: true })
+          .sort({ price: -1 })
+          .limit(15)
+          .lean();
+        break;
+      case this.cacheKeys.cocktails:
+        data = await Cocktail.find({ isAvailable: true })
+          .sort({ averageRating: -1 })
+          .limit(10)
+          .lean();
+        break;
+      case this.cacheKeys.wines:
+        data = await Wine.find({ isAvailable: true })
+          .sort({ averageRating: -1 })
+          .limit(8)
+          .lean();
+        break;
+      default:
+        data = [];
+    }
+    this.cache.set(key, data);
+    return data;
+  }
+
+  // Refresh all inventory caches
+  async refreshInventoryCache() {
+    await Promise.all([
+      this.refreshCache(this.cacheKeys.spirits),
+      this.refreshCache(this.cacheKeys.cocktails),
+      this.refreshCache(this.cacheKeys.wines)
+    ]);
   }
 
   // Smart model selection for optimal cost/performance
@@ -266,11 +367,11 @@ RESPONSE STYLE FOR AVATAR:
         }
       }
 
-      // Get real inventory data
+      // Get real inventory data (with caching)
       const [spirits, cocktails, wines] = await Promise.all([
-        Spirit.find({ isAvailable: true }).sort({ price: -1 }).limit(15).lean(),
-        Cocktail.find({ isAvailable: true }).sort({ averageRating: -1 }).limit(10).lean(),
-        Wine.find({ isAvailable: true }).sort({ averageRating: -1 }).limit(8).lean()
+        this.getCachedInventory(this.cacheKeys.spirits),
+        this.getCachedInventory(this.cacheKeys.cocktails),
+        this.getCachedInventory(this.cacheKeys.wines)
       ]);
 
       // Smart filtering based on message content
