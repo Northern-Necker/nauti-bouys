@@ -1,63 +1,81 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { useFBX, useAnimations, OrbitControls } from '@react-three/drei';
+import { useGLTF, useFBX, useAnimations, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 
-// FBX Avatar component that attempts to load the Grace40s.fbx model
-function FBXAvatar({ mousePosition, onError }) {
+// GLB Avatar component that attempts to load the SavannahAvatar.glb model
+function GLBAvatar({ mousePosition, onError }) {
   const group = useRef();
-  const [fbxModel, setFbxModel] = useState(null);
+  const [glbModel, setGlbModel] = useState(null);
   const [headBone, setHeadBone] = useState(null);
   const [hasError, setHasError] = useState(false);
   
-  // Try to load the FBX model with proper error boundary
-  let fbx = null;
-  let fbxError = null;
-  
-  try {
-    fbx = useFBX('/assets/Grace40s.fbx');
-  } catch (err) {
-    fbxError = err;
-    console.error('FBX loading error:', err);
-  }
-  
-  const { actions } = useAnimations(fbx?.animations || [], group);
+  // Load the GLB model - hooks must be called unconditionally
+  const gltf = useGLTF('/assets/SavannahAvatar.glb');
+  const { actions } = useAnimations(gltf?.animations || [], group);
   
   useEffect(() => {
-    if (fbxError && !hasError) {
-      setHasError(true);
-      onError?.(fbxError);
+    if (!gltf && !hasError) {
+      console.log('GLB model not loaded yet...');
       return;
     }
     
-    if (fbx && !hasError) {
-      console.log('FBX model loaded successfully:', fbx);
-      setFbxModel(fbx);
+    if (gltf && !hasError) {
+      console.log('GLB model loaded successfully:', gltf);
+      setGlbModel(gltf.scene);
       
       // Find head bone for mouse tracking
-      fbx.traverse((child) => {
+      gltf.scene.traverse((child) => {
         if (child.isBone) {
-          console.log('Found bone:', child.name);
+          console.log('Found GLB bone:', child.name);
           if (child.name.toLowerCase().includes('head') || 
               child.name.toLowerCase().includes('neck') ||
               child.name.toLowerCase().includes('skull')) {
             setHeadBone(child);
-            console.log('Using bone for head tracking:', child.name);
+            console.log('Using GLB bone for head tracking:', child.name);
           }
         }
       });
       
-      // Play first available animation
+      // Play first available animation if it exists
       if (actions && Object.keys(actions).length > 0) {
-        const firstAction = Object.values(actions)[0];
-        firstAction.play();
-        console.log('Playing animation:', Object.keys(actions)[0]);
+        const firstActionKey = Object.keys(actions)[0];
+        const firstAction = actions[firstActionKey];
+        if (firstAction && typeof firstAction.play === 'function') {
+          firstAction.play();
+          console.log('Playing GLB animation:', firstActionKey);
+        } else {
+          console.log('GLB animation action not playable:', firstActionKey);
+        }
+      } else {
+        console.log('No GLB animations found');
       }
       
-      // Scale the model appropriately
-      fbx.scale.setScalar(0.01); // Adjust scale as needed
+      // Scale the model appropriately - try different scales to make it visible
+      gltf.scene.scale.setScalar(0.02); // Much smaller scale to fit in view
+      
+      // Center the model
+      gltf.scene.position.set(0, 0, 0);
+      
+      // Log model bounds for debugging
+      const box = new THREE.Box3().setFromObject(gltf.scene);
+      console.log('GLB model bounds:', box);
+      console.log('GLB model size:', box.getSize(new THREE.Vector3()));
     }
-  }, [fbx, actions, fbxError, hasError, onError]);
+  }, [gltf, actions, hasError]);
+  
+  // Handle loading errors with a timeout
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!glbModel && !hasError) {
+        console.log('GLB loading timeout, switching to FBX');
+        setHasError(true);
+        onError?.(new Error('GLB loading timeout'));
+      }
+    }, 5000); // 5 second timeout
+    
+    return () => clearTimeout(timeout);
+  }, [glbModel, hasError, onError]);
   
   // Mouse tracking animation
   useFrame(() => {
@@ -70,7 +88,92 @@ function FBXAvatar({ mousePosition, onError }) {
     }
   });
   
-  if (hasError || fbxError) {
+  if (hasError) {
+    return null; // Let parent handle fallback
+  }
+  
+  if (!glbModel) {
+    return null; // Loading
+  }
+  
+  return (
+    <group ref={group} position={[0, -1, 0]}>
+      <primitive object={glbModel} />
+    </group>
+  );
+}
+
+// FBX Avatar component that attempts to load FBX models as fallback
+function FBXAvatar({ mousePosition, onError, modelPath = '/assets/SavannahAvatar.fbx' }) {
+  const group = useRef();
+  const [fbxModel, setFbxModel] = useState(null);
+  const [headBone, setHeadBone] = useState(null);
+  const [hasError, setHasError] = useState(false);
+  
+  // Load the FBX model - hooks must be called unconditionally
+  const fbx = useFBX(modelPath);
+  const { actions } = useAnimations(fbx?.animations || [], group);
+  
+  useEffect(() => {
+    if (!fbx && !hasError) {
+      console.log('FBX model not loaded yet...');
+      return;
+    }
+    
+    if (fbx && !hasError) {
+      console.log('FBX model loaded successfully:', modelPath, fbx);
+      setFbxModel(fbx);
+      
+      // Find head bone for mouse tracking
+      fbx.traverse((child) => {
+        if (child.isBone) {
+          console.log('Found FBX bone:', child.name);
+          if (child.name.toLowerCase().includes('head') || 
+              child.name.toLowerCase().includes('neck') ||
+              child.name.toLowerCase().includes('skull')) {
+            setHeadBone(child);
+            console.log('Using FBX bone for head tracking:', child.name);
+          }
+        }
+      });
+      
+      // Play first available animation
+      if (actions && Object.keys(actions).length > 0) {
+        const firstAction = Object.values(actions)[0];
+        firstAction.play();
+        console.log('Playing FBX animation:', Object.keys(actions)[0]);
+      }
+      
+      // Scale the model appropriately
+      fbx.scale.setScalar(0.01); // Adjust scale as needed
+    }
+  }, [fbx, actions, hasError, modelPath]);
+  
+  // Handle loading errors with a timeout
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!fbxModel && !hasError) {
+        console.log('FBX loading timeout, switching to fallback');
+        setHasError(true);
+        onError?.(new Error('FBX loading timeout'));
+      }
+    }, 5000); // 5 second timeout
+    
+    return () => clearTimeout(timeout);
+  }, [fbxModel, hasError, onError]);
+  
+  // Mouse tracking animation
+  useFrame(() => {
+    if (headBone && mousePosition && !hasError) {
+      const targetRotationY = (mousePosition.x - 0.5) * 0.5;
+      const targetRotationX = (mousePosition.y - 0.5) * 0.3;
+      
+      headBone.rotation.y = THREE.MathUtils.lerp(headBone.rotation.y, targetRotationY, 0.1);
+      headBone.rotation.x = THREE.MathUtils.lerp(headBone.rotation.x, -targetRotationX, 0.1);
+    }
+  });
+  
+  if (hasError) {
     return null; // Let parent handle fallback
   }
   
@@ -187,12 +290,21 @@ function FallbackAvatar({ mousePosition }) {
   );
 }
 
-// Main Avatar component that tries FBX first, falls back to simple shapes
+// Main Avatar component that tries GLB first, then FBX, then falls back to simple shapes
 function Avatar({ mousePosition }) {
+  const [useGLB, setUseGLB] = useState(true);
+  const [useFBX, setUseFBX] = useState(false);
   const [useFallback, setUseFallback] = useState(false);
+  
+  const handleGLBError = useCallback((error) => {
+    console.log('GLB failed, trying FBX:', error);
+    setUseGLB(false);
+    setUseFBX(true);
+  }, []);
   
   const handleFBXError = useCallback((error) => {
     console.log('FBX failed, switching to fallback avatar:', error);
+    setUseFBX(false);
     setUseFallback(true);
   }, []);
   
@@ -200,14 +312,29 @@ function Avatar({ mousePosition }) {
     return <FallbackAvatar mousePosition={mousePosition} />;
   }
   
-  return (
-    <React.Suspense fallback={<FallbackAvatar mousePosition={mousePosition} />}>
-      <FBXAvatar 
-        mousePosition={mousePosition} 
-        onError={handleFBXError}
-      />
-    </React.Suspense>
-  );
+  if (useFBX) {
+    return (
+      <React.Suspense fallback={<FallbackAvatar mousePosition={mousePosition} />}>
+        <FBXAvatar 
+          mousePosition={mousePosition} 
+          onError={handleFBXError}
+        />
+      </React.Suspense>
+    );
+  }
+  
+  if (useGLB) {
+    return (
+      <React.Suspense fallback={<FallbackAvatar mousePosition={mousePosition} />}>
+        <GLBAvatar 
+          mousePosition={mousePosition} 
+          onError={handleGLBError}
+        />
+      </React.Suspense>
+    );
+  }
+  
+  return <FallbackAvatar mousePosition={mousePosition} />;
 }
 
 // Main Interactive Avatar component
