@@ -341,7 +341,7 @@ RESPONSE STYLE FOR AVATAR:
   }
 
   // Process message with Gemini and create D-ID talk
-  async processMessageAndCreateTalk(streamId, sessionId, message, userId = null) {
+  async processMessageAndCreateTalk(streamId, sessionId, message, userId = null, onToken = null) {
     try {
       console.log('[D-ID Streaming] Processing message:', message.substring(0, 100));
 
@@ -494,8 +494,28 @@ CRITICAL INSTRUCTIONS:
 ${contextualPrompt}`;
 
       console.log('[D-ID Streaming] Using Gemini model:', complexity === 'low' ? 'flash-lite' : 'flash');
-      const result = await model.generateContent(fullPrompt);
-      const aiResponse = result.response.text();
+      const streamResult = await model.generateContentStream(fullPrompt);
+
+      // Forward tokens as they arrive
+      let aiResponse = '';
+      let talkResponse = null;
+      for await (const chunk of streamResult.stream) {
+        const chunkText = chunk.text();
+        if (!chunkText) continue;
+        aiResponse += chunkText;
+        try {
+          if (typeof onToken === 'function') {
+            onToken(chunkText);
+          } else {
+            talkResponse = await this.createTalk(streamId, sessionId, chunkText);
+          }
+        } catch (err) {
+          console.warn('[D-ID Streaming] Token forwarding error:', err.message);
+        }
+      }
+
+      // Wait for final response to get usage metadata
+      const finalResponse = await streamResult.response;
 
       // Store conversation
       conversationSession.addMessage(message, 'user', {
@@ -503,26 +523,16 @@ ${contextualPrompt}`;
         streamId: streamId,
         inputMode: 'voice'
       });
-      
+
       conversationSession.addMessage(aiResponse, 'assistant', {
         platform: 'did_streaming',
         confidence: 0.9,
         model: complexity === 'low' ? 'gemini-2.5-flash-lite' : 'gemini-2.5-flash'
       });
 
-      // Persist conversation and create talk concurrently
-      const [saveResult, talkResponse] = await Promise.all([
-        conversationSession.save().then(() => ({ success: true })).catch(error => ({ success: false, error })),
-        this.createTalk(streamId, sessionId, aiResponse)
-      ]);
+      await conversationSession.save();
 
-      if (!saveResult.success) {
-        console.error('[D-ID Streaming] Conversation save error:', saveResult.error);
-      } else {
-        console.log('[D-ID Streaming] Conversation saved successfully');
-      }
-
-      console.log('[D-ID Streaming] Talk creation result:', talkResponse);
+      console.log('[D-ID Streaming] Message processed and talk created successfully');
 
       return {
         aiResponse,
@@ -530,9 +540,9 @@ ${contextualPrompt}`;
         conversationSession: conversationSession.sessionId,
         model: complexity === 'low' ? 'gemini-2.5-flash-lite' : 'gemini-2.5-flash',
         usage: {
-          inputTokens: result.response.usageMetadata?.promptTokenCount || 0,
-          outputTokens: result.response.usageMetadata?.candidatesTokenCount || 0,
-          totalTokens: result.response.usageMetadata?.totalTokenCount || 0
+          inputTokens: finalResponse.usageMetadata?.promptTokenCount || 0,
+          outputTokens: finalResponse.usageMetadata?.candidatesTokenCount || 0,
+          totalTokens: finalResponse.usageMetadata?.totalTokenCount || 0
         }
       };
 
