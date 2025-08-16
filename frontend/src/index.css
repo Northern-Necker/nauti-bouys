@@ -39,6 +39,11 @@
     animation: sunsetShift 12s ease-in-out infinite;
   }
 
+  .three-canvas {
+    width: 800px;
+    height: 600px;
+  }
+
 }
 
 @layer components {
