@@ -141,7 +141,7 @@ class InventoryContextBuilder {
   /**
    * Build relevant inventory context based on user message
    */
-  async buildRelevantContext(message) {
+  async buildRelevantContext(message, topN = 5) {
     const keywords = this.extractKeywords(message);
     const allInventory = await this.getAllInventory();
     
@@ -155,7 +155,7 @@ class InventoryContextBuilder {
     if (keywords.subcategories.length > 0) {
       keywords.subcategories.forEach(subcat => {
         if (subcat === 'bourbon' || subcat === 'vodka' || subcat === 'gin' || subcat === 'rum' || subcat === 'tequila' || subcat === 'cognac' || subcat === 'scotch') {
-          relevantInventory.primary[subcat] = this.filterSpiritsByType(allInventory.spirits, subcat);
+          relevantInventory.primary[subcat] = this.filterSpiritsByType(allInventory.spirits, subcat).slice(0, topN);
         }
       });
     }
@@ -165,21 +165,21 @@ class InventoryContextBuilder {
       switch (category) {
         case 'spirits':
           if (!Object.keys(relevantInventory.primary).length) {
-            relevantInventory.secondary.spirits = allInventory.spirits.slice(0, 10);
+            relevantInventory.secondary.spirits = allInventory.spirits.slice(0, topN);
           }
           break;
         case 'cocktails':
-          relevantInventory.secondary.cocktails = allInventory.cocktails.slice(0, 8);
+          relevantInventory.secondary.cocktails = allInventory.cocktails.slice(0, topN);
           break;
         case 'wines':
-          relevantInventory.secondary.wines = allInventory.wines.slice(0, 8);
+          relevantInventory.secondary.wines = allInventory.wines.slice(0, topN);
           break;
         case 'beers':
-          relevantInventory.secondary.beers = allInventory.beers.slice(0, 8);
+          relevantInventory.secondary.beers = allInventory.beers.slice(0, topN);
           break;
         case 'nonAlcoholic':
-          relevantInventory.secondary.mocktails = allInventory.mocktails.slice(0, 5);
-          relevantInventory.secondary.nonAlcoholic = allInventory.nonAlcoholic.slice(0, 5);
+          relevantInventory.secondary.mocktails = allInventory.mocktails.slice(0, topN);
+          relevantInventory.secondary.nonAlcoholic = allInventory.nonAlcoholic.slice(0, topN);
           break;
       }
     });
@@ -187,9 +187,9 @@ class InventoryContextBuilder {
     // If no specific matches, provide general selection
     if (!Object.keys(relevantInventory.primary).length && !Object.keys(relevantInventory.secondary).length) {
       relevantInventory.general = {
-        topCocktails: allInventory.cocktails.slice(0, 5),
-        topSpirits: allInventory.spirits.slice(0, 5),
-        topWines: allInventory.wines.slice(0, 3)
+        topCocktails: allInventory.cocktails.slice(0, topN),
+        topSpirits: allInventory.spirits.slice(0, topN),
+        topWines: allInventory.wines.slice(0, topN)
       };
     }
 
@@ -199,7 +199,7 @@ class InventoryContextBuilder {
   /**
    * Format inventory for AI consumption
    */
-  formatInventoryForAI(relevantInventory) {
+  formatInventoryForAI(relevantInventory, topN = 5) {
     let formattedContext = '';
 
     // Format primary matches (most relevant)
@@ -224,7 +224,7 @@ class InventoryContextBuilder {
       formattedContext += '\n*** ADDITIONAL OPTIONS ***\n';
       Object.entries(relevantInventory.secondary).forEach(([category, items]) => {
         formattedContext += `\n${category.toUpperCase()}:\n`;
-        items.slice(0, 5).forEach(item => {
+        items.slice(0, topN).forEach(item => {
           const name = item.brand ? `${item.brand} ${item.name}` : item.name;
           formattedContext += `• ${name} ($${item.price})\n`;
         });
@@ -236,7 +236,7 @@ class InventoryContextBuilder {
       formattedContext += '\n*** FEATURED SELECTIONS ***\n';
       Object.entries(relevantInventory.general).forEach(([category, items]) => {
         formattedContext += `\n${category.replace(/([A-Z])/g, ' $1').toUpperCase()}:\n`;
-        items.forEach(item => {
+        items.slice(0, topN).forEach(item => {
           const name = item.brand ? `${item.brand} ${item.name}` : item.name;
           formattedContext += `• ${name} ($${item.price})\n`;
         });
@@ -249,9 +249,9 @@ class InventoryContextBuilder {
   /**
    * Main method: Build complete context for AI
    */
-  async buildContextForAI(message) {
-    const relevantInventory = await this.buildRelevantContext(message);
-    const formattedInventory = this.formatInventoryForAI(relevantInventory);
+  async buildContextForAI(message, topN = 5) {
+    const relevantInventory = await this.buildRelevantContext(message, topN);
+    const formattedInventory = this.formatInventoryForAI(relevantInventory, topN);
     
     return {
       relevantInventory,
