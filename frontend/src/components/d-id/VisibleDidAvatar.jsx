@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { MessageCircle, Mic, MicOff, Volume2, VolumeX, User, AlertCircle, Phone, Settings, Play, Pause, Video } from 'lucide-react'
+import { getHttpStatusMessage } from '../../utils/httpStatusMessages'
 
 const VisibleDidAvatar = ({ 
   size = 'large', 
@@ -104,7 +105,7 @@ const VisibleDidAvatar = ({
       })
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch avatars: ${response.status}`)
+        throw new Error(`Failed to fetch avatars: ${getHttpStatusMessage(response.status)}`)
       }
 
       const data = await response.json()
@@ -248,7 +249,7 @@ const VisibleDidAvatar = ({
       if (!response.ok) {
         const errorData = await response.text()
         console.error('[D-ID Avatar] API Error Response:', errorData)
-        throw new Error(`D-ID API Error: ${response.status} - ${errorData}`)
+        throw new Error(`D-ID API Error: ${getHttpStatusMessage(response.status)} - ${errorData}`)
       }
 
       const talkData = await response.json()
@@ -273,7 +274,7 @@ const VisibleDidAvatar = ({
       })
 
       if (!response.ok) {
-        throw new Error(`Failed to get talk status: ${response.status}`)
+        throw new Error(`Failed to get talk status: ${getHttpStatusMessage(response.status)}`)
       }
 
       const talkData = await response.json()
@@ -333,7 +334,7 @@ const VisibleDidAvatar = ({
           throw new Error(`Talk generation failed: ${talkData.error?.message || 'Unknown error'}`)
           
         } else if (attempts >= maxAttempts) {
-          throw new Error('Talk generation timeout - please try a shorter message')
+          throw new Error('Talk generation timeout - please try again later')
           
         } else {
           // Continue polling
@@ -388,7 +389,7 @@ const VisibleDidAvatar = ({
 
       if (!response.ok) {
         const errorText = await response.text()
-        throw new Error(errorText || `Webhook failed: ${response.status}`)
+        throw new Error(errorText || `Webhook failed: ${getHttpStatusMessage(response.status)}`)
       }
 
       const data = await response.json()
