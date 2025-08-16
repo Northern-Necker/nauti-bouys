@@ -17,6 +17,7 @@ import NautiBouysDIDAgentPage from './pages/NautiBouysDIDAgentPage'
 import DIDStreamingPage from './pages/DIDStreamingPage'
 import TestDidIntegration from './components/TestDidIntegration'
 const FbxViewer = lazy(() => import('./pages/FbxViewer'))
+const InteractiveAvatarPage = lazy(() => import('./pages/InteractiveAvatarPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 
 function App() {
@@ -44,6 +45,14 @@ function App() {
             element={
               <Suspense fallback={<div>Loading...</div>}>
                 <FbxViewer />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/interactive-avatar"
+            element={
+              <Suspense fallback={<div>Loading...</div>}>
+                <InteractiveAvatarPage />
               </Suspense>
             }
           />
