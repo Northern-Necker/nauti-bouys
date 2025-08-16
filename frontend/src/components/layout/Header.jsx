@@ -32,7 +32,10 @@ const Header = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-8 items-center">
+          <nav
+            className="hidden md:flex space-x-8 items-center"
+            data-testid="desktop-navigation"
+          >
             {navigation.map((item) => {
               const Icon = item.icon
               return (
@@ -84,7 +87,7 @@ const Header = () => {
 
       {/* Mobile Navigation */}
       {isMenuOpen && (
-        <div className="md:hidden">
+        <nav className="md:hidden" aria-expanded={isMenuOpen}>
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t border-teal-100">
             {navigation.map((item) => {
               const Icon = item.icon
@@ -123,7 +126,7 @@ const Header = () => {
               </div>
             </div>
           </div>
-        </div>
+        </nav>
       )}
     </header>
   )
