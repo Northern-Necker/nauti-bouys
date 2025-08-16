@@ -18,162 +18,222 @@ function findFirstExisting(dict, candidates) {
 
 // Build a resolved mapping (once) after you have mesh.morphTargetDictionary
 function resolveActorCoreMap(dict) {
-  // First try named morph targets with comprehensive aliases
+  // Updated mapping based on extracted Unity FBX morph target names
+  // These are the actual morph target names found in SavannahAvatar-Unity.fbx
   let r = {
-    // Jaw controls
+    // Jaw controls - using exact extracted names
     JawOpen:        findFirstExisting(dict, [
-      "CC_Base_Jaw_Open", "Jaw_Open", "jawOpen", "JAW_Open", "JawOpen",
-      "Jaw.Open", "jaw_open", "JawDrop", "jaw_drop", "Jaw Drop"
+      "Jaw_Open", "CC_Base_Jaw_Open", "jawOpen", "JAW_Open", "JawOpen"
+    ]),
+    JawForward:     findFirstExisting(dict, [
+      "Jaw_Forward", "CC_Base_Jaw_Forward", "jawForward", "JawForward"
+    ]),
+    JawLeft:        findFirstExisting(dict, [
+      "Jaw_L", "CC_Base_Jaw_L", "jawLeft", "JawLeft", "Jaw_Left"
+    ]),
+    JawRight:       findFirstExisting(dict, [
+      "Jaw_R", "CC_Base_Jaw_R", "jawRight", "JawRight", "Jaw_Right"
     ]),
     
-    // Basic mouth shapes
+    // Basic mouth shapes - using exact extracted names
     MouthClose:     findFirstExisting(dict, [
-      "CC_Base_Mouth_Close", "Mouth_Close", "mouthClose", "MouthClose",
-      "Mouth.Close", "mouth_close", "Mouth Close"
-    ]),
-    MouthOpen:      findFirstExisting(dict, [
-      "CC_Base_Mouth_Open", "Mouth_Open", "mouthOpen", "MouthOpen",
-      "Mouth.Open", "mouth_open", "Mouth Open"
+      "Mouth_Close", "CC_Base_Mouth_Close", "mouthClose", "MouthClose"
     ]),
     MouthFunnel:    findFirstExisting(dict, [
-      "CC_Base_Mouth_Funnel", "Mouth_Funnel", "mouthFunnel", "MouthFunnel",
-      "Mouth.Funnel", "mouth_funnel", "Mouth Funnel", "MouthO"
+      "Mouth_Funnel", "CC_Base_Mouth_Funnel", "mouthFunnel", "MouthFunnel"
     ]),
     MouthPucker:    findFirstExisting(dict, [
-      "CC_Base_Mouth_Pucker", "Mouth_Pucker", "mouthPucker", "MouthPucker",
-      "Mouth.Pucker", "mouth_pucker", "Mouth Pucker", "MouthKiss"
-    ]),
-    MouthNarrow:    findFirstExisting(dict, [
-      "CC_Base_Mouth_Narrow", "Mouth_Narrow", "mouthNarrow", "MouthNarrow",
-      "Mouth.Narrow", "mouth_narrow", "Mouth Narrow"
-    ]),
-    MouthWide:      findFirstExisting(dict, [
-      "CC_Base_Mouth_Wide", "Mouth_Wide", "mouthWide", "MouthWide",
-      "Mouth.Wide", "mouth_wide", "Mouth Wide", "MouthStretch"
+      "Mouth_Pucker", "CC_Base_Mouth_Pucker", "mouthPucker", "MouthPucker"
     ]),
     
-    // Upper lip controls
+    // Mouth movement - using exact extracted names
+    MouthLeft:      findFirstExisting(dict, [
+      "Mouth_L", "CC_Base_Mouth_L", "mouthLeft", "MouthLeft", "Mouth_Left"
+    ]),
+    MouthRight:     findFirstExisting(dict, [
+      "Mouth_R", "CC_Base_Mouth_R", "mouthRight", "MouthRight", "Mouth_Right"
+    ]),
+    
+    // Upper and lower lip controls - using exact extracted names
     UpperLipUp_L:   findFirstExisting(dict, [
-      "CC_Base_UpperLip_Up_L", "UpperLip_Up_L", "upperLipUp_L", "UpperLipUpL",
-      "UpperLip.Up.L", "upper_lip_up_l", "Upper Lip Up L", "UpperLipRaise_L"
+      "Mouth_Up_Upper_L", "CC_Base_UpperLip_Up_L", "mouthUpperUpLeft", "UpperLipUp_L"
     ]),
     UpperLipUp_R:   findFirstExisting(dict, [
-      "CC_Base_UpperLip_Up_R", "UpperLip_Up_R", "upperLipUp_R", "UpperLipUpR",
-      "UpperLip.Up.R", "upper_lip_up_r", "Upper Lip Up R", "UpperLipRaise_R"
+      "Mouth_Up_Upper_R", "CC_Base_UpperLip_Up_R", "mouthUpperUpRight", "UpperLipUp_R"
     ]),
-    
-    // Lower lip controls
     LowerLipDown_L: findFirstExisting(dict, [
-      "CC_Base_LowerLip_Down_L", "LowerLip_Down_L", "lowerLipDown_L", "LowerLipDownL",
-      "LowerLip.Down.L", "lower_lip_down_l", "Lower Lip Down L", "LowerLipDepress_L"
+      "Mouth_Down_Lower_L", "CC_Base_LowerLip_Down_L", "mouthLowerDownLeft", "LowerLipDown_L"
     ]),
     LowerLipDown_R: findFirstExisting(dict, [
-      "CC_Base_LowerLip_Down_R", "LowerLip_Down_R", "lowerLipDown_R", "LowerLipDownR",
-      "LowerLip.Down.R", "lower_lip_down_r", "Lower Lip Down R", "LowerLipDepress_R"
+      "Mouth_Down_Lower_R", "CC_Base_LowerLip_Down_R", "mouthLowerDownRight", "LowerLipDown_R"
     ]),
     
-    // Mouth corner controls
+    // Mouth corner controls - using exact extracted names
     MouthSmile_L:   findFirstExisting(dict, [
-      "CC_Base_Mouth_Smile_L", "Mouth_Smile_L", "mouthSmile_L", "MouthSmileL",
-      "Mouth.Smile.L", "mouth_smile_l", "Mouth Smile L", "MouthCornerUp_L"
+      "Mouth_Smile_L", "CC_Base_Mouth_Smile_L", "mouthSmileLeft", "MouthSmile_L"
     ]),
     MouthSmile_R:   findFirstExisting(dict, [
-      "CC_Base_Mouth_Smile_R", "Mouth_Smile_R", "mouthSmile_R", "MouthSmileR",
-      "Mouth.Smile.R", "mouth_smile_r", "Mouth Smile R", "MouthCornerUp_R"
+      "Mouth_Smile_R", "CC_Base_Mouth_Smile_R", "mouthSmileRight", "MouthSmile_R"
     ]),
     MouthFrown_L:   findFirstExisting(dict, [
-      "CC_Base_Mouth_Frown_L", "Mouth_Frown_L", "mouthFrown_L", "MouthFrownL",
-      "Mouth.Frown.L", "mouth_frown_l", "Mouth Frown L", "MouthCornerDown_L"
+      "Mouth_Frown_L", "CC_Base_Mouth_Frown_L", "mouthFrownLeft", "MouthFrown_L"
     ]),
     MouthFrown_R:   findFirstExisting(dict, [
-      "CC_Base_Mouth_Frown_R", "Mouth_Frown_R", "mouthFrown_R", "MouthFrownR",
-      "Mouth.Frown.R", "mouth_frown_r", "Mouth Frown R", "MouthCornerDown_R"
+      "Mouth_Frown_R", "CC_Base_Mouth_Frown_R", "mouthFrownRight", "MouthFrown_R"
     ]),
     
-    // Mouth press/compression
+    // Mouth press/compression - using exact extracted names
     MouthPress_L:   findFirstExisting(dict, [
-      "CC_Base_Mouth_Press_L", "Mouth_Press_L", "mouthPress_L", "MouthPressL",
-      "Mouth.Press.L", "mouth_press_l", "Mouth Press L", "MouthCompress_L"
+      "Mouth_Press_L", "CC_Base_Mouth_Press_L", "mouthPressLeft", "MouthPress_L"
     ]),
     MouthPress_R:   findFirstExisting(dict, [
-      "CC_Base_Mouth_Press_R", "Mouth_Press_R", "mouthPress_R", "MouthPressR",
-      "Mouth.Press.R", "mouth_press_r", "Mouth Press R", "MouthCompress_R"
+      "Mouth_Press_R", "CC_Base_Mouth_Press_R", "mouthPressRight", "MouthPress_R"
     ]),
     
-    // Mouth dimples
+    // Mouth dimples - using exact extracted names
     MouthDimple_L:  findFirstExisting(dict, [
-      "CC_Base_Mouth_Dimple_L", "Mouth_Dimple_L", "mouthDimple_L", "MouthDimpleL",
-      "Mouth.Dimple.L", "mouth_dimple_l", "Mouth Dimple L"
+      "Mouth_Dimple_L", "CC_Base_Mouth_Dimple_L", "mouthDimpleLeft", "MouthDimple_L"
     ]),
     MouthDimple_R:  findFirstExisting(dict, [
-      "CC_Base_Mouth_Dimple_R", "Mouth_Dimple_R", "mouthDimple_R", "MouthDimpleR",
-      "Mouth.Dimple.R", "mouth_dimple_r", "Mouth Dimple R"
+      "Mouth_Dimple_R", "CC_Base_Mouth_Dimple_R", "mouthDimpleRight", "MouthDimple_R"
     ]),
     
-    // Mouth shrug
+    // Mouth shrug - using exact extracted names
     MouthShrug_Up:  findFirstExisting(dict, [
-      "CC_Base_Mouth_Shrug_Upper", "Mouth_Shrug_Upper", "mouthShrugUpper", "MouthShrugUp",
-      "Mouth.Shrug.Upper", "mouth_shrug_upper", "Mouth Shrug Upper"
+      "Mouth_Shrug_Upper", "CC_Base_Mouth_Shrug_Upper", "mouthShrugUpper", "MouthShrug_Up"
     ]),
     MouthShrug_Dn:  findFirstExisting(dict, [
-      "CC_Base_Mouth_Shrug_Lower", "Mouth_Shrug_Lower", "mouthShrugLower", "MouthShrugDown",
-      "Mouth.Shrug.Lower", "mouth_shrug_lower", "Mouth Shrug Lower"
+      "Mouth_Shrug_Lower", "CC_Base_Mouth_Shrug_Lower", "mouthShrugLower", "MouthShrug_Dn"
     ]),
     
-    // Cheek controls
-    CheekPuff_L:    findFirstExisting(dict, [
-      "CC_Base_Cheek_Puff_L", "Cheek_Puff_L", "cheekPuff_L", "CheekPuffL",
-      "Cheek.Puff.L", "cheek_puff_l", "Cheek Puff L", "CheekInflate_L"
-    ]),
-    CheekPuff_R:    findFirstExisting(dict, [
-      "CC_Base_Cheek_Puff_R", "Cheek_Puff_R", "cheekPuff_R", "CheekPuffR",
-      "Cheek.Puff.R", "cheek_puff_r", "Cheek Puff R", "CheekInflate_R"
-    ]),
-    
-    // Tongue controls
-    TongueOut:      findFirstExisting(dict, [
-      "CC_Base_Tongue_Out", "Tongue_Out", "tongueOut", "TongueOut",
-      "Tongue.Out", "tongue_out", "Tongue Out", "TongueProtrude"
-    ]),
-    
-    // Eye controls (for expression and WQ viseme)
-    EyeBlink_L:     findFirstExisting(dict, [
-      "CC_Base_Eye_Blink_L", "Eye_Blink_L", "eyeBlink_L", "EyeBlinkL",
-      "Eye.Blink.L", "eye_blink_l", "Eye Blink L", "EyeClose_L"
-    ]),
-    EyeBlink_R:     findFirstExisting(dict, [
-      "CC_Base_Eye_Blink_R", "Eye_Blink_R", "eyeBlink_R", "EyeBlinkR",
-      "Eye.Blink.R", "eye_blink_r", "Eye Blink R", "EyeClose_R"
-    ]),
-    
-    // Lip roll controls (for F/V sounds)
-    MouthRollIn_Up: findFirstExisting(dict, [
-      "CC_Base_Mouth_Roll_In_Upper", "Mouth_Roll_In_Upper", "mouthRollInUpper", "MouthRollInUp",
-      "Mouth.Roll.In.Upper", "mouth_roll_in_upper", "Mouth Roll In Upper", "UpperLipRollIn"
-    ]),
-    MouthRollIn_Lo: findFirstExisting(dict, [
-      "CC_Base_Mouth_Roll_In_Lower", "Mouth_Roll_In_Lower", "mouthRollInLower", "MouthRollInLow",
-      "Mouth.Roll.In.Lower", "mouth_roll_in_lower", "Mouth Roll In Lower", "LowerLipRollIn"
-    ]),
-    
-    // Additional common ActorCore blendshapes
+    // Mouth stretch - using exact extracted names
     MouthStretch_L: findFirstExisting(dict, [
-      "CC_Base_Mouth_Stretch_L", "Mouth_Stretch_L", "mouthStretch_L", "MouthStretchL",
-      "Mouth.Stretch.L", "mouth_stretch_l", "Mouth Stretch L"
+      "Mouth_Stretch_L", "CC_Base_Mouth_Stretch_L", "mouthStretchLeft", "MouthStretch_L"
     ]),
     MouthStretch_R: findFirstExisting(dict, [
-      "CC_Base_Mouth_Stretch_R", "Mouth_Stretch_R", "mouthStretch_R", "MouthStretchR",
-      "Mouth.Stretch.R", "mouth_stretch_r", "Mouth Stretch R"
+      "Mouth_Stretch_R", "CC_Base_Mouth_Stretch_R", "mouthStretchRight", "MouthStretch_R"
     ]),
     
-    // Lip corner pull
-    MouthCornerPull_L: findFirstExisting(dict, [
-      "CC_Base_Mouth_Corner_Pull_L", "Mouth_Corner_Pull_L", "mouthCornerPull_L",
-      "MouthCornerPullL", "Mouth.Corner.Pull.L", "mouth_corner_pull_l"
+    // Cheek controls - using exact extracted names
+    CheekPuff_L:    findFirstExisting(dict, [
+      "Cheek_Puff_L", "CC_Base_Cheek_Puff_L", "cheekPuff", "CheekPuff_L"
     ]),
-    MouthCornerPull_R: findFirstExisting(dict, [
-      "CC_Base_Mouth_Corner_Pull_R", "Mouth_Corner_Pull_R", "mouthCornerPull_R",
-      "MouthCornerPullR", "Mouth.Corner.Pull.R", "mouth_corner_pull_r"
+    CheekPuff_R:    findFirstExisting(dict, [
+      "Cheek_Puff_R", "CC_Base_Cheek_Puff_R", "cheekPuff", "CheekPuff_R"
+    ]),
+    CheekRaise_L:   findFirstExisting(dict, [
+      "Cheek_Raise_L", "CC_Base_Cheek_Raise_L", "cheekSquintLeft", "CheekRaise_L"
+    ]),
+    CheekRaise_R:   findFirstExisting(dict, [
+      "Cheek_Raise_R", "CC_Base_Cheek_Raise_R", "cheekSquintRight", "CheekRaise_R"
+    ]),
+    
+    // Tongue controls - using exact extracted names
+    TongueOut:      findFirstExisting(dict, [
+      "Tongue_Out", "CC_Base_Tongue_Out", "tongueOut", "TongueOut"
+    ]),
+    TongueUp:       findFirstExisting(dict, [
+      "Tongue_Up", "CC_Base_Tongue_Up", "tongueUp", "TongueUp"
+    ]),
+    TongueDown:     findFirstExisting(dict, [
+      "Tongue_Down", "CC_Base_Tongue_Down", "tongueDown", "TongueDown"
+    ]),
+    TongueLeft:     findFirstExisting(dict, [
+      "Tongue_L", "CC_Base_Tongue_L", "tongueLeft", "TongueLeft"
+    ]),
+    TongueRight:    findFirstExisting(dict, [
+      "Tongue_R", "CC_Base_Tongue_R", "tongueRight", "TongueRight"
+    ]),
+    TongueNarrow:   findFirstExisting(dict, [
+      "Tongue_Narrow", "CC_Base_Tongue_Narrow", "tongueNarrow", "TongueNarrow"
+    ]),
+    TongueWide:     findFirstExisting(dict, [
+      "Tongue_Wide", "CC_Base_Tongue_Wide", "tongueWide", "TongueWide"
+    ]),
+    TongueCurl:     findFirstExisting(dict, [
+      "Tongue_Curl", "CC_Base_Tongue_Curl", "tongueCurl", "TongueCurl"
+    ]),
+    
+    // Eye controls - using exact extracted names
+    EyeBlink_L:     findFirstExisting(dict, [
+      "Eye_Blink_L", "CC_Base_Eye_Blink_L", "eyeBlinkLeft", "EyeBlink_L"
+    ]),
+    EyeBlink_R:     findFirstExisting(dict, [
+      "Eye_Blink_R", "CC_Base_Eye_Blink_R", "eyeBlinkRight", "EyeBlink_R"
+    ]),
+    EyeSquint_L:    findFirstExisting(dict, [
+      "Eye_Squint_L", "CC_Base_Eye_Squint_L", "eyeSquintLeft", "EyeSquint_L"
+    ]),
+    EyeSquint_R:    findFirstExisting(dict, [
+      "Eye_Squint_R", "CC_Base_Eye_Squint_R", "eyeSquintRight", "EyeSquint_R"
+    ]),
+    EyeWide_L:      findFirstExisting(dict, [
+      "Eye_Wide_L", "CC_Base_Eye_Wide_L", "eyeWideLeft", "EyeWide_L"
+    ]),
+    EyeWide_R:      findFirstExisting(dict, [
+      "Eye_Wide_R", "CC_Base_Eye_Wide_R", "eyeWideRight", "EyeWide_R"
+    ]),
+    
+    // Eye look controls - using exact extracted names
+    EyeLookUp_L:    findFirstExisting(dict, [
+      "Eye_L_Look_Up", "CC_Base_Eye_L_Look_Up", "eyeLookUpLeft", "EyeLookUp_L"
+    ]),
+    EyeLookUp_R:    findFirstExisting(dict, [
+      "Eye_R_Look_Up", "CC_Base_Eye_R_Look_Up", "eyeLookUpRight", "EyeLookUp_R"
+    ]),
+    EyeLookDown_L:  findFirstExisting(dict, [
+      "Eye_L_Look_Down", "CC_Base_Eye_L_Look_Down", "eyeLookDownLeft", "EyeLookDown_L"
+    ]),
+    EyeLookDown_R:  findFirstExisting(dict, [
+      "Eye_R_Look_Down", "CC_Base_Eye_R_Look_Down", "eyeLookDownRight", "EyeLookDown_R"
+    ]),
+    EyeLookLeft_L:  findFirstExisting(dict, [
+      "Eye_L_Look_L", "CC_Base_Eye_L_Look_L", "eyeLookInLeft", "EyeLookLeft_L"
+    ]),
+    EyeLookLeft_R:  findFirstExisting(dict, [
+      "Eye_R_Look_L", "CC_Base_Eye_R_Look_L", "eyeLookOutRight", "EyeLookLeft_R"
+    ]),
+    EyeLookRight_L: findFirstExisting(dict, [
+      "Eye_L_Look_R", "CC_Base_Eye_L_Look_R", "eyeLookOutLeft", "EyeLookRight_L"
+    ]),
+    EyeLookRight_R: findFirstExisting(dict, [
+      "Eye_R_Look_R", "CC_Base_Eye_R_Look_R", "eyeLookInRight", "EyeLookRight_R"
+    ]),
+    
+    // Brow controls - using exact extracted names
+    BrowRaiseInner_L: findFirstExisting(dict, [
+      "Brow_Raise_Inner_L", "CC_Base_Brow_Raise_Inner_L", "browInnerUp", "BrowRaiseInner_L"
+    ]),
+    BrowRaiseInner_R: findFirstExisting(dict, [
+      "Brow_Raise_Inner_R", "CC_Base_Brow_Raise_Inner_R", "browInnerUp", "BrowRaiseInner_R"
+    ]),
+    BrowRaiseOuter_L: findFirstExisting(dict, [
+      "Brow_Raise_Outer_L", "CC_Base_Brow_Raise_Outer_L", "browOuterUpLeft", "BrowRaiseOuter_L"
+    ]),
+    BrowRaiseOuter_R: findFirstExisting(dict, [
+      "Brow_Raise_Outer_R", "CC_Base_Brow_Raise_Outer_R", "browOuterUpRight", "BrowRaiseOuter_R"
+    ]),
+    BrowDrop_L:     findFirstExisting(dict, [
+      "Brow_Drop_L", "CC_Base_Brow_Drop_L", "browDownLeft", "BrowDrop_L"
+    ]),
+    BrowDrop_R:     findFirstExisting(dict, [
+      "Brow_Drop_R", "CC_Base_Brow_Drop_R", "browDownRight", "BrowDrop_R"
+    ]),
+    
+    // Nose controls - using exact extracted names
+    NoseSneer_L:    findFirstExisting(dict, [
+      "Nose_Sneer_L", "CC_Base_Nose_Sneer_L", "noseSneerLeft", "NoseSneer_L"
+    ]),
+    NoseSneer_R:    findFirstExisting(dict, [
+      "Nose_Sneer_R", "CC_Base_Nose_Sneer_R", "noseSneerRight", "NoseSneer_R"
+    ]),
+    
+    // Lip roll controls (for F/V sounds) - using exact extracted names
+    MouthRollIn_Up: findFirstExisting(dict, [
+      "Mouth_Roll_In_Upper", "CC_Base_Mouth_Roll_In_Upper", "mouthRollUpper", "MouthRollIn_Up"
+    ]),
+    MouthRollIn_Lo: findFirstExisting(dict, [
+      "Mouth_Roll_In_Lower", "CC_Base_Mouth_Roll_In_Lower", "mouthRollLower", "MouthRollIn_Lo"
     ]),
   };
 
