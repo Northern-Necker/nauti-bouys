@@ -8,6 +8,12 @@ class ConversationService {
     this.emotionalState = null
   }
 
+  // Summarize recent conversation messages
+  summarizeConversation(limit = 10) {
+    const recent = this.conversationHistory.slice(-limit)
+    return recent.map(m => `${m.type}: ${m.message}`).join(' | ')
+  }
+
   // Initialize conversation session with patron profiling
   async startSession(userId = null) {
     try {
@@ -149,15 +155,17 @@ class ConversationService {
   // Generate contextual response with patron profiling
   async generateResponse(userMessage, context = {}) {
     try {
+      const contextPayload = { ...context }
+      if (this.patronProfile) contextPayload.patronProfile = this.patronProfile
+      if (this.emotionalState) contextPayload.emotionalState = this.emotionalState
+      if (this.conversationHistory.length) {
+        contextPayload.conversationSummary = this.summarizeConversation(10)
+      }
+
       const response = await apiClient.post('/ia/chat/contextual', {
         message: userMessage,
         sessionId: this.sessionId,
-        context: {
-          patronProfile: this.patronProfile,
-          emotionalState: this.emotionalState,
-          conversationHistory: this.conversationHistory.slice(-10), // Last 10 messages
-          ...context
-        }
+        context: contextPayload
       })
 
       // Store both user message and AI response
