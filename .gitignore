@@ -94,6 +94,8 @@ dist
 # Gatsby files
 .cache/
 public
+!frontend/public/
+!frontend/public/assets/**
 
 # Storybook build outputs
 .out
@@ -119,6 +121,9 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 node_modules
+
+!frontend/public/
+!frontend/public/**
 !backend/node_modules
 backend/node_modules/*
 !backend/node_modules/node-cache

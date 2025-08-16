@@ -1,0 +1,40 @@
+name: Inspect FBX Models
+
+on:
+  push:
+    paths:
+      - '**/*.fbx'
+      - 'scripts/inspectFbxModel.js'
+      - '.github/workflows/inspect-fbx.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  pull_request:
+    paths:
+      - '**/*.fbx'
+      - 'scripts/inspectFbxModel.js'
+      - '.github/workflows/inspect-fbx.yml'
+      - 'package.json'
+      - 'package-lock.json'
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci || npm install
+      - name: Inspect FBX files
+        run: |
+          CHANGED=$(git diff --name-only origin/main...HEAD -- '*.fbx')
+          if [ -z "$CHANGED" ]; then
+            echo 'No FBX files changed.'
+          else
+            for file in $CHANGED; do
+              echo "Inspecting $file"
+              node scripts/inspectFbxModel.js "$file"
+            done
+          fi

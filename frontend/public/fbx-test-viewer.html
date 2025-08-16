@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FBX Model Test Viewer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .viewer-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .viewer-container {
+            width: 100%;
+            height: 500px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin: 10px 0;
+            background: #2a2a2a;
+        }
+        model-viewer {
+            width: 100%;
+            height: 100%;
+            background-color: #2a2a2a;
+        }
+        .info {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error {
+            background: #ffe6e6;
+            color: #d00;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #e6ffe6;
+            color: #060;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .controls {
+            margin: 10px 0;
+        }
+        button {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #357abd;
+        }
+        .status {
+            font-family: monospace;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+        }
+    </style>
+    <!-- Model Viewer Web Component -->
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🎭 FBX Model Test Viewer</h1>
+        
+        <div class="info">
+            <strong>Purpose:</strong> Test the FBX model with a reliable third-party viewer to rule out model issues.
+            <br><strong>Model:</strong> SavannahAvatar.fbx (Grace40s.fbx)
+            <br><strong>Viewer:</strong> Google Model Viewer (supports FBX, GLB, GLTF)
+        </div>
+
+        <!-- Model Viewer Section -->
+        <div class="viewer-section">
+            <h2>📱 Google Model Viewer</h2>
+            <div class="viewer-container">
+                <model-viewer
+                    id="modelViewer"
+                    src="/assets/SavannahAvatar.fbx"
+                    alt="Savannah Avatar 3D Model"
+                    auto-rotate
+                    camera-controls
+                    environment-image="neutral"
+                    shadow-intensity="1"
+                    exposure="1"
+                    loading="eager">
+                    <div slot="progress-bar" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white;">
+                        Loading 3D Model...
+                    </div>
+                </model-viewer>
+            </div>
+            <div class="controls">
+                <button onclick="resetCamera()">Reset Camera</button>
+                <button onclick="toggleAutoRotate()">Toggle Auto-Rotate</button>
+                <button onclick="toggleWireframe()">Toggle Wireframe</button>
+                <button onclick="checkModelInfo()">Model Info</button>
+            </div>
+            <div id="modelStatus" class="status">Ready to load model...</div>
+        </div>
+
+        <!-- Alternative: Three.js Direct Test -->
+        <div class="viewer-section">
+            <h2>🔧 Three.js Direct Test</h2>
+            <div id="threeViewer" class="viewer-container"></div>
+            <div class="controls">
+                <button onclick="loadWithThreeJS()">Load with Three.js</button>
+                <button onclick="toggleThreeWireframe()">Toggle Wireframe</button>
+            </div>
+            <div id="threeStatus" class="status">Click "Load with Three.js" to test...</div>
+        </div>
+
+        <!-- Model Information -->
+        <div class="viewer-section">
+            <h2>📊 Model Information</h2>
+            <div id="modelInfo" class="status">Model info will appear here...</div>
+        </div>
+    </div>
+
+    <script type="module">
+        let threeScene, threeRenderer, threeCamera, threeControls, fbxObject;
+        let autoRotateEnabled = true;
+        let wireframeEnabled = false;
+
+        // Model Viewer Event Listeners
+        const modelViewer = document.getElementById('modelViewer');
+        const modelStatus = document.getElementById('modelStatus');
+
+        modelViewer.addEventListener('load', () => {
+            modelStatus.innerHTML = '✅ Model loaded successfully with Google Model Viewer!';
+            modelStatus.className = 'status success';
+            checkModelInfo();
+        });
+
+        modelViewer.addEventListener('error', (event) => {
+            modelStatus.innerHTML = `❌ Error loading model: ${event.detail.type}\n${event.detail.sourceError || 'Unknown error'}`;
+            modelStatus.className = 'status error';
+            
+            // Try alternative path
+            console.log('Trying alternative path...');
+            modelViewer.src = '/assets/Grace40s.fbx';
+        });
+
+        modelViewer.addEventListener('progress', (event) => {
+            const progress = event.detail.totalProgress;
+            modelStatus.innerHTML = `Loading... ${Math.round(progress * 100)}%`;
+        });
+
+        // Global functions for controls
+        window.resetCamera = () => {
+            modelViewer.resetTurntableRotation();
+            modelViewer.jumpCameraToGoal();
+        };
+
+        window.toggleAutoRotate = () => {
+            autoRotateEnabled = !autoRotateEnabled;
+            modelViewer.autoRotate = autoRotateEnabled;
+        };
+
+        window.toggleWireframe = () => {
+            // Model viewer doesn't support wireframe directly
+            alert('Wireframe mode not available in Model Viewer. Try Three.js viewer below.');
+        };
+
+        window.checkModelInfo = () => {
+            const model = modelViewer.model;
+            if (model) {
+                const info = {
+                    'Model Loaded': '✅ Yes',
+                    'Auto Rotate': autoRotateEnabled ? '✅ Enabled' : '❌ Disabled',
+                    'Camera Controls': '✅ Enabled',
+                    'Shadow': modelViewer.shadowIntensity > 0 ? '✅ Enabled' : '❌ Disabled',
+                    'Environment': modelViewer.environmentImage || 'Default'
+                };
+                
+                document.getElementById('modelInfo').innerHTML = Object.entries(info)
+                    .map(([key, value]) => `${key}: ${value}`)
+                    .join('\n');
+            }
+        };
+
+        // Three.js Direct Implementation
+        window.loadWithThreeJS = async () => {
+            const threeStatus = document.getElementById('threeStatus');
+            const container = document.getElementById('threeViewer');
+            
+            try {
+                threeStatus.innerHTML = 'Loading Three.js and FBX loader...';
+                
+                // Import Three.js modules
+                const THREE = await import('https://unpkg.com/three@0.179.1/build/three.module.js');
+                const { FBXLoader } = await import('https://unpkg.com/three@0.179.1/examples/jsm/loaders/FBXLoader.js');
+                const { OrbitControls } = await import('https://unpkg.com/three@0.179.1/examples/jsm/controls/OrbitControls.js');
+
+                // Clear container
+                container.innerHTML = '';
+
+                // Scene setup
+                threeScene = new THREE.Scene();
+                threeScene.background = new THREE.Color(0x2a2a2a);
+
+                // Camera
+                threeCamera = new THREE.PerspectiveCamera(50, container.offsetWidth / container.offsetHeight, 0.1, 1000);
+                threeCamera.position.set(5, 4, 5);
+
+                // Renderer
+                threeRenderer = new THREE.WebGLRenderer({ antialias: true });
+                threeRenderer.setSize(container.offsetWidth, container.offsetHeight);
+                threeRenderer.shadowMap.enabled = true;
+                threeRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                container.appendChild(threeRenderer.domElement);
+
+                // Controls
+                threeControls = new OrbitControls(threeCamera, threeRenderer.domElement);
+                threeControls.enableDamping = true;
+                threeControls.dampingFactor = 0.05;
+
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0x404040, 1.2);
+                threeScene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+                directionalLight.position.set(5, 10, 5);
+                directionalLight.castShadow = true;
+                threeScene.add(directionalLight);
+
+                // Load FBX
+                threeStatus.innerHTML = 'Loading FBX model...';
+                const loader = new FBXLoader();
+                
+                loader.load(
+                    '/assets/SavannahAvatar.fbx',
+                    (object) => {
+                        threeStatus.innerHTML = '✅ FBX loaded successfully with Three.js!\n\nProcessing model...';
+                        
+                        // Apply same fixes as our viewer
+                        const box = new THREE.Box3().setFromObject(object);
+                        const size = box.getSize(new THREE.Vector3());
+                        const center = box.getCenter(new THREE.Vector3());
+                        
+                        const maxDim = Math.max(size.x, size.y, size.z);
+                        const targetScale = 3.0;
+                        const scaleFactor = targetScale / maxDim;
+                        
+                        object.scale.setScalar(scaleFactor);
+                        object.position.copy(center).negate();
+                        object.position.y = -(center.y - size.y/2) * scaleFactor;
+                        
+                        // Material fixes
+                        let meshCount = 0;
+                        object.traverse((child) => {
+                            if (child.isMesh) {
+                                meshCount++;
+                                child.material = child.material.clone();
+                                child.material.side = THREE.DoubleSide;
+                                child.material.transparent = false;
+                                child.material.opacity = 1.0;
+                                child.material.needsUpdate = true;
+                            }
+                        });
+                        
+                        fbxObject = object;
+                        threeScene.add(object);
+                        
+                        threeStatus.innerHTML = `✅ Model loaded and processed!\n\nMeshes: ${meshCount}\nScale: ${scaleFactor.toFixed(3)}\nDimensions: ${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
+                        threeStatus.className = 'status success';
+                        
+                        // Start animation
+                        animate();
+                    },
+                    (progress) => {
+                        const percent = Math.round((progress.loaded / progress.total) * 100);
+                        threeStatus.innerHTML = `Loading FBX... ${percent}%`;
+                    },
+                    (error) => {
+                        threeStatus.innerHTML = `❌ Error loading FBX: ${error.message}\n\nTrying alternative path...`;
+                        threeStatus.className = 'status error';
+                        
+                        // Try alternative path
+                        loader.load('/assets/Grace40s.fbx', 
+                            (object) => {
+                                threeStatus.innerHTML = '✅ Loaded with alternative path!';
+                                threeStatus.className = 'status success';
+                                threeScene.add(object);
+                                animate();
+                            },
+                            undefined,
+                            (error2) => {
+                                threeStatus.innerHTML = `❌ Failed with both paths:\n1. ${error.message}\n2. ${error2.message}`;
+                            }
+                        );
+                    }
+                );
+
+                function animate() {
+                    requestAnimationFrame(animate);
+                    threeControls.update();
+                    threeRenderer.render(threeScene, threeCamera);
+                }
+
+            } catch (error) {
+                threeStatus.innerHTML = `❌ Error initializing Three.js: ${error.message}`;
+                threeStatus.className = 'status error';
+            }
+        };
+
+        window.toggleThreeWireframe = () => {
+            if (fbxObject) {
+                wireframeEnabled = !wireframeEnabled;
+                fbxObject.traverse((child) => {
+                    if (child.isMesh && child.material) {
+                        child.material.wireframe = wireframeEnabled;
+                        child.material.needsUpdate = true;
+                    }
+                });
+            }
+        };
+
+        // Auto-load model viewer on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (modelStatus.innerHTML === 'Ready to load model...') {
+                    modelStatus.innerHTML = 'Attempting to load model...';
+                }
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

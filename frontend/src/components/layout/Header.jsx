@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Menu, X, User, Calendar, Wine, Coffee, Flame } from 'lucide-react'
+import { Menu, X, User, Calendar, Wine, Coffee, Flame, Settings } from 'lucide-react'
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -14,6 +14,7 @@ const Header = () => {
     { name: 'Spirits', href: '/spirits', icon: Flame },
     { name: 'Calendar', href: '/calendar', icon: Calendar },
     { name: 'IA Assistant', href: '/ia', icon: User },
+    { name: 'Settings', href: '/settings', icon: Settings },
   ]
 
   const isActive = (path) => location.pathname === path

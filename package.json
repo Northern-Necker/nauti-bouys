@@ -1,9 +1,15 @@
 {
+  "scripts": {
+    "test": "cd frontend && npm run test:fbx",
+    "lint": "npm --prefix frontend run lint:fbx"
+  },
   "devDependencies": {
     "@playwright/test": "^1.54.2",
     "puppeteer": "^24.16.0"
   },
   "dependencies": {
-    "axios": "^1.11.0"
+    "axios": "^1.11.0",
+    "openai": "^4.52.1",
+    "three": "^0.166.0"
   }
 }

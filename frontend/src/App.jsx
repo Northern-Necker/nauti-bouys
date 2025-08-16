@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Layout from './components/layout/Layout'
 import HomePage from './pages/HomePage'
@@ -15,6 +16,8 @@ import EnhancedDidAgentPage from './pages/EnhancedDidAgentPage'
 import NautiBouysDIDAgentPage from './pages/NautiBouysDIDAgentPage'
 import DIDStreamingPage from './pages/DIDStreamingPage'
 import TestDidIntegration from './components/TestDidIntegration'
+const FbxViewer = lazy(() => import('./pages/FbxViewer'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 
 function App() {
   return (
@@ -36,6 +39,22 @@ function App() {
           <Route path="/ia/nauti-bouys-agent" element={<NautiBouysDIDAgentPage />} />
           <Route path="/ia/did-streaming" element={<DIDStreamingPage />} />
           <Route path="/test-did" element={<TestDidIntegration />} />
+          <Route
+            path="/fbx-viewer"
+            element={
+              <Suspense fallback={<div>Loading...</div>}>
+                <FbxViewer />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <Suspense fallback={<div>Loading...</div>}>
+                <SettingsPage />
+              </Suspense>
+            }
+          />
         </Routes>
       </Layout>
     </Router>
