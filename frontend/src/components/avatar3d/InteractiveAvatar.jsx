@@ -1,10 +1,92 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { useFBX, useAnimations, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 
-// Simple Avatar component using basic 3D shapes to demonstrate interactivity
-function Avatar({ mousePosition }) {
+// FBX Avatar component that attempts to load the Grace40s.fbx model
+function FBXAvatar({ mousePosition, onError }) {
+  const group = useRef();
+  const [fbxModel, setFbxModel] = useState(null);
+  const [headBone, setHeadBone] = useState(null);
+  const [hasError, setHasError] = useState(false);
+  
+  // Try to load the FBX model with proper error boundary
+  let fbx = null;
+  let fbxError = null;
+  
+  try {
+    fbx = useFBX('/assets/Grace40s.fbx');
+  } catch (err) {
+    fbxError = err;
+    console.error('FBX loading error:', err);
+  }
+  
+  const { actions } = useAnimations(fbx?.animations || [], group);
+  
+  useEffect(() => {
+    if (fbxError && !hasError) {
+      setHasError(true);
+      onError?.(fbxError);
+      return;
+    }
+    
+    if (fbx && !hasError) {
+      console.log('FBX model loaded successfully:', fbx);
+      setFbxModel(fbx);
+      
+      // Find head bone for mouse tracking
+      fbx.traverse((child) => {
+        if (child.isBone) {
+          console.log('Found bone:', child.name);
+          if (child.name.toLowerCase().includes('head') || 
+              child.name.toLowerCase().includes('neck') ||
+              child.name.toLowerCase().includes('skull')) {
+            setHeadBone(child);
+            console.log('Using bone for head tracking:', child.name);
+          }
+        }
+      });
+      
+      // Play first available animation
+      if (actions && Object.keys(actions).length > 0) {
+        const firstAction = Object.values(actions)[0];
+        firstAction.play();
+        console.log('Playing animation:', Object.keys(actions)[0]);
+      }
+      
+      // Scale the model appropriately
+      fbx.scale.setScalar(0.01); // Adjust scale as needed
+    }
+  }, [fbx, actions, fbxError, hasError, onError]);
+  
+  // Mouse tracking animation
+  useFrame(() => {
+    if (headBone && mousePosition && !hasError) {
+      const targetRotationY = (mousePosition.x - 0.5) * 0.5;
+      const targetRotationX = (mousePosition.y - 0.5) * 0.3;
+      
+      headBone.rotation.y = THREE.MathUtils.lerp(headBone.rotation.y, targetRotationY, 0.1);
+      headBone.rotation.x = THREE.MathUtils.lerp(headBone.rotation.x, -targetRotationX, 0.1);
+    }
+  });
+  
+  if (hasError || fbxError) {
+    return null; // Let parent handle fallback
+  }
+  
+  if (!fbxModel) {
+    return null; // Loading
+  }
+  
+  return (
+    <group ref={group} position={[0, -1, 0]}>
+      <primitive object={fbxModel} />
+    </group>
+  );
+}
+
+// Fallback Avatar component using basic 3D shapes
+function FallbackAvatar({ mousePosition }) {
   const headRef = useRef();
   const bodyRef = useRef();
   const leftEyeRef = useRef();
@@ -102,6 +184,29 @@ function Avatar({ mousePosition }) {
         <meshStandardMaterial color="#ffdbac" />
       </mesh>
     </group>
+  );
+}
+
+// Main Avatar component that tries FBX first, falls back to simple shapes
+function Avatar({ mousePosition }) {
+  const [useFallback, setUseFallback] = useState(false);
+  
+  const handleFBXError = useCallback((error) => {
+    console.log('FBX failed, switching to fallback avatar:', error);
+    setUseFallback(true);
+  }, []);
+  
+  if (useFallback) {
+    return <FallbackAvatar mousePosition={mousePosition} />;
+  }
+  
+  return (
+    <React.Suspense fallback={<FallbackAvatar mousePosition={mousePosition} />}>
+      <FBXAvatar 
+        mousePosition={mousePosition} 
+        onError={handleFBXError}
+      />
+    </React.Suspense>
   );
 }
 
