@@ -1,0 +1,208 @@
+{
+  "timestamp": "2025-08-07T15:08:15.269Z",
+  "phase": "Phase 2: Desktop Navigation Testing (Manual)",
+  "testResults": {
+    "serverConnectivity": {
+      "success": true,
+      "statusCode": "200",
+      "status": "Server accessible"
+    },
+    "routeAccessibility": {
+      "/": {
+        "success": true,
+        "statusCode": "200",
+        "responseTime": 61,
+        "status": "Route accessible",
+        "performanceRating": "Excellent"
+      },
+      "/beverages": {
+        "success": true,
+        "statusCode": "200",
+        "responseTime": 69,
+        "status": "Route accessible",
+        "performanceRating": "Excellent"
+      },
+      "/cocktails": {
+        "success": true,
+        "statusCode": "200",
+        "responseTime": 54,
+        "status": "Route accessible",
+        "performanceRating": "Excellent"
+      },
+      "/wines": {
+        "success": true,
+        "statusCode": "200",
+        "responseTime": 54,
+        "status": "Route accessible",
+        "performanceRating": "Excellent"
+      },
+      "/spirits": {
+        "success": true,
+        "statusCode": "200",
+        "responseTime": 46,
+        "status": "Route accessible",
+        "performanceRating": "Excellent"
+      },
+      "/calendar": {
+        "success": true,
+        "statusCode": "200",
+        "responseTime": 49,
+        "status": "Route accessible",
+        "performanceRating": "Excellent"
+      },
+      "/ia": {
+        "success": true,
+        "statusCode": "200",
+        "responseTime": 69,
+        "status": "Route accessible",
+        "performanceRating": "Excellent"
+      },
+      "/login": {
+        "success": true,
+        "statusCode": "200",
+        "responseTime": 60,
+        "status": "Route accessible",
+        "performanceRating": "Excellent"
+      },
+      "/register": {
+        "success": true,
+        "statusCode": "200",
+        "responseTime": 49,
+        "status": "Route accessible",
+        "performanceRating": "Excellent"
+      }
+    },
+    "applicationStructure": {
+      "success": true,
+      "hasReactRoot": true,
+      "hasViteClient": true,
+      "hasMainScript": true,
+      "status": "Application structure analyzed"
+    },
+    "navigationComponents": {
+      "success": true,
+      "validation": {
+        "Home": {
+          "present": true,
+          "status": "Navigation item found"
+        },
+        "Beverages": {
+          "present": true,
+          "status": "Navigation item found"
+        },
+        "Cocktails": {
+          "present": true,
+          "status": "Navigation item found"
+        },
+        "Wines": {
+          "present": true,
+          "status": "Navigation item found"
+        },
+        "Spirits": {
+          "present": true,
+          "status": "Navigation item found"
+        },
+        "Calendar": {
+          "present": true,
+          "status": "Navigation item found"
+        },
+        "IA Assistant": {
+          "present": true,
+          "status": "Navigation item found"
+        },
+        "Login": {
+          "present": true,
+          "status": "Login link found"
+        },
+        "SignUp": {
+          "present": true,
+          "status": "Sign Up link found"
+        }
+      },
+      "status": "Navigation components validated"
+    },
+    "activeStateLogic": {
+      "success": true,
+      "hasIsActiveFunction": true,
+      "hasActiveStateClasses": true,
+      "hasHoverClasses": true,
+      "status": "Active state logic validated"
+    },
+    "loadTesting": {
+      "success": true,
+      "results": [
+        {
+          "route": "/",
+          "averageTime": 46,
+          "maxTime": 48,
+          "responseTimes": [
+            48,
+            47,
+            45,
+            46,
+            43
+          ],
+          "concurrentRequests": 5,
+          "totalTime": 281,
+          "status": "Good"
+        },
+        {
+          "route": "/beverages",
+          "averageTime": 56,
+          "maxTime": 67,
+          "responseTimes": [
+            67,
+            56,
+            49,
+            61,
+            48
+          ],
+          "concurrentRequests": 5,
+          "totalTime": 326,
+          "status": "Good"
+        },
+        {
+          "route": "/cocktails",
+          "averageTime": 59,
+          "maxTime": 79,
+          "responseTimes": [
+            60,
+            79,
+            57,
+            50,
+            49
+          ],
+          "concurrentRequests": 5,
+          "totalTime": 327,
+          "status": "Good"
+        },
+        {
+          "route": "/wines",
+          "averageTime": 54,
+          "maxTime": 64,
+          "responseTimes": [
+            47,
+            64,
+            59,
+            48,
+            50
+          ],
+          "concurrentRequests": 5,
+          "totalTime": 314,
+          "status": "Good"
+        }
+      ],
+      "overallPerformance": 53.75,
+      "status": "Load testing completed"
+    }
+  },
+  "errors": [],
+  "summary": {
+    "totalTestCategories": 6,
+    "passedCategories": 5,
+    "failedCategories": 1,
+    "successRate": "83.3%",
+    "totalErrors": 0,
+    "overallStatus": "PARTIAL PASS"
+  }
+}

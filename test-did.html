@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D-ID API Test - Nauti Bouys</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen py-8">
+        <div class="max-w-4xl mx-auto px-4">
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <!-- Header -->
+                <div class="bg-teal-600 px-6 py-4">
+                    <h1 class="text-2xl font-bold text-white">D-ID API Test</h1>
+                    <p class="text-teal-100 mt-1">Testing D-ID integration for Nauti-Bouys</p>
+                </div>
+
+                <!-- API Key Info -->
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h3 class="text-lg font-semibold mb-2">Configuration</h3>
+                    <div class="text-sm space-y-1">
+                        <div><strong>API Key:</strong> <span id="api-key-display">Loading...</span></div>
+                        <div><strong>Base URL:</strong> https://api.d-id.com</div>
+                        <div><strong>Status:</strong> <span id="config-status">🔄 Checking...</span></div>
+                    </div>
+                </div>
+
+                <!-- Test Buttons -->
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex flex-wrap gap-3">
+                        <button
+                            id="test-connection"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Test API Connection
+                        </button>
+                        
+                        <button
+                            id="create-talk"
+                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Create Test Talk
+                        </button>
+
+                        <button
+                            id="clear-results"
+                            class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                        >
+                            Clear Results
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div id="loading" class="px-6 py-4 border-b border-gray-200 hidden">
+                    <div class="flex items-center">
+                        <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
+                        <span id="loading-text">Processing request...</span>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div id="results" class="px-6 py-4 border-b border-gray-200 hidden">
+                    <div id="result-content" class="rounded-lg p-4">
+                        <!-- Results will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- Generated Video -->
+                <div id="video-container" class="px-6 py-4 hidden">
+                    <h3 class="text-lg font-semibold mb-3">Generated Video</h3>
+                    <div class="bg-gray-100 rounded-lg p-4">
+                        <video
+                            id="generated-video"
+                            controls
+                            class="w-full max-w-lg mx-auto rounded-lg shadow-lg"
+                        >
+                            Your browser does not support video playback.
+                        </video>
+                        
+                        <div class="mt-3 text-center">
+                            <a
+                                id="video-link"
+                                href="#"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+                            >
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                </svg>
+                                Open in New Tab
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Your D-ID API key
+        const API_KEY = 'bWV0b3JiZXJ0QGdtYWlsLmNvbQ:JAn6hh4wQ2TFoOAl-GD4F';
+        const BASE_URL = 'https://api.d-id.com';
+
+        // DOM elements
+        const apiKeyDisplay = document.getElementById('api-key-display');
+        const configStatus = document.getElementById('config-status');
+        const testConnectionBtn = document.getElementById('test-connection');
+        const createTalkBtn = document.getElementById('create-talk');
+        const clearResultsBtn = document.getElementById('clear-results');
+        const loading = document.getElementById('loading');
+        const loadingText = document.getElementById('loading-text');
+        const results = document.getElementById('results');
+        const resultContent = document.getElementById('result-content');
+        const videoContainer = document.getElementById('video-container');
+        const generatedVideo = document.getElementById('generated-video');
+        const videoLink = document.getElementById('video-link');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            apiKeyDisplay.textContent = API_KEY ? `${API_KEY.substring(0, 20)}...` : 'Not configured';
+            configStatus.textContent = API_KEY ? '✅ Configured' : '❌ Missing';
+        });
+
+        // Show loading state
+        function showLoading(text = 'Processing request...') {
+            loadingText.textContent = text;
+            loading.classList.remove('hidden');
+            testConnectionBtn.disabled = true;
+            createTalkBtn.disabled = true;
+        }
+
+        // Hide loading state
+        function hideLoading() {
+            loading.classList.add('hidden');
+            testConnectionBtn.disabled = false;
+            createTalkBtn.disabled = false;
+        }
+
+        // Show results
+        function showResults(content, type = 'info') {
+            const bgClass = type === 'success' ? 'bg-green-50 border-green-200' :
+                           type === 'error' ? 'bg-red-50 border-red-200' :
+                           'bg-yellow-50 border-yellow-200';
+            
+            const textClass = type === 'success' ? 'text-green-800' :
+                             type === 'error' ? 'text-red-800' :
+                             'text-yellow-800';
+
+            resultContent.className = `rounded-lg p-4 border ${bgClass}`;
+            resultContent.innerHTML = `<div class="${textClass}">${content}</div>`;
+            results.classList.remove('hidden');
+        }
+
+        // Clear results
+        function clearResults() {
+            results.classList.add('hidden');
+            videoContainer.classList.add('hidden');
+        }
+
+        // Test API connection
+        async function testApiConnection() {
+            showLoading('Testing D-ID API connection...');
+            
+            try {
+                console.log('Testing D-ID API with key:', API_KEY.substring(0, 10) + '...');
+                
+                const response = await fetch(`${BASE_URL}/voices`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Authorization': `Basic ${API_KEY}`
+                    }
+                });
+
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API Error:', errorText);
+                    throw new Error(`API Error: ${response.status} - ${errorText}`);
+                }
+
+                const voices = await response.json();
+                console.log('Voices response:', voices);
+
+                const content = `
+                    <h4 class="font-semibold mb-2">✅ Connection Successful!</h4>
+                    <p class="mb-2">D-ID API is responding correctly.</p>
+                    <div class="text-sm space-y-1">
+                        <div><strong>Available Voices:</strong> ${voices.length || 0}</div>
+                        <div><strong>Response Time:</strong> < 2 seconds</div>
+                        <div><strong>API Status:</strong> Active</div>
+                    </div>
+                    ${voices.slice(0, 3).map(voice => 
+                        `<div class="mt-2 text-xs bg-white bg-opacity-50 p-2 rounded">${voice.voice_id} - ${voice.language_code} (${voice.gender})</div>`
+                    ).join('')}
+                `;
+                
+                showResults(content, 'success');
+
+            } catch (error) {
+                console.error('Connection test failed:', error);
+                showResults(`
+                    <h4 class="font-semibold mb-2">❌ Connection Failed</h4>
+                    <p class="mb-2">Unable to connect to D-ID API.</p>
+                    <div class="text-sm">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                    <div class="mt-2 text-xs">
+                        <strong>Troubleshooting:</strong>
+                        <ul class="list-disc list-inside mt-1">
+                            <li>Check API key validity</li>
+                            <li>Verify internet connection</li>
+                            <li>Check CORS policy</li>
+                        </ul>
+                    </div>
+                `, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Create test talk
+        async function createTestTalk() {
+            showLoading('Creating D-ID talk...');
+            
+            try {
+                const talkPayload = {
+                    source_url: 'https://create-images-results.d-id.com/google-oauth2%7C113462408773423948924/upl_rRD1brbcRmHHnkTp_Y49oQ/image.jpeg',
+                    script: {
+                        type: 'text',
+                        subtitles: 'false',
+                        provider: {
+                            type: 'microsoft',
+                            voice_id: 'en-US-JennyNeural'
+                        },
+                        input: 'Ahoy! Welcome to Nauti Bouys! I am your AI assistant, ready to help you navigate your maritime adventures. How can I assist you today?'
+                    },
+                    config: {
+                        fluent: true,
+                        pad_audio: 0,
+                        stitch: true
+                    }
+                };
+
+                console.log('Creating talk with payload:', talkPayload);
+
+                const response = await fetch(`${BASE_URL}/talks`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'Authorization': `Basic ${API_KEY}`
+                    },
+                    body: JSON.stringify(talkPayload)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Talk creation error:', errorText);
+                    throw new Error(`Talk creation failed: ${response.status} - ${errorText}`);
+                }
+
+                const talkResponse = await response.json();
+                console.log('Talk created:', talkResponse);
+
+                showResults(`
+                    <h4 class="font-semibold mb-2">🎬 Talk Created Successfully!</h4>
+                    <p class="mb-2">D-ID is generating your avatar video...</p>
+                    <div class="text-sm space-y-1">
+                        <div><strong>Talk ID:</strong> ${talkResponse.id}</div>
+                        <div><strong>Status:</strong> <span id="talk-status">Processing...</span></div>
+                        <div><strong>Estimated Time:</strong> 30-60 seconds</div>
+                    </div>
+                `, 'info');
+
+                // Start polling for completion
+                if (talkResponse.id) {
+                    pollTalkStatus(talkResponse.id);
+                }
+
+            } catch (error) {
+                console.error('Talk creation failed:', error);
+                showResults(`
+                    <h4 class="font-semibold mb-2">❌ Talk Creation Failed</h4>
+                    <p class="mb-2">Unable to create D-ID talk.</p>
+                    <div class="text-sm">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `, 'error');
+                hideLoading();
+            }
+        }
+
+        // Poll talk status
+        async function pollTalkStatus(talkId) {
+            let attempts = 0;
+            const maxAttempts = 30;
+
+            const poll = async () => {
+                try {
+                    attempts++;
+                    showLoading(`Checking video generation... (${attempts}/${maxAttempts})`);
+                    
+                    const response = await fetch(`${BASE_URL}/talks/${talkId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Authorization': `Basic ${API_KEY}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Status check failed: ${response.status}`);
+                    }
+
+                    const status = await response.json();
+                    console.log(`Talk status (attempt ${attempts}):`, status);
+
+                    // Update status display
+                    const statusElement = document.getElementById('talk-status');
+                    if (statusElement) {
+                        statusElement.textContent = status.status;
+                    }
+
+                    if (status.status === 'done' && status.result_url) {
+                        hideLoading();
+                        showResults(`
+                            <h4 class="font-semibold mb-2">🎉 Video Generated Successfully!</h4>
+                            <p class="mb-2">Your Nauti Bouys avatar is ready!</p>
+                            <div class="text-sm space-y-1">
+                                <div><strong>Talk ID:</strong> ${talkId}</div>
+                                <div><strong>Status:</strong> Completed</div>
+                                <div><strong>Generation Time:</strong> ${attempts * 2} seconds</div>
+                            </div>
+                        `, 'success');
+
+                        // Show video
+                        generatedVideo.src = status.result_url;
+                        videoLink.href = status.result_url;
+                        videoContainer.classList.remove('hidden');
+                        return;
+                    }
+
+                    if (status.status === 'error') {
+                        throw new Error(`Video generation failed: ${status.error || 'Unknown error'}`);
+                    }
+
+                    if (attempts < maxAttempts && status.status !== 'done') {
+                        setTimeout(poll, 2000); // Poll every 2 seconds
+                    } else if (attempts >= maxAttempts) {
+                        throw new Error('Video generation timeout - please try again');
+                    }
+
+                } catch (error) {
+                    console.error('Polling error:', error);
+                    hideLoading();
+                    showResults(`
+                        <h4 class="font-semibold mb-2">⏰ Generation Timeout</h4>
+                        <p class="mb-2">Video generation is taking longer than expected.</p>
+                        <div class="text-sm">
+                            <strong>Error:</strong> ${error.message}
+                        </div>
+                        <div class="mt-2 text-xs">
+                            You can try creating another talk or check the D-ID dashboard.
+                        </div>
+                    `, 'error');
+                }
+            };
+
+            poll();
+        }
+
+        // Event listeners
+        testConnectionBtn.addEventListener('click', testApiConnection);
+        createTalkBtn.addEventListener('click', createTestTalk);
+        clearResultsBtn.addEventListener('click', clearResults);
+
+        // Disable CORS for testing (add this info to results)
+        console.log('D-ID Test Page Loaded');
+        console.log('If you see CORS errors, you may need to:');
+        console.log('1. Use a CORS proxy');
+        console.log('2. Disable CORS in browser (for testing only)');
+        console.log('3. Run this through a development server');
+    </script>
+</body>
+</html>

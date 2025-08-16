@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  body {
+    @apply bg-gradient-to-br from-sand-50 via-oyster-100 to-bay-50 text-gray-900;
+    background-attachment: fixed;
+  }
+
+  /* Modern Bay glassmorphism backdrop support */
+  .glass-bg {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background: rgba(248, 246, 240, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  /* Chesapeake Bay wave pattern overlay */
+  .bay-pattern {
+    background-image: 
+      radial-gradient(circle at 25% 25%, rgba(74, 144, 164, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 75% 75%, rgba(212, 165, 116, 0.06) 0%, transparent 50%);
+  }
+
+  /* Natural bay gradient backgrounds */
+  .bay-gradient {
+    background: linear-gradient(135deg, 
+      rgba(74, 144, 164, 0.95) 0%,   /* bay blue */
+      rgba(135, 197, 216, 0.9) 25%,  /* lighter bay */
+      rgba(212, 165, 116, 0.8) 75%,  /* sunset */
+      rgba(245, 230, 211, 0.9) 100%  /* sand */
+    );
+    background-size: 400% 400%;
+    animation: sunsetShift 12s ease-in-out infinite;
+  }
+
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-gradient-to-r from-bay-500 to-bay-600 hover:from-bay-600 hover:to-bay-700 text-white font-semibold py-3 px-6 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl;
+  }
+  
+  .btn-secondary {
+    @apply glass-bg text-bay-700 font-semibold py-3 px-6 rounded-full transition-all duration-300 transform hover:scale-105 border border-white/30 backdrop-blur-sm hover:backdrop-blur-md;
+  }
+
+  .btn-floating {
+    @apply fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-sunset-400 to-sunset-500 text-white rounded-full shadow-2xl hover:shadow-sunset-500/25 transition-all duration-300 animate-dock-float z-50;
+  }
+  
+  .card {
+    @apply glass-bg rounded-2xl shadow-xl p-6 border border-white/30 backdrop-blur-sm hover:backdrop-blur-md transition-all duration-300;
+  }
+
+  .card-bay {
+    @apply bg-gradient-to-br from-white/90 to-oyster-100/80 rounded-2xl shadow-2xl p-8 border border-white/40 backdrop-blur-lg hover:shadow-bay-200/30 transition-all duration-500 hover:scale-[1.02];
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-3 glass-bg rounded-xl focus:outline-none focus:ring-2 focus:ring-bay-400 focus:border-transparent backdrop-blur-sm border border-white/30 placeholder-bay-400;
+  }
+
+  .hero-section {
+    @apply relative overflow-hidden;
+    background: linear-gradient(135deg, 
+      rgba(74, 144, 164, 0.98) 0%,   /* bay blue */
+      rgba(135, 197, 216, 0.95) 30%, /* lighter bay */
+      rgba(177, 188, 201, 0.9) 60%,  /* driftwood */
+      rgba(212, 165, 116, 0.95) 100% /* sunset */
+    );
+    background-size: 400% 400%;
+    animation: sunsetShift 15s ease-in-out infinite;
+  }
+
+  .hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+      radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.12) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 50%);
+    opacity: 0.8;
+    animation: bayWave 4s ease-in-out infinite;
+  }
+
+  .bay-text-gradient {
+    @apply bg-gradient-to-r from-bay-600 via-bay-500 to-sunset-500 bg-clip-text text-transparent;
+  }
+
+  .waterfront-section {
+    @apply relative bg-gradient-to-b from-sand-50 via-oyster-100 to-bay-50 bay-pattern;
+  }
+
+  /* Pool deck inspired styling */
+  .deck-section {
+    @apply bg-gradient-to-br from-driftwood-100 via-oyster-200 to-sand-100;
+  }
+
+  /* Marsh grass inspired elements */
+  .marsh-accent {
+    @apply text-marsh-500 animate-gentle-sway;
+  }
+
+  /* Chesapeake Bay specific components */
+  .skipjack-nav {
+    @apply bg-white/95 backdrop-blur-md border-b border-white/20 shadow-lg;
+  }
+
+  .crab-icon {
+    @apply text-sunset-500 animate-bay-pulse;
+  }
+
+  .oyster-card {
+    @apply bg-gradient-to-br from-oyster-50 to-oyster-100 border border-oyster-200 shadow-lg hover:shadow-xl transition-all duration-300;
+  }
+
+  /* Dock-inspired floating elements */
+  .dock-float-element {
+    @apply animate-dock-float opacity-70 hover:opacity-100 transition-opacity duration-300;
+  }
+
+  /* Bay water ripple effect */
+  .bay-ripple {
+    @apply animate-bay-wave;
+  }
+
+  /* Sunset hour styling */
+  .golden-hour {
+    @apply bg-gradient-to-r from-sunset-300 via-sunset-400 to-sand-300 text-sunset-900;
+  }
+}

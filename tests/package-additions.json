@@ -1,0 +1,36 @@
+{
+  "description": "Additional dependencies needed for test automation",
+  "devDependencies": {
+    "vitest": "^2.1.8",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/user-event": "^14.5.2",
+    "jsdom": "^25.0.1",
+    "@vitest/coverage-v8": "^2.1.8",
+    "@playwright/test": "^1.49.1",
+    "axe-core": "^4.10.2",
+    "@axe-core/playwright": "^4.10.2"
+  },
+  "scripts": {
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
+    "test:ui": "vitest --ui",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:install": "playwright install"
+  },
+  "installation_commands": [
+    "cd /mnt/c/nauti-bouys/frontend",
+    "npm install --save-dev vitest @testing-library/react @testing-library/jest-dom @testing-library/user-event jsdom @vitest/coverage-v8",
+    "npm install --save-dev @playwright/test axe-core @axe-core/playwright",
+    "npx playwright install"
+  ],
+  "setup_commands": [
+    "Add test scripts to frontend/package.json",
+    "Copy vitest.config.js to frontend/",
+    "Copy tests/ directory structure",
+    "Run npm run test to verify setup"
+  ]
+}

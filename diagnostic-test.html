@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D-ID Agent Diagnostic Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">D-ID Agent Diagnostic Test</h1>
+        
+        <!-- Test 1: Direct URL Access -->
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="text-xl font-semibold mb-4">Test 1: Direct URL Access</h2>
+            <p class="mb-4">Click this link to test your D-ID agent URL directly:</p>
+            <a 
+                href="https://studio.d-id.com/agents/share?id=v2_agt_AYiJdoSm&utm_source=copy&key=WjI5dloyeGxNVzloZFhSb01ud3hNRGN5T0RjMk5qY3pPRGs1TkRjME9EVTBORFU2VlZJeGRVOUlTMU5QV1ZCVVZuQm1iVW81TlhSbw=="
+                target="_blank"
+                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+                🔗 Open D-ID Agent in New Tab
+            </a>
+            <div id="direct-test-result" class="mt-4 p-3 bg-gray-100 rounded text-sm"></div>
+        </div>
+
+        <!-- Test 2: iframe with Error Handling -->
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="text-xl font-semibold mb-4">Test 2: Iframe Integration</h2>
+            <div class="relative">
+                <iframe
+                    id="agent-iframe"
+                    src="https://studio.d-id.com/agents/share?id=v2_agt_AYiJdoSm&utm_source=copy&key=WjI5dloyeGxNVzloZFhSb01ud3hNRGN5T0RjMk5qY3pPRGs1TkRjME9EVTRORFU2VlZJeGRVOUlTMU5QV1ZCVVZuQm1iVW81TlhSbw=="
+                    width="100%"
+                    height="400"
+                    frameborder="0"
+                    allow="camera; microphone; autoplay"
+                    class="border rounded"
+                ></iframe>
+                <div id="iframe-loading" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90">
+                    <div class="text-center">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                        <p>Loading agent...</p>
+                    </div>
+                </div>
+            </div>
+            <div id="iframe-status" class="mt-4 p-3 bg-gray-100 rounded text-sm"></div>
+        </div>
+
+        <!-- Test 3: Network Diagnostics -->
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="text-xl font-semibold mb-4">Test 3: Network Diagnostics</h2>
+            <button 
+                onclick="runNetworkTests()"
+                class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            >
+                🔍 Run Network Tests
+            </button>
+            <div id="network-results" class="mt-4 space-y-2"></div>
+        </div>
+
+        <!-- Test 4: Browser Compatibility -->
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4">Test 4: Browser Information</h2>
+            <div id="browser-info" class="space-y-2 text-sm"></div>
+        </div>
+    </div>
+
+    <script>
+        console.log('=== D-ID Agent Diagnostic Test Started ===');
+        
+        // Browser Information
+        function displayBrowserInfo() {
+            const info = document.getElementById('browser-info');
+            info.innerHTML = `
+                <div><strong>User Agent:</strong> ${navigator.userAgent}</div>
+                <div><strong>Browser:</strong> ${getBrowserName()}</div>
+                <div><strong>Platform:</strong> ${navigator.platform}</div>
+                <div><strong>Language:</strong> ${navigator.language}</div>
+                <div><strong>Cookies Enabled:</strong> ${navigator.cookieEnabled}</div>
+                <div><strong>Online:</strong> ${navigator.onLine}</div>
+                <div><strong>Screen Resolution:</strong> ${screen.width}x${screen.height}</div>
+                <div><strong>Viewport:</strong> ${window.innerWidth}x${window.innerHeight}</div>
+            `;
+        }
+
+        function getBrowserName() {
+            const ua = navigator.userAgent;
+            if (ua.includes('Chrome')) return 'Chrome';
+            if (ua.includes('Firefox')) return 'Firefox';
+            if (ua.includes('Safari')) return 'Safari';
+            if (ua.includes('Edge')) return 'Edge';
+            return 'Unknown';
+        }
+
+        // iframe Testing
+        const iframe = document.getElementById('agent-iframe');
+        const loadingDiv = document.getElementById('iframe-loading');
+        const statusDiv = document.getElementById('iframe-status');
+        
+        let iframeLoadTimeout;
+        let loadStartTime = Date.now();
+
+        // Set timeout for iframe loading
+        iframeLoadTimeout = setTimeout(() => {
+            const loadTime = Date.now() - loadStartTime;
+            statusDiv.innerHTML = `<div class="text-red-600">❌ <strong>Timeout Error:</strong> Agent failed to load after ${loadTime}ms</div>
+            <div class="text-gray-600 mt-2">Possible causes:</div>
+            <ul class="text-gray-600 ml-4 list-disc">
+                <li>Network connectivity issues</li>
+                <li>D-ID agent URL is invalid or expired</li>
+                <li>Browser blocking iframe content</li>
+                <li>Firewall or security software interference</li>
+            </ul>`;
+        }, 15000); // 15 second timeout
+
+        iframe.onload = function() {
+            const loadTime = Date.now() - loadStartTime;
+            clearTimeout(iframeLoadTimeout);
+            loadingDiv.style.display = 'none';
+            statusDiv.innerHTML = `<div class="text-green-600">✅ <strong>Success:</strong> Agent loaded in ${loadTime}ms</div>`;
+            console.log('iframe loaded successfully');
+        };
+
+        iframe.onerror = function(error) {
+            const loadTime = Date.now() - loadStartTime;
+            clearTimeout(iframeLoadTimeout);
+            loadingDiv.style.display = 'none';
+            statusDiv.innerHTML = `<div class="text-red-600">❌ <strong>Error:</strong> Failed to load agent after ${loadTime}ms</div>
+            <div class="text-gray-600 mt-2">Error details: ${error.toString()}</div>`;
+            console.error('iframe error:', error);
+        };
+
+        // Network Tests
+        async function runNetworkTests() {
+            const resultsDiv = document.getElementById('network-results');
+            resultsDiv.innerHTML = '<div class="text-blue-600">Running network tests...</div>';
+            
+            const tests = [];
+
+            // Test 1: Basic connectivity
+            tests.push(testConnectivity('Google', 'https://www.google.com'));
+            tests.push(testConnectivity('D-ID Domain', 'https://studio.d-id.com'));
+            
+            const results = await Promise.all(tests);
+            
+            resultsDiv.innerHTML = results.map(result => 
+                `<div class="${result.success ? 'text-green-600' : 'text-red-600'}">${result.message}</div>`
+            ).join('');
+        }
+
+        async function testConnectivity(name, url) {
+            try {
+                const startTime = Date.now();
+                const response = await fetch(url, { 
+                    method: 'HEAD', 
+                    mode: 'no-cors',
+                    timeout: 5000 
+                });
+                const endTime = Date.now();
+                return {
+                    success: true,
+                    message: `✅ ${name}: Reachable (${endTime - startTime}ms)`
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    message: `❌ ${name}: ${error.message}`
+                };
+            }
+        }
+
+        // Message handling
+        window.addEventListener('message', function(event) {
+            console.log('Message received:', event);
+            if (event.origin === 'https://studio.d-id.com') {
+                statusDiv.innerHTML += `<div class="text-blue-600 mt-2">📨 Message from agent: ${JSON.stringify(event.data)}</div>`;
+            }
+        });
+
+        // Initialize
+        window.addEventListener('load', function() {
+            displayBrowserInfo();
+            console.log('Page loaded, iframe should start loading...');
+        });
+
+        // Console logging for debugging
+        console.log('Agent URL:', iframe.src);
+        console.log('Browser:', getBrowserName());
+        console.log('User Agent:', navigator.userAgent);
+    </script>
+</body>
+</html>

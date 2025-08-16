@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nauti-Bouys D-ID Embedded Agent Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen py-8">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-teal-600 to-blue-600 px-8 py-6">
+                    <h1 class="text-3xl font-bold text-white">Nauti-Bouys AI Assistant</h1>
+                    <p class="text-teal-100 mt-2">Your Maritime AI Assistant with D-ID Avatar Integration</p>
+                </div>
+
+                <!-- Agent Container -->
+                <div class="px-8 py-6">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Chat with Your Maritime AI Assistant</h2>
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <!-- D-ID Embedded Agent -->
+                        <div id="d-id-agent-container" class="w-full">
+                            <iframe
+                                id="d-id-agent"
+                                src="https://studio.d-id.com/agents/share?id=v2_agt_AYiJdoSm&utm_source=copy&key=WjI5dloyeGxNVzloZFhSb01ud3hNRGN5T0RjMk5qY3pPRGs1TkRjME9EVTBORFU2VlZJeGRVOUlTMU5QV1ZCVVZuQm1iVW81TlhSbw=="
+                                width="100%"
+                                height="600"
+                                frameborder="0"
+                                allow="camera; microphone; autoplay"
+                                class="rounded-lg shadow-lg border-2 border-teal-200"
+                            ></iframe>
+                        </div>
+                    </div>
+
+                    <!-- Instructions -->
+                    <div class="mt-6 bg-teal-50 border border-teal-200 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-teal-800 mb-3">🎯 How to Use Your Maritime AI Assistant</h3>
+                        <div class="space-y-2 text-teal-700">
+                            <p class="flex items-start">
+                                <span class="font-semibold mr-2">1.</span>
+                                <span>Click the microphone button in the avatar window to start voice chat</span>
+                            </p>
+                            <p class="flex items-start">
+                                <span class="font-semibold mr-2">2.</span>
+                                <span>Ask about cocktails, wines, spirits, or make reservations</span>
+                            </p>
+                            <p class="flex items-start">
+                                <span class="font-semibold mr-2">3.</span>
+                                <span>The avatar will respond with lip-synced speech and animations</span>
+                            </p>
+                            <p class="flex items-start">
+                                <span class="font-semibold mr-2">4.</span>
+                                <span>You can also type your questions if preferred</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Sample Questions -->
+                    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-blue-800 mb-3">🗣️ Sample Questions to Try</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <h4 class="font-medium text-blue-700">🍹 Cocktails & Drinks</h4>
+                                <div class="text-sm text-blue-600 space-y-1">
+                                    <p>"What's your signature maritime cocktail?"</p>
+                                    <p>"Can you recommend a rum-based drink?"</p>
+                                    <p>"What cocktails pair well with seafood?"</p>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <h4 class="font-medium text-blue-700">🍷 Wines & Spirits</h4>
+                                <div class="text-sm text-blue-600 space-y-1">
+                                    <p>"Show me your premium bourbon selection"</p>
+                                    <p>"What wines go well with crab cakes?"</p>
+                                    <p>"Do you have any nautical-themed spirits?"</p>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <h4 class="font-medium text-blue-700">📅 Reservations</h4>
+                                <div class="text-sm text-blue-600 space-y-1">
+                                    <p>"I'd like to make a reservation for tonight"</p>
+                                    <p>"What are your waterfront seating options?"</p>
+                                    <p>"Do you have private dining areas?"</p>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <h4 class="font-medium text-blue-700">ℹ️ General Information</h4>
+                                <div class="text-sm text-blue-600 space-y-1">
+                                    <p>"Tell me about Nauti-Bouys Bar"</p>
+                                    <p>"What are your hours and location?"</p>
+                                    <p>"What makes your bar unique?"</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Technical Info -->
+                    <div class="mt-6 bg-gray-100 rounded-lg p-4">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-2">🔧 Technical Information</h4>
+                        <div class="text-xs text-gray-600 space-y-1">
+                            <p><strong>Agent ID:</strong> v2_agt_AYiJdoSm</p>
+                            <p><strong>Integration:</strong> D-ID Embedded Agent with Real-time Lip Sync</p>
+                            <p><strong>Features:</strong> Voice Chat, Text Chat, Animated Avatar, Maritime Knowledge Base</p>
+                            <p><strong>Browser Support:</strong> Chrome, Firefox, Safari, Edge (microphone permission required for voice chat)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Agent interaction logging
+        console.log('Nauti-Bouys D-ID Embedded Agent loaded');
+        
+        // Listen for iframe load
+        document.getElementById('d-id-agent').onload = function() {
+            console.log('D-ID Agent iframe loaded successfully');
+        };
+
+        // Optional: Handle iframe communication (if D-ID provides postMessage API)
+        window.addEventListener('message', function(event) {
+            if (event.origin === 'https://studio.d-id.com') {
+                console.log('Message from D-ID Agent:', event.data);
+                // Handle agent events here if needed
+            }
+        });
+
+        // Responsive iframe handling
+        function adjustIframeHeight() {
+            const iframe = document.getElementById('d-id-agent');
+            const container = document.getElementById('d-id-agent-container');
+            
+            // Adjust height based on screen size
+            if (window.innerWidth < 768) {
+                iframe.height = '500'; // Smaller height for mobile
+            } else {
+                iframe.height = '600'; // Full height for desktop
+            }
+        }
+
+        // Adjust on load and resize
+        window.addEventListener('load', adjustIframeHeight);
+        window.addEventListener('resize', adjustIframeHeight);
+
+        // Page analytics (optional)
+        console.log('Page loaded at:', new Date().toISOString());
+        console.log('User Agent:', navigator.userAgent);
+        console.log('Screen Resolution:', window.screen.width + 'x' + window.screen.height);
+    </script>
+</body>
+</html>

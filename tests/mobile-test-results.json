@@ -1,0 +1,73 @@
+npm warn exec The following package was not found and will be installed: playwright@1.54.2
+{
+  "config": {
+    "rootDir": "/mnt/c/nauti-bouys",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/mnt/c/nauti-bouys/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "",
+        "name": "",
+        "testDir": "/mnt/c/nauti-bouys",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.54.2",
+    "workers": 4,
+    "webServer": null
+  },
+  "suites": [],
+  "errors": [
+    {
+      "message": "Error: Cannot find module '@playwright/test'\nRequire stack:\n- /mnt/c/nauti-bouys/tests/mobile-navigation.test.js\n- /home/mike/.npm/_npx/e41f203b7505f1fb/node_modules/playwright/lib/transform/transform.js\n- /home/mike/.npm/_npx/e41f203b7505f1fb/node_modules/playwright/lib/common/configLoader.js\n- /home/mike/.npm/_npx/e41f203b7505f1fb/node_modules/playwright/lib/program.js\n- /home/mike/.npm/_npx/e41f203b7505f1fb/node_modules/playwright/cli.js",
+      "stack": "Error: Cannot find module '@playwright/test'\nRequire stack:\n- /mnt/c/nauti-bouys/tests/mobile-navigation.test.js\n- /home/mike/.npm/_npx/e41f203b7505f1fb/node_modules/playwright/lib/transform/transform.js\n- /home/mike/.npm/_npx/e41f203b7505f1fb/node_modules/playwright/lib/common/configLoader.js\n- /home/mike/.npm/_npx/e41f203b7505f1fb/node_modules/playwright/lib/program.js\n- /home/mike/.npm/_npx/e41f203b7505f1fb/node_modules/playwright/cli.js\n    at Object.<anonymous> (/mnt/c/nauti-bouys/tests/mobile-navigation.test.js:7:35)",
+      "location": {
+        "file": "/mnt/c/nauti-bouys/tests/mobile-navigation.test.js",
+        "column": 35,
+        "line": 7
+      },
+      "snippet": "\u001b[90m   at \u001b[39mtests/mobile-navigation.test.js:7\n\n   5 |  */\n   6 |\n>  7 | const { test, expect, devices } = require('@playwright/test');\n     |                                   ^\n   8 |\n   9 | // Mobile device configurations\n  10 | const mobileDevices = ["
+    },
+    {
+      "message": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments.",
+      "stack": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments."
+    }
+  ],
+  "stats": {
+    "startTime": "2025-08-07T15:11:46.569Z",
+    "duration": 1692.826,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

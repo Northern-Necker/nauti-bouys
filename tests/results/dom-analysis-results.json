@@ -1,0 +1,207 @@
+{
+  "timestamp": "2025-08-07T16:04:36.720Z",
+  "application_status": {
+    "frontend_accessible": true,
+    "backend_accessible": false
+  },
+  "route_testing": [
+    {
+      "test": "Frontend Application Accessible",
+      "status": "PASS",
+      "details": "Status: 200",
+      "timestamp": "2025-08-07T16:04:39.359Z"
+    },
+    {
+      "test": "Backend API Accessible",
+      "status": "FAIL",
+      "details": "connect ECONNREFUSED 127.0.0.1:3001",
+      "timestamp": "2025-08-07T16:04:39.364Z"
+    },
+    {
+      "test": "Route / accessible",
+      "status": "PASS",
+      "details": "Status: 200, Content-Type: text/html",
+      "timestamp": "2025-08-07T16:04:39.585Z"
+    },
+    {
+      "test": "Route /beverages accessible",
+      "status": "PASS",
+      "details": "Status: 200, Content-Type: text/html",
+      "timestamp": "2025-08-07T16:04:39.629Z"
+    },
+    {
+      "test": "Route /cocktails accessible",
+      "status": "PASS",
+      "details": "Status: 200, Content-Type: text/html",
+      "timestamp": "2025-08-07T16:04:39.669Z"
+    },
+    {
+      "test": "Route /wines accessible",
+      "status": "PASS",
+      "details": "Status: 200, Content-Type: text/html",
+      "timestamp": "2025-08-07T16:04:39.711Z"
+    },
+    {
+      "test": "Route /spirits accessible",
+      "status": "PASS",
+      "details": "Status: 200, Content-Type: text/html",
+      "timestamp": "2025-08-07T16:04:39.758Z"
+    },
+    {
+      "test": "Route /calendar accessible",
+      "status": "PASS",
+      "details": "Status: 200, Content-Type: text/html",
+      "timestamp": "2025-08-07T16:04:39.780Z"
+    },
+    {
+      "test": "Route /ia accessible",
+      "status": "PASS",
+      "details": "Status: 200, Content-Type: text/html",
+      "timestamp": "2025-08-07T16:04:39.814Z"
+    },
+    {
+      "test": "Route /login accessible",
+      "status": "PASS",
+      "details": "Status: 200, Content-Type: text/html",
+      "timestamp": "2025-08-07T16:04:39.844Z"
+    },
+    {
+      "test": "Route /register accessible",
+      "status": "PASS",
+      "details": "Status: 200, Content-Type: text/html",
+      "timestamp": "2025-08-07T16:04:39.899Z"
+    }
+  ],
+  "dom_analysis": [
+    {
+      "route": "/",
+      "analysis": {
+        "route": "/",
+        "navigation_links": 0,
+        "buttons": 0,
+        "forms": 0,
+        "inputs": 0,
+        "interactive_elements": []
+      },
+      "timestamp": "2025-08-07T16:04:39.585Z"
+    },
+    {
+      "route": "/beverages",
+      "analysis": {
+        "route": "/beverages",
+        "navigation_links": 0,
+        "buttons": 0,
+        "forms": 0,
+        "inputs": 0,
+        "interactive_elements": []
+      },
+      "timestamp": "2025-08-07T16:04:39.629Z"
+    },
+    {
+      "route": "/cocktails",
+      "analysis": {
+        "route": "/cocktails",
+        "navigation_links": 0,
+        "buttons": 0,
+        "forms": 0,
+        "inputs": 0,
+        "interactive_elements": []
+      },
+      "timestamp": "2025-08-07T16:04:39.670Z"
+    },
+    {
+      "route": "/wines",
+      "analysis": {
+        "route": "/wines",
+        "navigation_links": 0,
+        "buttons": 0,
+        "forms": 0,
+        "inputs": 0,
+        "interactive_elements": []
+      },
+      "timestamp": "2025-08-07T16:04:39.712Z"
+    },
+    {
+      "route": "/spirits",
+      "analysis": {
+        "route": "/spirits",
+        "navigation_links": 0,
+        "buttons": 0,
+        "forms": 0,
+        "inputs": 0,
+        "interactive_elements": []
+      },
+      "timestamp": "2025-08-07T16:04:39.758Z"
+    },
+    {
+      "route": "/calendar",
+      "analysis": {
+        "route": "/calendar",
+        "navigation_links": 0,
+        "buttons": 0,
+        "forms": 0,
+        "inputs": 0,
+        "interactive_elements": []
+      },
+      "timestamp": "2025-08-07T16:04:39.780Z"
+    },
+    {
+      "route": "/ia",
+      "analysis": {
+        "route": "/ia",
+        "navigation_links": 0,
+        "buttons": 0,
+        "forms": 0,
+        "inputs": 0,
+        "interactive_elements": []
+      },
+      "timestamp": "2025-08-07T16:04:39.815Z"
+    },
+    {
+      "route": "/login",
+      "analysis": {
+        "route": "/login",
+        "navigation_links": 0,
+        "buttons": 0,
+        "forms": 0,
+        "inputs": 0,
+        "interactive_elements": []
+      },
+      "timestamp": "2025-08-07T16:04:39.844Z"
+    },
+    {
+      "route": "/register",
+      "analysis": {
+        "route": "/register",
+        "navigation_links": 0,
+        "buttons": 0,
+        "forms": 0,
+        "inputs": 0,
+        "interactive_elements": []
+      },
+      "timestamp": "2025-08-07T16:04:39.899Z"
+    }
+  ],
+  "api_endpoints": [],
+  "navigation_structure": {
+    "total_routes_tested": 9,
+    "accessible_routes": 9,
+    "total_interactive_elements": 0,
+    "pages_with_forms": 0,
+    "pages_with_buttons": 0
+  },
+  "failures": [
+    {
+      "test": "Backend API Accessible",
+      "status": "FAIL",
+      "details": "connect ECONNREFUSED 127.0.0.1:3001",
+      "timestamp": "2025-08-07T16:04:39.364Z"
+    }
+  ],
+  "summary": {
+    "total_tests": 11,
+    "passed": 10,
+    "failed": 1,
+    "success_rate": "90.91"
+  }
+}

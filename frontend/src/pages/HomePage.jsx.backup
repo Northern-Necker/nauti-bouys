@@ -1,0 +1,171 @@
+import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import { ChevronRight, Calendar, MessageCircle, Wine, Sparkles } from 'lucide-react'
+import DrinkSlider from '../components/drinks/DrinkSlider'
+import IAAvatar from '../components/common/IAAvatar'
+
+const HomePage = () => {
+  const [upcomingEvents, setUpcomingEvents] = useState([
+    {
+      id: 1,
+      title: "Wine Tasting Friday",
+      date: "2024-08-09",
+      time: "7:00 PM",
+      description: "Explore premium wines from the Pacific Coast"
+    },
+    {
+      id: 2,
+      title: "Cocktail Masterclass",
+      date: "2024-08-12",
+      time: "6:30 PM", 
+      description: "Learn to craft signature cocktails with our expert mixologist"
+    },
+    {
+      id: 3,
+      title: "Beer Garden Social",
+      date: "2024-08-15",
+      time: "5:00 PM",
+      description: "Casual evening featuring local craft beers and live music"
+    }
+  ])
+
+  return (
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section className="relative bg-gradient-to-br from-teal-600 via-teal-700 to-teal-800 text-white py-20 px-4">
+        <div className="max-w-7xl mx-auto text-center">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6">
+            Welcome to <span className="text-teal-200">Nauti Bouys</span>
+          </h1>
+          <p className="text-xl md:text-2xl mb-8 text-teal-100 max-w-3xl mx-auto">
+            Discover exceptional beverages, make reservations, and chat with our intelligent assistant
+            for personalized recommendations and seamless experiences.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link
+              to="/beverages"
+              className="bg-white text-teal-700 hover:bg-teal-50 font-semibold py-3 px-8 rounded-lg transition-colors duration-200 flex items-center"
+            >
+              <Wine className="h-5 w-5 mr-2" />
+              Explore Beverages
+              <ChevronRight className="h-5 w-5 ml-2" />
+            </Link>
+            <Link
+              to="/calendar"
+              className="bg-teal-500 hover:bg-teal-400 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200 flex items-center"
+            >
+              <Calendar className="h-5 w-5 mr-2" />
+              Make Reservation
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Available Drinks Slider Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Available Today
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Discover our curated selection of premium beverages, continuously updated 
+              with new arrivals and seasonal favorites.
+            </p>
+          </div>
+          <DrinkSlider />
+        </div>
+      </section>
+
+      {/* IA Avatar Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="flex items-center mb-4">
+                <Sparkles className="h-8 w-8 text-teal-600 mr-3" />
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+                  Meet Your IA Assistant
+                </h2>
+              </div>
+              <p className="text-lg text-gray-600 mb-6">
+                Our intelligent assistant is here to help you discover new favorites, make reservations, 
+                and get personalized recommendations based on your preferences. Experience natural 
+                conversation with advanced voice and facial recognition technology.
+              </p>
+              <div className="space-y-4 mb-8">
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-teal-500 rounded-full mr-3"></div>
+                  <span className="text-gray-700">Personalized beverage recommendations</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-teal-500 rounded-full mr-3"></div>
+                  <span className="text-gray-700">Seamless reservation booking</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-teal-500 rounded-full mr-3"></div>
+                  <span className="text-gray-700">Real-time inventory updates</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-teal-500 rounded-full mr-3"></div>
+                  <span className="text-gray-700">Voice and text interaction</span>
+                </div>
+              </div>
+              <Link
+                to="/ia"
+                className="btn-primary inline-flex items-center"
+              >
+                <MessageCircle className="h-5 w-5 mr-2" />
+                Start Conversation
+                <ChevronRight className="h-5 w-5 ml-2" />
+              </Link>
+            </div>
+            <div className="flex justify-center">
+              <IAAvatar size="large" showControls={false} />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Upcoming Events Section */}
+      <section className="py-16 bg-teal-50">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Upcoming Events
+            </h2>
+            <p className="text-lg text-gray-600">
+              Join us for exclusive tastings, masterclasses, and social gatherings
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {upcomingEvents.map((event) => (
+              <div key={event.id} className="card hover:shadow-lg transition-shadow duration-300">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
+                    <Calendar className="h-6 w-6 text-teal-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm text-gray-500">{event.date}</p>
+                    <p className="text-sm font-semibold text-teal-600">{event.time}</p>
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">{event.title}</h3>
+                <p className="text-gray-600 mb-4">{event.description}</p>
+                <Link
+                  to="/calendar"
+                  className="text-teal-600 hover:text-teal-700 font-medium inline-flex items-center"
+                >
+                  Reserve Your Spot
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+export default HomePage
