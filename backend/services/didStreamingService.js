@@ -34,7 +34,10 @@ class DIDStreamingService {
     this.cacheKeys = {
       spirits: 'spirits',
       cocktails: 'cocktails',
-      wines: 'wines'
+      wines: 'wines',
+      beers: 'beers',
+      mocktails: 'mocktails',
+      nonAlcoholic: 'nonAlcoholic'
     };
 
     // Set up automatic cache refresh mechanisms
@@ -70,6 +73,9 @@ class DIDStreamingService {
     setupWatcher(Spirit, this.cacheKeys.spirits);
     setupWatcher(Cocktail, this.cacheKeys.cocktails);
     setupWatcher(Wine, this.cacheKeys.wines);
+    setupWatcher(Beer, this.cacheKeys.beers);
+    setupWatcher(Mocktail, this.cacheKeys.mocktails);
+    setupWatcher(OtherNonAlcoholic, this.cacheKeys.nonAlcoholic);
   }
 
   // Retrieve inventory data from cache or database
@@ -103,6 +109,24 @@ class DIDStreamingService {
           .limit(8)
           .lean();
         break;
+      case this.cacheKeys.beers:
+        data = await Beer.find({ isAvailable: true })
+          .sort({ averageRating: -1 })
+          .limit(8)
+          .lean();
+        break;
+      case this.cacheKeys.mocktails:
+        data = await Mocktail.find({ isAvailable: true })
+          .sort({ averageRating: -1 })
+          .limit(8)
+          .lean();
+        break;
+      case this.cacheKeys.nonAlcoholic:
+        data = await OtherNonAlcoholic.find({ isAvailable: true })
+          .sort({ averageRating: -1 })
+          .limit(8)
+          .lean();
+        break;
       default:
         data = [];
     }
@@ -115,7 +139,10 @@ class DIDStreamingService {
     await Promise.all([
       this.refreshCache(this.cacheKeys.spirits),
       this.refreshCache(this.cacheKeys.cocktails),
-      this.refreshCache(this.cacheKeys.wines)
+      this.refreshCache(this.cacheKeys.wines),
+      this.refreshCache(this.cacheKeys.beers),
+      this.refreshCache(this.cacheKeys.mocktails),
+      this.refreshCache(this.cacheKeys.nonAlcoholic)
     ]);
   }
 
