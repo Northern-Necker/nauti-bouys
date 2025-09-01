@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Three.js Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f0f0f0;
+        }
+        #container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        #status {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>🎯 Simple Three.js Test</h1>
+        <div id="status">Loading...</div>
+        <div id="canvasContainer"></div>
+    </div>
+    
+    <script type="module">
+        const statusDiv = document.getElementById('status');
+        const canvasContainer = document.getElementById('canvasContainer');
+        
+        function updateStatus(message) {
+            console.log(message);
+            statusDiv.innerHTML += message + '<br>';
+        }
+        
+        async function runTest() {
+            try {
+                updateStatus('🔄 Step 1: Importing Three.js...');
+                
+                const THREE = await import('three');
+                updateStatus('✅ Three.js core imported');
+                
+                const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+                updateStatus('✅ GLTFLoader imported');
+                
+                const { OrbitControls } = await import('three/examples/jsm/controls/OrbitControls.js');
+                updateStatus('✅ OrbitControls imported');
+                
+                // Handle default export
+                const THREELib = THREE.default || THREE;
+                updateStatus(`✅ Three.js ready - version r${THREELib.REVISION}`);
+                
+                updateStatus('🔄 Step 2: Creating 3D scene...');
+                
+                // Create scene, camera, renderer
+                const scene = new THREELib.Scene();
+                const camera = new THREELib.PerspectiveCamera(75, 800/600, 0.1, 1000);
+                const renderer = new THREELib.WebGLRenderer({ antialias: true });
+                
+                renderer.setSize(800, 600);
+                renderer.setClearColor(0x2c3e50);
+                canvasContainer.appendChild(renderer.domElement);
+                
+                updateStatus('✅ Renderer created and canvas added to page');
+                
+                // Create a bright cube
+                const geometry = new THREELib.BoxGeometry(1, 1, 1);
+                const material = new THREELib.MeshBasicMaterial({ 
+                    color: 0xff4444,
+                    wireframe: false
+                });
+                const cube = new THREELib.Mesh(geometry, material);
+                scene.add(cube);
+                
+                // Position camera
+                camera.position.z = 3;
+                
+                updateStatus('✅ Red cube created and added to scene');
+                updateStatus('🔄 Step 3: Starting animation...');
+                
+                // Animation loop
+                function animate() {
+                    requestAnimationFrame(animate);
+                    
+                    cube.rotation.x += 0.02;
+                    cube.rotation.y += 0.02;
+                    
+                    renderer.render(scene, camera);
+                }
+                
+                // Start animation
+                animate();
+                
+                updateStatus('🎉 SUCCESS: Three.js is working! You should see a rotating red cube above.');
+                
+            } catch (error) {
+                updateStatus(`❌ ERROR: ${error.message}`);
+                updateStatus(`Stack: ${error.stack}`);
+                console.error('Test failed:', error);
+            }
+        }
+        
+        // Start test immediately
+        runTest();
+    </script>
+</body>
+</html>

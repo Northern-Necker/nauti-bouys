@@ -1,0 +1,23 @@
+{
+  "timestamp": "2025-08-27T13:36:10.647Z",
+  "glbFiles": [
+    {
+      "path": "./dist/assets/SavannahAvatar.glb",
+      "size": "13.21 MB",
+      "fullPath": "/mnt/c/nauti-bouys/frontend/dist/assets/SavannahAvatar.glb"
+    },
+    {
+      "path": "./public/assets/SavannahAvatar.glb",
+      "size": "17.99 MB",
+      "fullPath": "/mnt/c/nauti-bouys/frontend/public/assets/SavannahAvatar.glb"
+    }
+  ],
+  "testFiles": [
+    "working-morph-test.html",
+    "comprehensive-morph-test.html",
+    "minimal-test.html"
+  ],
+  "status": "READY",
+  "recommendations": [],
+  "devServer": "AVAILABLE"
+}

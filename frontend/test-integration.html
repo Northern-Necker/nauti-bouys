@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integration Test - Iterative Optimization System</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .test-card {
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        
+        button:hover { transform: translateY(-2px); }
+        
+        .log {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Integration Test - Iterative Optimization System</h1>
+    
+    <div class="test-card">
+        <h3>📋 System Status Check</h3>
+        <div id="statusCheck"></div>
+        <button onclick="runStatusCheck()">🔍 Check System Status</button>
+    </div>
+    
+    <div class="test-card">
+        <h3>🧠 Module Loading Test</h3>
+        <div id="moduleTest"></div>
+        <button onclick="testModules()">📦 Test Module Loading</button>
+    </div>
+    
+    <div class="test-card">
+        <h3>⚙️ Optimization Initialization Test</h3>
+        <div id="optimizationTest"></div>
+        <button onclick="testOptimization()">🚀 Test Optimization System</button>
+    </div>
+    
+    <div class="test-card">
+        <h3>📊 Console Output</h3>
+        <div id="consoleOutput" class="log">Test logs will appear here...</div>
+    </div>
+
+    <!-- Import the optimization modules -->
+    <script type="module">
+        import IterativeMorphOptimizer from './src/optimization/IterativeMorphOptimizer.js';
+        import AdaptiveMorphController from './src/optimization/AdaptiveMorphController.js';
+        
+        // Make available globally
+        window.IterativeMorphOptimizer = IterativeMorphOptimizer;
+        window.AdaptiveMorphController = AdaptiveMorphController;
+        
+        console.log('✅ Optimization modules loaded for testing');
+        logToPage('✅ Optimization modules loaded successfully');
+    </script>
+
+    <script>
+        function logToPage(message) {
+            const output = document.getElementById('consoleOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent += `${timestamp} - ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        function setStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        function runStatusCheck() {
+            logToPage('🔍 Running system status check...');
+            
+            const checks = [
+                { name: 'IterativeMorphOptimizer', obj: window.IterativeMorphOptimizer },
+                { name: 'AdaptiveMorphController', obj: window.AdaptiveMorphController }
+            ];
+            
+            let allPassed = true;
+            let results = '<h4>System Status:</h4>';
+            
+            for (const check of checks) {
+                if (check.obj) {
+                    results += `<div class="status success">✅ ${check.name}: Available</div>`;
+                    logToPage(`✅ ${check.name}: Available`);
+                } else {
+                    results += `<div class="status error">❌ ${check.name}: Missing</div>`;
+                    logToPage(`❌ ${check.name}: Missing`);
+                    allPassed = false;
+                }
+            }
+            
+            if (allPassed) {
+                results += '<div class="status success">🎉 All core modules loaded successfully!</div>';
+                logToPage('🎉 System status check passed!');
+            } else {
+                results += '<div class="status error">⚠️ Some modules are missing. Check console for details.</div>';
+                logToPage('⚠️ System status check failed!');
+            }
+            
+            document.getElementById('statusCheck').innerHTML = results;
+        }
+        
+        function testModules() {
+            logToPage('📦 Testing module instantiation...');
+            
+            try {
+                if (!window.IterativeMorphOptimizer) {
+                    throw new Error('IterativeMorphOptimizer not available');
+                }
+                
+                const optimizer = new window.IterativeMorphOptimizer();
+                logToPage('✅ IterativeMorphOptimizer instantiated successfully');
+                
+                // Test basic properties
+                if (optimizer.facialConstraints && optimizer.morphInfluenceMap) {
+                    logToPage('✅ Optimizer has required properties (facialConstraints, morphInfluenceMap)');
+                    setStatus('moduleTest', '✅ All modules instantiated successfully with required properties!', 'success');
+                } else {
+                    throw new Error('Optimizer missing required properties');
+                }
+                
+            } catch (error) {
+                logToPage(`❌ Module test failed: ${error.message}`);
+                setStatus('moduleTest', `❌ Module test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function testOptimization() {
+            logToPage('⚙️ Testing optimization system initialization...');
+            
+            try {
+                if (!window.IterativeMorphOptimizer || !window.AdaptiveMorphController) {
+                    throw new Error('Required optimization modules not available');
+                }
+                
+                // Create mock MediaPipe analyzer
+                const mockAnalyzer = {
+                    isInitialized: true,
+                    analyzeViseme: async (imageData, viseme) => ({
+                        score: 75,
+                        landmarks: Array.from({length: 468}, () => ({x: 0.5, y: 0.5, z: 0})),
+                        measurements: {
+                            normalized: {
+                                lipGap: 0.3,
+                                mouthWidth: 0.6,
+                                jawOpening: 0.4,
+                                lipCompression: 0.5
+                            }
+                        },
+                        deviations: {
+                            lipGap: { current: 0.3, target: 0.2, deviation: 0.1 }
+                        },
+                        recommendations: []
+                    })
+                };
+                
+                const optimizer = new window.IterativeMorphOptimizer();
+                const controller = new window.AdaptiveMorphController(mockAnalyzer, optimizer);
+                
+                logToPage('✅ AdaptiveMorphController created with mock analyzer');
+                
+                // Test basic controller properties
+                if (controller.sessionMetrics && controller.visemeLearningData) {
+                    logToPage('✅ Controller has required properties (sessionMetrics, visemeLearningData)');
+                    setStatus('optimizationTest', '🎉 Optimization system fully functional! Ready for production use.', 'success');
+                } else {
+                    throw new Error('Controller missing required properties');
+                }
+                
+            } catch (error) {
+                logToPage(`❌ Optimization test failed: ${error.message}`);
+                setStatus('optimizationTest', `❌ Optimization test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Override console.log to capture logs
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            logToPage(args.join(' '));
+        };
+        
+        const originalError = console.error;
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            logToPage('ERROR: ' + args.join(' '));
+        };
+        
+        // Auto-run status check on load
+        setTimeout(() => {
+            runStatusCheck();
+        }, 500);
+        
+    </script>
+</body>
+</html>

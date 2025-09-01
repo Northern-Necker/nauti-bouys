@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module Import Test</title>
+</head>
+<body>
+    <h1>Module Import Test</h1>
+    <div id="results">Testing...</div>
+    
+    <script type="module">
+        const results = document.getElementById('results');
+        
+        async function testImports() {
+            try {
+                // Test 1: Local module imports
+                results.innerHTML = '🔄 Testing local module imports...<br>';
+                
+                const MediaPipeAnalyzer = await import('./mediapipe-viseme-analyzer.js');
+                results.innerHTML += '✅ MediaPipeAnalyzer imported<br>';
+                
+                const AdvancedMorphEngine = await import('./advanced-morph-engine.js');
+                results.innerHTML += '✅ AdvancedMorphEngine imported<br>';
+                
+                // Test 2: Three.js import
+                results.innerHTML += '🔄 Testing Three.js import...<br>';
+                const THREE = await import('three');
+                results.innerHTML += '✅ Three.js imported<br>';
+                
+                // Test 3: MediaPipe import
+                results.innerHTML += '🔄 Testing MediaPipe import...<br>';
+                const { FilesetResolver, FaceLandmarker } = await import('@mediapipe/tasks-vision');
+                results.innerHTML += '✅ MediaPipe imported<br>';
+                
+                results.innerHTML += '🎉 All imports successful!';
+                
+            } catch (error) {
+                results.innerHTML = `❌ Import failed: ${error.message}<br>Stack: ${error.stack}`;
+                console.error('Import error:', error);
+            }
+        }
+        
+        testImports();
+    </script>
+</body>
+</html>

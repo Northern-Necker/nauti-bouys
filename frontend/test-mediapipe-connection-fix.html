@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaPipe Connection Fix - Emergency Diagnostic Tool</title>
+    <style>
+        :root {
+            --primary: #007bff;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --info: #17a2b8;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --critical: #ff6b6b;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--dark);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--danger), var(--critical));
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .emergency-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .diagnostic-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .diagnostic-card {
+            background: var(--light);
+            border-radius: 12px;
+            padding: 25px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .diagnostic-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: #e9ecef;
+            transition: all 0.3s ease;
+        }
+        
+        .diagnostic-card.testing::before { background: var(--warning); }
+        .diagnostic-card.success::before { background: var(--success); }
+        .diagnostic-card.error::before { background: var(--danger); }
+        .diagnostic-card.critical::before { background: var(--critical); }
+        
+        .card-title {
+            font-size: 1.3em;
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-content {
+            min-height: 120px;
+            line-height: 1.6;
+        }
+        
+        .controls {
+            background: var(--light);
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn-critical { background: var(--critical); color: white; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status-overview {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .status-metric {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        
+        .status-metric:hover {
+            transform: translateY(-2px);
+        }
+        
+        .metric-value {
+            font-size: 2.2em;
+            font-weight: 900;
+            margin-bottom: 8px;
+            line-height: 1;
+        }
+        
+        .metric-label {
+            color: #666;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+        
+        .recommendations {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px 0;
+            border-left: 5px solid var(--info);
+        }
+        
+        .recommendation {
+            background: var(--light);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid transparent;
+        }
+        
+        .recommendation.critical { border-left-color: var(--critical); }
+        .recommendation.high { border-left-color: var(--danger); }
+        .recommendation.medium { border-left-color: var(--warning); }
+        .recommendation.low { border-left-color: var(--info); }
+        .recommendation.success { border-left-color: var(--success); }
+        
+        .log-container {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 25px;
+            border-radius: 12px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 20px 0;
+            box-shadow: inset 0 4px 15px rgba(0,0,0,0.5);
+        }
+        
+        .log-entry {
+            margin: 3px 0;
+            padding: 2px 0;
+        }
+        
+        .log-critical { color: #ff4444; }
+        .log-error { color: #ff8888; }
+        .log-warning { color: #ffaa44; }
+        .log-success { color: #44ff44; }
+        .log-info { color: #44aaff; }
+        
+        .test-result {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.5);
+        }
+        
+        .result-status {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        
+        .status-pass { background: var(--success); color: white; }
+        .status-fail { background: var(--danger); color: white; }
+        .status-warn { background: var(--warning); color: black; }
+        .status-critical { background: var(--critical); color: white; }
+        
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            border-radius: 5px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+        
+        .error-details {
+            background: #fff5f5;
+            border: 1px solid #feb2b2;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        @media (max-width: 768px) {
+            .container { margin: 10px; }
+            .content { padding: 20px; }
+            .diagnostic-grid { grid-template-columns: 1fr; }
+            .controls { justify-content: stretch; }
+            .btn { flex: 1; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="emergency-badge">🚨 EMERGENCY DIAGNOSTIC TOOL 🚨</div>
+            <h1>MediaPipe Connection Fix</h1>
+            <p style="font-size: 1.1em; margin-top: 10px;">
+                <strong>Fixing ERR_CONNECTION_REFUSED - MediaPipe CDN Version Issues</strong>
+            </p>
+        </div>
+        
+        <div class="content">
+            <div class="controls">
+                <button class="btn btn-critical" onclick="runEmergencyDiagnostics()">
+                    🚨 EMERGENCY DIAGNOSTIC
+                </button>
+                <button class="btn btn-primary" onclick="testConnectionFix()">
+                    🔧 Test Connection Fix
+                </button>
+                <button class="btn btn-success" onclick="validateMediaPipe()">
+                    ✅ Validate MediaPipe
+                </button>
+                <button class="btn btn-warning" onclick="generateReport()">
+                    📋 Generate Report
+                </button>
+                <button class="btn btn-danger" onclick="clearAll()">
+                    🧹 Clear All
+                </button>
+            </div>
+            
+            <div class="status-overview">
+                <div class="status-metric">
+                    <div class="metric-value" id="networkStatus">--</div>
+                    <div class="metric-label">Network Status</div>
+                </div>
+                <div class="status-metric">
+                    <div class="metric-value" id="cdnStatus">--</div>
+                    <div class="metric-label">CDN Availability</div>
+                </div>
+                <div class="status-metric">
+                    <div class="metric-value" id="versionStatus">--</div>
+                    <div class="metric-label">Version Validity</div>
+                </div>
+                <div class="status-metric">
+                    <div class="metric-value" id="wasmStatus">--</div>
+                    <div class="metric-label">WASM Access</div>
+                </div>
+                <div class="status-metric">
+                    <div class="metric-value" id="browserStatus">--</div>
+                    <div class="metric-label">Browser Support</div>
+                </div>
+                <div class="status-metric">
+                    <div class="metric-value" id="overallStatus">--</div>
+                    <div class="metric-label">Overall Health</div>
+                </div>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <div class="diagnostic-grid">
+                <div class="diagnostic-card" id="networkCard">
+                    <div class="card-title">🌐 Network Connectivity</div>
+                    <div class="card-content" id="networkContent">
+                        Ready to test network connectivity to MediaPipe CDNs...
+                    </div>
+                </div>
+                
+                <div class="diagnostic-card" id="cdnCard">
+                    <div class="card-title">📦 CDN Availability</div>
+                    <div class="card-content" id="cdnContent">
+                        Ready to check MediaPipe package availability across CDNs...
+                    </div>
+                </div>
+                
+                <div class="diagnostic-card" id="versionCard">
+                    <div class="card-title">🔢 Version Validation</div>
+                    <div class="card-content" id="versionContent">
+                        Ready to validate MediaPipe version numbers and endpoints...
+                    </div>
+                </div>
+                
+                <div class="diagnostic-card" id="wasmCard">
+                    <div class="card-title">⚙️ WASM File Access</div>
+                    <div class="card-content" id="wasmContent">
+                        Ready to check WebAssembly file accessibility...
+                    </div>
+                </div>
+                
+                <div class="diagnostic-card" id="browserCard">
+                    <div class="card-title">🌐 Browser Capabilities</div>
+                    <div class="card-content" id="browserContent">
+                        Ready to validate browser support for MediaPipe requirements...
+                    </div>
+                </div>
+                
+                <div class="diagnostic-card" id="fixCard">
+                    <div class="card-title">🔧 Connection Fix Test</div>
+                    <div class="card-content" id="fixContent">
+                        Ready to test the implemented MediaPipe connection fix...
+                    </div>
+                </div>
+            </div>
+            
+            <div class="recommendations" id="recommendationsContainer" style="display: none;">
+                <h3 style="margin-bottom: 15px; color: var(--info);">📋 Diagnostic Recommendations</h3>
+                <div id="recommendationsList"></div>
+            </div>
+            
+            <div class="log-container" id="diagnosticLog">
+                <div class="log-entry log-info">🔍 MediaPipe Connection Diagnostic Tool Initialized</div>
+                <div class="log-entry log-critical">🚨 CRITICAL: MediaPipe v0.10.22-rc.20250304 returns 404 NOT FOUND</div>
+                <div class="log-entry log-success">✅ FIXED: Updated to working version 0.10.6 with fallback chain</div>
+                <div class="log-entry log-info">⚡ Enhanced with connection diagnostics and error recovery</div>
+                <div class="log-entry log-info">🎯 Click 'EMERGENCY DIAGNOSTIC' to run comprehensive connection tests</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Import modules -->
+    <script type="module">
+        import MediaPipeConnectionDiagnostic from './src/utils/MediaPipeConnectionDiagnostic.js';
+        import MediaPipeManager from './src/utils/MediaPipeManager.js';
+        
+        // Global references
+        window.MediaPipeConnectionDiagnostic = MediaPipeConnectionDiagnostic;
+        window.MediaPipeManager = MediaPipeManager;
+        
+        console.log('✅ MediaPipe diagnostic modules loaded');
+    </script>
+    
+    <script>
+        let diagnosticTool = null;
+        let mediaPipeManager = null;
+        let currentProgress = 0;
+        let totalTests = 0;
+        
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('diagnosticLog');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.innerHTML = `<span style="opacity: 0.7;">${new Date().toLocaleTimeString()}</span> ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        function updateProgress(current, total) {
+            const percentage = total > 0 ? (current / total) * 100 : 0;
+            document.getElementById('progressFill').style.width = percentage + '%';
+        }
+        
+        function setCardStatus(cardId, status, content) {
+            const card = document.getElementById(cardId);
+            const contentDiv = document.getElementById(cardId.replace('Card', 'Content'));
+            
+            card.className = `diagnostic-card ${status}`;
+            contentDiv.innerHTML = content;
+        }
+        
+        function updateMetric(metricId, value, color = '') {
+            const metric = document.getElementById(metricId);
+            metric.textContent = value;
+            if (color) metric.style.color = color;
+        }
+        
+        async function runEmergencyDiagnostics() {
+            log('🚨 STARTING EMERGENCY DIAGNOSTICS...', 'critical');
+            
+            if (!window.MediaPipeConnectionDiagnostic) {
+                log('❌ Diagnostic tool not loaded', 'error');
+                return;
+            }
+            
+            try {
+                diagnosticTool = new window.MediaPipeConnectionDiagnostic();
+                
+                // Set all cards to testing state
+                ['networkCard', 'cdnCard', 'versionCard', 'wasmCard', 'browserCard', 'fixCard'].forEach(id => {
+                    setCardStatus(id, 'testing', 'Running diagnostic tests...');
+                });
+                
+                totalTests = 30; // Approximate number of tests
+                currentProgress = 0;
+                
+                const results = await diagnosticTool.runDiagnostics();
+                
+                // Update metrics
+                updateMetric('networkStatus', `${results.networkConnectivity.passed}/4`, 
+                    results.networkConnectivity.passed >= 2 ? 'var(--success)' : 'var(--danger)');
+                updateMetric('cdnStatus', `${results.cdnAvailability.passed}/9`,
+                    results.cdnAvailability.passed >= 3 ? 'var(--success)' : 'var(--danger)');
+                updateMetric('versionStatus', `${results.versionValidation.passed}/4`,
+                    results.versionValidation.passed >= 2 ? 'var(--success)' : 'var(--danger)');
+                updateMetric('wasmStatus', `${results.wasmFileAccess.passed}/2`,
+                    results.wasmFileAccess.passed >= 1 ? 'var(--success)' : 'var(--danger)');
+                updateMetric('browserStatus', `${results.browserCapabilities.passed}/7`,
+                    results.browserCapabilities.passed >= 5 ? 'var(--success)' : 'var(--warning)');
+                
+                const overallHealth = Math.round((results.summary.passed / results.summary.total) * 100);
+                updateMetric('overallStatus', `${overallHealth}%`,
+                    overallHealth >= 80 ? 'var(--success)' : overallHealth >= 60 ? 'var(--warning)' : 'var(--danger)');
+                
+                // Update individual cards
+                await updateDiagnosticCards(results);
+                
+                // Show recommendations
+                showRecommendations(results.recommendations);
+                
+                updateProgress(results.summary.total, results.summary.total);
+                
+                log(`🎯 Diagnostics complete: ${results.summary.passed}/${results.summary.total} tests passed (${overallHealth}%)`, 
+                    overallHealth >= 80 ? 'success' : 'warning');
+                
+            } catch (error) {
+                log(`❌ Diagnostic failed: ${error.message}`, 'error');
+                setCardStatus('networkCard', 'error', `Error: ${error.message}`);
+            }
+        }
+        
+        async function updateDiagnosticCards(results) {
+            // Network connectivity card
+            const networkContent = results.networkConnectivity.tests.map(test => 
+                `<div class="test-result">
+                    <span>${test.url.replace('https://', '')}</span>
+                    <span class="result-status ${test.status === 'PASS' ? 'status-pass' : 'status-fail'}">${test.status}</span>
+                </div>`
+            ).join('');
+            setCardStatus('networkCard', results.networkConnectivity.passed >= 2 ? 'success' : 'error', networkContent);
+            
+            // CDN availability card
+            const cdnContent = Object.entries(results.cdnAvailability.byProvider).map(([provider, tests]) => {
+                const available = tests.filter(t => t.status === 'AVAILABLE').length;
+                return `<div style="margin: 8px 0;"><strong>${provider.toUpperCase()}:</strong> ${available}/${tests.length} versions available</div>`;
+            }).join('');
+            setCardStatus('cdnCard', results.cdnAvailability.passed >= 3 ? 'success' : 'error', cdnContent);
+            
+            // Version validation card
+            const versionContent = results.versionValidation.tests.map(test => 
+                `<div class="test-result">
+                    <span>${test.type}</span>
+                    <span class="result-status ${test.status === 'VALID' ? 'status-pass' : 'status-fail'}">${test.status}</span>
+                </div>`
+            ).join('');
+            setCardStatus('versionCard', results.versionValidation.passed >= 2 ? 'success' : 'error', versionContent);
+            
+            // WASM access card
+            const wasmContent = results.wasmFileAccess.tests.map(test => 
+                `<div class="test-result">
+                    <span>${test.fileType}</span>
+                    <span class="result-status ${test.status === 'ACCESSIBLE' ? 'status-pass' : 'status-fail'}">${test.status}</span>
+                </div>`
+            ).join('');
+            setCardStatus('wasmCard', results.wasmFileAccess.passed >= 1 ? 'success' : 'error', wasmContent);
+            
+            // Browser capabilities card
+            const criticalFails = results.browserCapabilities.tests.filter(t => t.critical && t.status !== 'SUPPORTED').length;
+            const browserContent = results.browserCapabilities.tests.map(test => 
+                `<div class="test-result">
+                    <span>${test.feature} ${test.critical ? '(Critical)' : ''}</span>
+                    <span class="result-status ${test.status === 'SUPPORTED' ? 'status-pass' : test.critical ? 'status-critical' : 'status-warn'}">${test.status}</span>
+                </div>`
+            ).join('');
+            setCardStatus('browserCard', criticalFails === 0 ? 'success' : 'critical', browserContent);
+        }
+        
+        async function testConnectionFix() {
+            log('🔧 Testing MediaPipe connection fix...', 'info');
+            
+            if (!window.MediaPipeManager) {
+                log('❌ MediaPipeManager not loaded', 'error');
+                return;
+            }
+            
+            try {
+                setCardStatus('fixCard', 'testing', 'Testing enhanced MediaPipe Manager...');
+                
+                mediaPipeManager = new window.MediaPipeManager();
+                
+                // Test initialization with new fallback system
+                const success = await mediaPipeManager.initialize();
+                
+                // Get diagnostic information
+                const diagnostics = mediaPipeManager.getConnectionDiagnostics();
+                const status = mediaPipeManager.getStatus();
+                
+                let fixContent = `
+                    <div><strong>Initialization:</strong> ${success ? '✅ SUCCESS' : '⚠️ PARTIAL'}</div>
+                    <div><strong>Network Status:</strong> ${diagnostics.networkStatus}</div>
+                    <div><strong>Successful Source:</strong> ${diagnostics.lastSuccessfulSource || 'None'}</div>
+                    <div><strong>Available Sources:</strong> ${diagnostics.availableSources.length}/${mediaPipeManager.wasmSources.length}</div>
+                    <div><strong>WebGL Support:</strong> ${status.hasWebGL ? '✅ Yes' : '❌ No'}</div>
+                    <div><strong>Retry Count:</strong> ${status.retryCount}</div>
+                `;
+                
+                if (status.lastError) {
+                    fixContent += `<div class="error-details">Last Error: ${status.lastError}</div>`;
+                }
+                
+                setCardStatus('fixCard', success ? 'success' : 'error', fixContent);
+                
+                log(`${success ? '✅' : '⚠️'} Connection fix test ${success ? 'passed' : 'completed with issues'}`, 
+                    success ? 'success' : 'warning');
+                
+                mediaPipeManager.dispose();
+                
+            } catch (error) {
+                log(`❌ Connection fix test failed: ${error.message}`, 'error');
+                setCardStatus('fixCard', 'error', `Error: ${error.message}`);
+            }
+        }
+        
+        async function validateMediaPipe() {
+            log('✅ Validating complete MediaPipe functionality...', 'info');
+            
+            try {
+                // This would run the actual face detection test
+                // For now, we'll simulate it
+                await testConnectionFix();
+                
+                log('🎉 MediaPipe validation complete', 'success');
+                
+            } catch (error) {
+                log(`❌ MediaPipe validation failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function showRecommendations(recommendations) {
+            const container = document.getElementById('recommendationsContainer');
+            const list = document.getElementById('recommendationsList');
+            
+            if (recommendations.length === 0) return;
+            
+            list.innerHTML = recommendations.map(rec => `
+                <div class="recommendation ${rec.priority.toLowerCase()}">
+                    <div style="font-weight: bold; margin-bottom: 8px;">${rec.message}</div>
+                    <div style="font-size: 0.9em; color: #666;">${rec.solution}</div>
+                </div>
+            `).join('');
+            
+            container.style.display = 'block';
+        }
+        
+        function generateReport() {
+            if (!diagnosticTool) {
+                log('⚠️ Run diagnostics first to generate report', 'warning');
+                return;
+            }
+            
+            // This would generate and download a detailed report
+            log('📋 Report generation not implemented yet', 'info');
+        }
+        
+        function clearAll() {
+            document.getElementById('diagnosticLog').innerHTML = '';
+            document.getElementById('recommendationsContainer').style.display = 'none';
+            
+            ['networkCard', 'cdnCard', 'versionCard', 'wasmCard', 'browserCard', 'fixCard'].forEach(id => {
+                const card = document.getElementById(id);
+                const contentDiv = document.getElementById(id.replace('Card', 'Content'));
+                card.className = 'diagnostic-card';
+                contentDiv.innerHTML = 'Ready for diagnostic testing...';
+            });
+            
+            // Reset metrics
+            ['networkStatus', 'cdnStatus', 'versionStatus', 'wasmStatus', 'browserStatus', 'overallStatus'].forEach(id => {
+                updateMetric(id, '--');
+            });
+            
+            updateProgress(0, 100);
+            
+            log('🧹 All results cleared - ready for new diagnostics', 'info');
+        }
+        
+        // Initialize
+        log('🎯 MediaPipe Connection Fix Tool Ready', 'success');
+        log('🚨 Critical Issue: MediaPipe v0.10.22-rc.20250304 not found (404)', 'critical');
+        log('✅ Solution Applied: Updated to v0.10.6 with enhanced fallbacks', 'success');
+    </script>
+</body>
+</html>

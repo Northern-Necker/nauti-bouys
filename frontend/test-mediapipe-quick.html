@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick MediaPipe Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 14px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: Monaco, Consolas, monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚡ Quick MediaPipe Test</h1>
+        <p>Test the updated MediaPipe Manager with proper script loading.</p>
+        
+        <div class="status info" id="status">
+            Ready to test MediaPipe initialization...
+        </div>
+        
+        <div style="text-align: center;">
+            <button onclick="testMediaPipe()" id="testBtn">🧪 Test MediaPipe</button>
+            <button onclick="clearLog()">🧹 Clear Log</button>
+        </div>
+        
+        <div class="log" id="log">Click "Test MediaPipe" to start...\n</div>
+    </div>
+
+    <script type="module">
+        let logDiv = document.getElementById('log');
+        let statusDiv = document.getElementById('status');
+        
+        function log(message) {
+            console.log(message);
+            logDiv.textContent += new Date().toLocaleTimeString() + ' - ' + message + '\n';
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function updateStatus(message, type = 'info') {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+        
+        async function testMediaPipe() {
+            document.getElementById('testBtn').disabled = true;
+            updateStatus('Testing MediaPipe initialization...', 'warning');
+            log('🚀 Starting MediaPipe test...');
+            
+            try {
+                // Import the MediaPipe Manager
+                const { default: MediaPipeManager } = await import('./src/utils/MediaPipeManager.js');
+                log('✅ MediaPipe Manager imported successfully');
+                
+                // Create and initialize
+                const manager = new MediaPipeManager();
+                log('✅ MediaPipe Manager instance created');
+                
+                log('🔄 Initializing MediaPipe...');
+                const startTime = performance.now();
+                
+                const success = await manager.initialize();
+                const initTime = Math.round(performance.now() - startTime);
+                
+                if (success) {
+                    log(`✅ MediaPipe initialized successfully in ${initTime}ms`);
+                    updateStatus(`✅ MediaPipe working! (${initTime}ms)`, 'success');
+                    
+                    // Get status info
+                    const status = manager.getStatus();
+                    log(`📊 Status: ${JSON.stringify(status, null, 2)}`);
+                    
+                } else {
+                    log('❌ MediaPipe initialization returned false');
+                    updateStatus('❌ MediaPipe initialization failed', 'error');
+                }
+                
+                // Clean up
+                manager.dispose();
+                log('🧹 MediaPipe Manager disposed');
+                
+            } catch (error) {
+                log(`❌ MediaPipe test failed: ${error.message}`);
+                log(`Stack: ${error.stack}`);
+                updateStatus(`❌ Test failed: ${error.message}`, 'error');
+            }
+            
+            document.getElementById('testBtn').disabled = false;
+        }
+        
+        function clearLog() {
+            logDiv.textContent = 'Log cleared...\n';
+            updateStatus('Ready for new test...', 'info');
+        }
+        
+        // Make functions global
+        window.testMediaPipe = testMediaPipe;
+        window.clearLog = clearLog;
+        
+        log('🔬 Quick MediaPipe test ready');
+    </script>
+</body>
+</html>

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaPipe Fixed Implementation Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 14px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: Monaco, Consolas, monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .test-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .test-section h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        
+        .metric {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 5px 0;
+            border-left: 4px solid #007bff;
+        }
+        
+        .metric-value {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        #testImage {
+            max-width: 300px;
+            max-height: 300px;
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+        }
+
+        .image-upload {
+            margin: 15px 0;
+        }
+
+        input[type="file"] {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 MediaPipe Fixed Implementation Test v2.0</h1>
+        <p>Testing the fixed MediaPipe Manager with stable version 0.10.6 and robust fallback strategy.</p>
+        <p><strong>Key Fixes:</strong> Stable version, proper FilesetResolver pattern, comprehensive error handling, CDN fallbacks</p>
+        
+        <div class="status info" id="status">
+            Ready to test the fixed MediaPipe implementation...
+        </div>
+        
+        <div style="text-align: center; margin: 20px 0;">
+            <button onclick="testInitialization()" id="initBtn">🧪 Test Initialization</button>
+            <button onclick="testFaceAnalysis()" id="analyzeBtn" disabled>👤 Test Face Analysis</button>
+            <button onclick="getStatus()" id="statusBtn" disabled>📊 Get Status</button>
+            <button onclick="testReinit()" id="reinitBtn" disabled>🔄 Test Reinitialize</button>
+            <button onclick="clearLog()">🧹 Clear Log</button>
+        </div>
+
+        <div class="test-grid">
+            <div class="test-section">
+                <h3>🔬 Face Analysis Test</h3>
+                <div class="image-upload">
+                    <input type="file" id="imageInput" accept="image/*" onchange="loadTestImage()">
+                    <div>Or use a test image:</div>
+                    <button onclick="loadSampleImage()">📷 Load Sample Face</button>
+                </div>
+                <img id="testImage" style="display:none;" alt="Test image will appear here">
+                <div id="analysisResults"></div>
+            </div>
+            
+            <div class="test-section">
+                <h3>📈 Performance Metrics</h3>
+                <div id="metricsContainer">
+                    <div class="metric">
+                        <div>Initialization Time</div>
+                        <div class="metric-value" id="initTime">Not tested</div>
+                    </div>
+                    <div class="metric">
+                        <div>WebGL Support</div>
+                        <div class="metric-value" id="webglStatus">Unknown</div>
+                    </div>
+                    <div class="metric">
+                        <div>Last Error</div>
+                        <div class="metric-value" id="lastError">None</div>
+                    </div>
+                    <div class="metric">
+                        <div>Version</div>
+                        <div class="metric-value" id="version">Unknown</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="log" id="log">Click "Test Initialization" to start...\n</div>
+    </div>
+
+    <script type="module">
+        let logDiv = document.getElementById('log');
+        let statusDiv = document.getElementById('status');
+        let mediaManager = null;
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `${timestamp} - ${message}`;
+            console.log(logMessage);
+            logDiv.textContent += logMessage + '\n';
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function updateStatus(message, type = 'info') {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+        
+        async function testInitialization() {
+            document.getElementById('initBtn').disabled = true;
+            updateStatus('🔄 Testing MediaPipe initialization...', 'warning');
+            log('🚀 Starting MediaPipe Fixed Implementation Test...');
+            
+            try {
+                // Import the fixed MediaPipe Manager
+                log('📦 Importing Fixed MediaPipe Manager v1.0.0...');
+                const { default: MediaPipeManager } = await import('./src/utils/MediaPipeManager.js');
+                log('✅ Fixed MediaPipe Manager imported successfully');
+                log('🔧 Using stable MediaPipe version 0.10.6 with fallback strategy');
+                
+                // Create new instance
+                mediaManager = new MediaPipeManager();
+                log('✅ MediaPipe Manager instance created');
+                
+                // Get initial status
+                const initialStatus = mediaManager.getStatus();
+                log(`📊 Initial status: ${JSON.stringify(initialStatus, null, 2)}`);
+                
+                // Initialize MediaPipe
+                log('🔄 Initializing MediaPipe with fixed loading strategy...');
+                log('📋 Testing all CDN sources: jsdelivr, unpkg, and version fallbacks');
+                const startTime = performance.now();
+                
+                const success = await mediaManager.initialize();
+                const initTime = Math.round(performance.now() - startTime);
+                
+                // Log connection diagnostics
+                const diagnostics = mediaManager.getConnectionDiagnostics();
+                log(`🔍 Connection diagnostics: ${diagnostics.totalWorking}/${diagnostics.totalTested} sources working`);
+                
+                if (success) {
+                    log(`✅ MediaPipe initialized successfully in ${initTime}ms!`);
+                    updateStatus(`✅ MediaPipe working! (${initTime}ms)`, 'success');
+                    
+                    // Update metrics
+                    document.getElementById('initTime').textContent = `${initTime}ms`;
+                    
+                    // Get final status
+                    const finalStatus = mediaManager.getStatus();
+                    log(`📊 Final status: ${JSON.stringify(finalStatus, null, 2)}`);
+                    
+                    // Update UI metrics
+                    document.getElementById('webglStatus').textContent = finalStatus.hasWebGL ? 'Available' : 'Not Available';
+                    document.getElementById('version').textContent = finalStatus.version;
+                    
+                    // Enable other buttons
+                    document.getElementById('analyzeBtn').disabled = false;
+                    document.getElementById('statusBtn').disabled = false;
+                    document.getElementById('reinitBtn').disabled = false;
+                    
+                } else {
+                    log('❌ MediaPipe initialization returned false');
+                    updateStatus('❌ MediaPipe initialization failed', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ MediaPipe initialization failed: ${error.message}`);
+                log(`Stack trace: ${error.stack}`);
+                updateStatus(`❌ Initialization failed: ${error.message}`, 'error');
+                
+                // Update error display
+                document.getElementById('lastError').textContent = error.message;
+            }
+            
+            document.getElementById('initBtn').disabled = false;
+        }
+        
+        async function testFaceAnalysis() {
+            if (!mediaManager || !mediaManager.isInitialized) {
+                log('❌ MediaPipe not initialized. Run initialization test first.');
+                updateStatus('❌ MediaPipe not initialized', 'error');
+                return;
+            }
+            
+            const testImage = document.getElementById('testImage');
+            if (!testImage.src || testImage.style.display === 'none') {
+                log('❌ No test image loaded. Please load an image first.');
+                updateStatus('❌ No test image loaded', 'error');
+                return;
+            }
+            
+            document.getElementById('analyzeBtn').disabled = true;
+            updateStatus('🔄 Analyzing face landmarks...', 'warning');
+            log('👤 Starting face analysis...');
+            
+            try {
+                const startTime = performance.now();
+                const results = await mediaManager.analyzeFace(testImage, { includeDebug: true });
+                const analysisTime = Math.round(performance.now() - startTime);
+                
+                log(`✅ Face analysis completed in ${analysisTime}ms`);
+                log(`📊 Analysis results: ${JSON.stringify(results, null, 2)}`);
+                
+                // Display results
+                const resultsDiv = document.getElementById('analysisResults');
+                resultsDiv.innerHTML = `
+                    <div class="metric">
+                        <div>Face Detected</div>
+                        <div class="metric-value">${results.hasFace ? 'Yes' : 'No'}</div>
+                    </div>
+                    <div class="metric">
+                        <div>Landmarks Count</div>
+                        <div class="metric-value">${results.debug?.landmarkCount || 0}</div>
+                    </div>
+                    <div class="metric">
+                        <div>Blendshapes Count</div>
+                        <div class="metric-value">${results.debug?.blendshapeCount || 0}</div>
+                    </div>
+                    <div class="metric">
+                        <div>Analysis Time</div>
+                        <div class="metric-value">${analysisTime}ms</div>
+                    </div>
+                    <div class="metric">
+                        <div>Confidence</div>
+                        <div class="metric-value">${(results.confidence * 100).toFixed(1)}%</div>
+                    </div>
+                `;
+                
+                if (results.hasFace) {
+                    updateStatus('✅ Face analysis successful!', 'success');
+                    log(`🎉 Face detected with ${results.faceLandmarks[0]?.length || 0} landmarks!`);
+                } else {
+                    updateStatus('⚠️ No face detected in image', 'warning');
+                    log('⚠️ No faces detected in the provided image');
+                }
+                
+            } catch (error) {
+                log(`❌ Face analysis failed: ${error.message}`);
+                updateStatus(`❌ Analysis failed: ${error.message}`, 'error');
+            }
+            
+            document.getElementById('analyzeBtn').disabled = false;
+        }
+        
+        async function getStatus() {
+            if (!mediaManager) {
+                log('❌ MediaPipe Manager not created yet');
+                return;
+            }
+            
+            const status = mediaManager.getStatus();
+            log(`📊 Current MediaPipe Status: ${JSON.stringify(status, null, 2)}`);
+            
+            const diagnostics = mediaManager.getConnectionDiagnostics();
+            log(`🔍 Connection Diagnostics: ${JSON.stringify(diagnostics, null, 2)}`);
+            
+            updateStatus('📊 Status logged to console', 'info');
+        }
+        
+        async function testReinit() {
+            if (!mediaManager) {
+                log('❌ MediaPipe Manager not created yet');
+                return;
+            }
+            
+            document.getElementById('reinitBtn').disabled = true;
+            updateStatus('🔄 Testing reinitialization...', 'warning');
+            log('🔄 Testing MediaPipe reinitialization...');
+            
+            try {
+                const startTime = performance.now();
+                const success = await mediaManager.reinitialize();
+                const reinitTime = Math.round(performance.now() - startTime);
+                
+                if (success) {
+                    log(`✅ MediaPipe reinitialized successfully in ${reinitTime}ms`);
+                    updateStatus(`✅ Reinitialization successful! (${reinitTime}ms)`, 'success');
+                } else {
+                    log('❌ MediaPipe reinitialization failed');
+                    updateStatus('❌ Reinitialization failed', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Reinitialization error: ${error.message}`);
+                updateStatus(`❌ Reinit failed: ${error.message}`, 'error');
+            }
+            
+            document.getElementById('reinitBtn').disabled = false;
+        }
+        
+        function loadTestImage() {
+            const input = document.getElementById('imageInput');
+            const file = input.files[0];
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById('testImage');
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                    log(`📷 Test image loaded: ${file.name}`);
+                    updateStatus('📷 Test image loaded', 'info');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        function loadSampleImage() {
+            // Create a simple face-like image for testing
+            const canvas = document.createElement('canvas');
+            canvas.width = 200;
+            canvas.height = 200;
+            const ctx = canvas.getContext('2d');
+            
+            // Draw a simple face
+            ctx.fillStyle = '#fdbcb4';
+            ctx.fillRect(50, 50, 100, 120);
+            
+            // Eyes
+            ctx.fillStyle = '#000';
+            ctx.fillRect(70, 80, 10, 10);
+            ctx.fillRect(120, 80, 10, 10);
+            
+            // Nose
+            ctx.fillRect(95, 100, 10, 20);
+            
+            // Mouth
+            ctx.fillRect(80, 140, 40, 10);
+            
+            const img = document.getElementById('testImage');
+            img.src = canvas.toDataURL();
+            img.style.display = 'block';
+            log('📷 Sample face image created for testing');
+            updateStatus('📷 Sample face image loaded', 'info');
+        }
+        
+        function clearLog() {
+            logDiv.textContent = 'Log cleared...\n';
+            updateStatus('Ready for new test...', 'info');
+        }
+        
+        // Make functions global
+        window.testInitialization = testInitialization;
+        window.testFaceAnalysis = testFaceAnalysis;
+        window.getStatus = getStatus;
+        window.testReinit = testReinit;
+        window.loadTestImage = loadTestImage;
+        window.loadSampleImage = loadSampleImage;
+        window.clearLog = clearLog;
+        
+        log('🔬 MediaPipe Fixed Implementation Test v2.0 ready');
+        log('📋 Key fixes: Stable v0.10.6, robust CDN fallbacks, proper error handling');
+        log('🎯 Click "Test Initialization" to verify all fixes work');
+        log('💡 This version should resolve all 404 and CORS issues');
+    </script>
+</body>
+</html>

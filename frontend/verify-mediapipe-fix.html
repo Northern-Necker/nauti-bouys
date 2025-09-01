@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaPipe Fix Verification</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            padding: 20px; 
+            background: #f5f5f5; 
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+        }
+        .test-section { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            margin: 15px 0; 
+            border-radius: 8px; 
+            border: 2px solid #e9ecef; 
+        }
+        .success { border-color: #28a745; background: #d4edda; }
+        .error { border-color: #dc3545; background: #f8d7da; }
+        .warning { border-color: #ffc107; background: #fff3cd; }
+        .info { border-color: #17a2b8; background: #d1ecf1; }
+        pre { 
+            background: #2d3748; 
+            color: #e2e8f0; 
+            padding: 15px; 
+            border-radius: 5px; 
+            overflow-x: auto; 
+            font-size: 14px; 
+        }
+        button { 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 16px; 
+        }
+        button:hover { background: #0056b3; }
+        .disabled { background: #6c757d !important; cursor: not-allowed !important; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 MediaPipe Fix Verification</h1>
+        <p>This page tests the MediaPipe ES6 import fix for the Autonomous Viseme Optimizer.</p>
+        
+        <div id="moduleTest" class="test-section info">
+            <h3>📦 Module Loading Test</h3>
+            <div id="moduleResults">Testing module imports...</div>
+        </div>
+        
+        <div id="mediapipeTest" class="test-section info">
+            <h3>🎯 MediaPipe Initialization Test</h3>
+            <div id="mediapipeResults">Waiting for module test...</div>
+        </div>
+        
+        <div id="integrationTest" class="test-section info">
+            <h3>🔗 Integration Test</h3>
+            <div id="integrationResults">Waiting for previous tests...</div>
+            <button id="runIntegration" class="disabled" disabled>Run Integration Test</button>
+        </div>
+        
+        <div id="finalResults" class="test-section info">
+            <h3>📋 Final Results</h3>
+            <div id="finalSummary">Tests in progress...</div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/autonomous-viseme-main.js"></script>
+    
+    <script>
+        let testResults = {
+            moduleLoading: false,
+            mediapipeInit: false,
+            integration: false
+        };
+        
+        // Wait for modules to load
+        setTimeout(async () => {
+            await runModuleTest();
+            await runMediaPipeTest();
+            enableIntegrationTest();
+        }, 1000);
+        
+        async function runModuleTest() {
+            const resultsDiv = document.getElementById('moduleResults');
+            const testDiv = document.getElementById('moduleTest');
+            
+            try {
+                resultsDiv.innerHTML = '🔄 Testing module availability...<br>';
+                
+                // Test global module availability
+                const modules = [
+                    { name: 'THREE', obj: window.THREE },
+                    { name: 'MediaPipeVisemeAnalyzer', obj: window.MediaPipeVisemeAnalyzer },
+                    { name: 'AdvancedMorphEngine', obj: window.AdvancedMorphEngine },
+                    { name: 'GLTFLoader', obj: window.GLTFLoader },
+                    { name: 'OrbitControls', obj: window.OrbitControls }
+                ];
+                
+                let allPassed = true;
+                modules.forEach(module => {
+                    const available = typeof module.obj !== 'undefined';
+                    resultsDiv.innerHTML += `${available ? '✅' : '❌'} ${module.name}: ${available ? 'Available' : 'Missing'}<br>`;
+                    if (!available) allPassed = false;
+                });
+                
+                if (allPassed) {
+                    resultsDiv.innerHTML += '<br>🎉 All modules loaded successfully!';
+                    testDiv.className = 'test-section success';
+                    testResults.moduleLoading = true;
+                } else {
+                    resultsDiv.innerHTML += '<br>❌ Some modules failed to load.';
+                    testDiv.className = 'test-section error';
+                }
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `❌ Module test failed: ${error.message}`;
+                testDiv.className = 'test-section error';
+            }
+        }
+        
+        async function runMediaPipeTest() {
+            const resultsDiv = document.getElementById('mediapipeResults');
+            const testDiv = document.getElementById('mediapipeTest');
+            
+            if (!testResults.moduleLoading) {
+                resultsDiv.innerHTML = '❌ Skipping MediaPipe test - modules not loaded';
+                testDiv.className = 'test-section error';
+                return;
+            }
+            
+            try {
+                resultsDiv.innerHTML = '🔄 Testing MediaPipe initialization...<br>';
+                
+                // Create MediaPipe analyzer instance
+                const analyzer = new window.MediaPipeVisemeAnalyzer();
+                resultsDiv.innerHTML += '✅ MediaPipe analyzer instance created<br>';
+                
+                // Test initialization
+                resultsDiv.innerHTML += '🔄 Initializing MediaPipe Face Landmarker...<br>';
+                const initSuccess = await analyzer.initialize();
+                
+                if (initSuccess) {
+                    resultsDiv.innerHTML += '✅ MediaPipe Face Landmarker initialized successfully!<br>';
+                    resultsDiv.innerHTML += '🎯 MediaPipe is ready for geometric facial analysis<br>';
+                    testDiv.className = 'test-section success';
+                    testResults.mediapipeInit = true;
+                } else {
+                    resultsDiv.innerHTML += '❌ MediaPipe initialization failed<br>';
+                    testDiv.className = 'test-section error';
+                }
+                
+            } catch (error) {
+                resultsDiv.innerHTML += `❌ MediaPipe test failed: ${error.message}<br>`;
+                resultsDiv.innerHTML += `Stack: ${error.stack}<br>`;
+                testDiv.className = 'test-section error';
+            }
+        }
+        
+        function enableIntegrationTest() {
+            const button = document.getElementById('runIntegration');
+            const resultsDiv = document.getElementById('integrationResults');
+            
+            if (testResults.moduleLoading && testResults.mediapipeInit) {
+                button.disabled = false;
+                button.className = '';
+                resultsDiv.innerHTML = '✅ Ready for integration test - click button above';
+                
+                button.onclick = runIntegrationTest;
+            } else {
+                resultsDiv.innerHTML = '❌ Prerequisites not met - integration test unavailable';
+            }
+            
+            updateFinalResults();
+        }
+        
+        async function runIntegrationTest() {
+            const resultsDiv = document.getElementById('integrationResults');
+            const testDiv = document.getElementById('integrationTest');
+            const button = document.getElementById('runIntegration');
+            
+            button.disabled = true;
+            button.className = 'disabled';
+            
+            try {
+                resultsDiv.innerHTML = '🔄 Running integration test...<br>';
+                
+                // Test creating a scene
+                const scene = new window.THREE.Scene();
+                resultsDiv.innerHTML += '✅ Three.js Scene created<br>';
+                
+                // Test creating morph engine
+                const morphEngine = new window.AdvancedMorphEngine([], (msg, type) => {
+                    console.log(`${type}: ${msg}`);
+                });
+                resultsDiv.innerHTML += '✅ AdvancedMorphEngine created<br>';
+                
+                // Test MediaPipe analyzer
+                const analyzer = new window.MediaPipeVisemeAnalyzer();
+                const debugInfo = analyzer.getDebugInfo();
+                resultsDiv.innerHTML += `✅ MediaPipe debug info: ${JSON.stringify(debugInfo)}<br>`;
+                
+                resultsDiv.innerHTML += '<br>🎉 Integration test passed! All components work together.';
+                testDiv.className = 'test-section success';
+                testResults.integration = true;
+                
+            } catch (error) {
+                resultsDiv.innerHTML += `❌ Integration test failed: ${error.message}<br>`;
+                testDiv.className = 'test-section error';
+            }
+            
+            updateFinalResults();
+        }
+        
+        function updateFinalResults() {
+            const resultsDiv = document.getElementById('finalSummary');
+            const testDiv = document.getElementById('finalResults');
+            
+            const totalTests = Object.keys(testResults).length;
+            const passedTests = Object.values(testResults).filter(Boolean).length;
+            
+            let summary = `<strong>Test Results: ${passedTests}/${totalTests} passed</strong><br><br>`;
+            
+            Object.entries(testResults).forEach(([test, passed]) => {
+                summary += `${passed ? '✅' : '❌'} ${test}: ${passed ? 'PASSED' : 'FAILED'}<br>`;
+            });
+            
+            if (passedTests === totalTests) {
+                summary += '<br>🎉 <strong>ALL TESTS PASSED!</strong><br>';
+                summary += '🚀 MediaPipe ES6 import fix is working correctly.<br>';
+                summary += '✅ The Autonomous Viseme Optimizer should now work without CDN loading issues.';
+                testDiv.className = 'test-section success';
+            } else {
+                summary += '<br>⚠️ <strong>Some tests failed.</strong><br>';
+                summary += 'The MediaPipe fix may need additional work.';
+                testDiv.className = 'test-section warning';
+            }
+            
+            resultsDiv.innerHTML = summary;
+        }
+    </script>
+</body>
+</html>

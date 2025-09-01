@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Local Three.js Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        canvas { border: 2px solid #333; margin: 10px 0; }
+        .info { background: #f0f0f0; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Local Three.js Test</h1>
+    <div id="results" class="info">Loading...</div>
+    <canvas id="canvas" width="600" height="400"></canvas>
+    
+    <script type="module">
+        async function testThreeJS() {
+            const results = document.getElementById('results');
+            
+            try {
+                console.log('🔍 Testing local Three.js import...');
+                
+                // Import Three.js components exactly like in the main app
+                const THREE = await import('three');
+                const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+                const { OrbitControls } = await import('three/examples/jsm/controls/OrbitControls.js');
+                
+                console.log('📦 Three.js modules imported:', {
+                    THREE: !!THREE,
+                    GLTFLoader: !!GLTFLoader,
+                    OrbitControls: !!OrbitControls
+                });
+                
+                // Handle default exports properly
+                const THREELib = THREE.default || THREE;
+                
+                // Test creating components
+                const scene = new THREELib.Scene();
+                const camera = new THREELib.PerspectiveCamera(75, 600/400, 0.1, 1000);
+                const canvas = document.getElementById('canvas');
+                
+                console.log('📺 Canvas element:', canvas);
+                console.log('📺 Canvas parent:', canvas.parentElement);
+                
+                const renderer = new THREELib.WebGLRenderer({ 
+                    canvas: canvas,
+                    antialias: true,
+                    alpha: false
+                });
+                
+                renderer.setSize(600, 400);
+                renderer.setClearColor(0x404040, 1.0);  // Gray background, full opacity
+                scene.background = new THREELib.Color(0x404040);
+                
+                console.log('🖼️ Renderer info:', {
+                    domElement: renderer.domElement,
+                    size: renderer.getSize(new THREELib.Vector2()),
+                    clearColor: renderer.getClearColor(),
+                    clearAlpha: renderer.getClearAlpha()
+                });
+                
+                // Add test cube - make it bigger and more visible
+                const geometry = new THREELib.BoxGeometry(2, 2, 2);
+                const material = new THREELib.MeshLambertMaterial({ 
+                    color: 0xff6b6b  // Bright red-pink
+                });
+                const cube = new THREELib.Mesh(geometry, material);
+                scene.add(cube);
+                
+                console.log('✅ Cube added to scene:', { 
+                    position: cube.position,
+                    scale: cube.scale,
+                    visible: cube.visible 
+                });
+                
+                // Add lighting - make it brighter
+                const ambientLight = new THREELib.AmbientLight(0xffffff, 0.8);
+                scene.add(ambientLight);
+                const directionalLight = new THREELib.DirectionalLight(0xffffff, 1.0);
+                directionalLight.position.set(5, 5, 5);
+                scene.add(directionalLight);
+                
+                console.log('✅ Lighting added');
+                
+                // Position camera further back
+                camera.position.set(0, 0, 6);
+                camera.lookAt(0, 0, 0);
+                
+                console.log('✅ Camera positioned at:', camera.position);
+                
+                // Test OrbitControls
+                const controls = new OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                
+                console.log('✅ OrbitControls initialized');
+                
+                // Force initial render
+                renderer.render(scene, camera);
+                
+                console.log('✅ Initial render completed');
+                console.log('Scene children count:', scene.children.length);
+                console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
+                console.log('Canvas style:', canvas.style.width, 'x', canvas.style.height);
+                
+                console.log('✅ Local Three.js test passed!');
+                
+                let resultHTML = '<h3>✅ Local Three.js Test Results:</h3>';
+                resultHTML += `<div><strong>Three.js Version:</strong> r${THREELib.REVISION}</div>`;
+                resultHTML += '<div><strong>Components:</strong> All loaded successfully</div>';
+                resultHTML += '<div><strong>Scene:</strong> Created and rendered</div>';
+                resultHTML += '<div><strong>OrbitControls:</strong> Initialized</div>';
+                resultHTML += '<div><strong>Status:</strong> 🎉 Everything working!</div>';
+                
+                results.innerHTML = resultHTML;
+                results.className = 'info success';
+                
+                // Animate
+                function animate() {
+                    requestAnimationFrame(animate);
+                    cube.rotation.x += 0.01;
+                    cube.rotation.y += 0.01;
+                    controls.update();
+                    renderer.render(scene, camera);
+                }
+                animate();
+                
+            } catch (error) {
+                console.error('❌ Local Three.js test failed:', error);
+                
+                let errorHTML = '<h3>❌ Local Three.js Test Failed:</h3>';
+                errorHTML += `<div><strong>Error:</strong> ${error.message}</div>`;
+                errorHTML += '<div><strong>Stack:</strong> ' + (error.stack ? error.stack.substring(0, 200) + '...' : 'Not available') + '</div>';
+                
+                results.innerHTML = errorHTML;
+                results.className = 'info error';
+            }
+        }
+        
+        // Run test when page loads
+        testThreeJS();
+    </script>
+</body>
+</html>

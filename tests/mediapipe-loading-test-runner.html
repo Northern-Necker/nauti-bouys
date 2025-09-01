@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaPipe Face Landmarker v2 Loading Test Suite</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .test-category {
+            background: white;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .category-header {
+            background: #4a5568;
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .category-content {
+            padding: 20px;
+            display: none;
+        }
+        
+        .category-content.active {
+            display: block;
+        }
+        
+        .test-result {
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            border-left: 4px solid;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        .test-result.info {
+            background: #e6f3ff;
+            border-color: #0066cc;
+            color: #003d7a;
+        }
+        
+        .test-result.error {
+            background: #ffe6e6;
+            border-color: #cc0000;
+            color: #7a0000;
+        }
+        
+        .test-result.warning {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        
+        .test-result.success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #45a049;
+        }
+        
+        .btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .btn.secondary {
+            background: #6c757d;
+        }
+        
+        .btn.secondary:hover {
+            background: #5a6268;
+        }
+        
+        .diagnostic-summary {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-indicator.success { background: #28a745; }
+        .status-indicator.error { background: #dc3545; }
+        .status-indicator.warning { background: #ffc107; }
+        .status-indicator.info { background: #17a2b8; }
+        
+        .expandable {
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .expandable::before {
+            content: '▶ ';
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+        
+        .expandable.expanded::before {
+            transform: rotate(90deg);
+        }
+        
+        .details {
+            margin-left: 20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            display: none;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .details.show {
+            display: block;
+        }
+        
+        #testOutput {
+            max-height: 600px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>MediaPipe Face Landmarker v2 Loading Test Suite</h1>
+        <p>Comprehensive testing for MediaPipe loading issues across different environments</p>
+    </div>
+    
+    <div class="test-controls">
+        <h3>Test Controls</h3>
+        <button class="btn" id="runAllBtn" onclick="runAllTests()">Run All Tests</button>
+        <button class="btn secondary" id="runCDNBtn" onclick="runCDNTests()">Test CDN Loading</button>
+        <button class="btn secondary" id="runModelBtn" onclick="runModelTests()">Test Model Loading</button>
+        <button class="btn secondary" id="runWASMBtn" onclick="runWASMTests()">Test WASM Init</button>
+        <button class="btn secondary" id="runGPUBtn" onclick="runGPUTests()">Test GPU Acceleration</button>
+        <button class="btn secondary" id="runCompatBtn" onclick="runCompatTests()">Test Browser Compatibility</button>
+        <button class="btn secondary" onclick="clearResults()">Clear Results</button>
+        <button class="btn secondary" onclick="exportResults()">Export Report</button>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
+        <div id="progressText">Ready to start testing...</div>
+    </div>
+    
+    <div class="test-category">
+        <div class="category-header" onclick="toggleCategory('system-info')">
+            <span>System Information</span>
+            <span class="status-indicator info"></span>
+        </div>
+        <div class="category-content" id="system-info">
+            <div id="systemInfoContent">Loading system information...</div>
+        </div>
+    </div>
+    
+    <div class="test-category">
+        <div class="category-header" onclick="toggleCategory('cdn-tests')">
+            <span>CDN Import Tests</span>
+            <span class="status-indicator" id="cdn-status"></span>
+        </div>
+        <div class="category-content" id="cdn-tests">
+            <div id="cdnTestResults">No tests run yet</div>
+        </div>
+    </div>
+    
+    <div class="test-category">
+        <div class="category-header" onclick="toggleCategory('model-tests')">
+            <span>Model Loading Tests</span>
+            <span class="status-indicator" id="model-status"></span>
+        </div>
+        <div class="category-content" id="model-tests">
+            <div id="modelTestResults">No tests run yet</div>
+        </div>
+    </div>
+    
+    <div class="test-category">
+        <div class="category-header" onclick="toggleCategory('wasm-tests')">
+            <span>WASM Backend Tests</span>
+            <span class="status-indicator" id="wasm-status"></span>
+        </div>
+        <div class="category-content" id="wasm-tests">
+            <div id="wasmTestResults">No tests run yet</div>
+        </div>
+    </div>
+    
+    <div class="test-category">
+        <div class="category-header" onclick="toggleCategory('gpu-tests')">
+            <span>GPU Acceleration Tests</span>
+            <span class="status-indicator" id="gpu-status"></span>
+        </div>
+        <div class="category-content" id="gpu-tests">
+            <div id="gpuTestResults">No tests run yet</div>
+        </div>
+    </div>
+    
+    <div class="test-category">
+        <div class="category-header" onclick="toggleCategory('compat-tests')">
+            <span>Browser Compatibility Tests</span>
+            <span class="status-indicator" id="compat-status"></span>
+        </div>
+        <div class="category-content" id="compat-tests">
+            <div id="compatTestResults">No tests run yet</div>
+        </div>
+    </div>
+    
+    <div class="test-category">
+        <div class="category-header" onclick="toggleCategory('recommendations')">
+            <span>Recommendations & Solutions</span>
+            <span class="status-indicator" id="recommendations-status"></span>
+        </div>
+        <div class="category-content" id="recommendations">
+            <div id="recommendationsContent">Run tests to get recommendations</div>
+        </div>
+    </div>
+
+    <script>
+        // Disable auto-test from the test suite
+        window.DISABLE_AUTO_TEST = true;
+        
+        let testSuite;
+        let currentTestCategory = '';
+        let testProgress = 0;
+        let totalTests = 0;
+        
+        // Initialize test suite when page loads
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Load the test suite
+            await loadTestSuite();
+            
+            // Initialize system information
+            await initializeSystemInfo();
+        });
+        
+        async function loadTestSuite() {
+            try {
+                // Import the test suite (assuming it's in the same directory)
+                const script = document.createElement('script');
+                script.src = './mediapipe-loading-tests.js';
+                document.head.appendChild(script);
+                
+                await new Promise((resolve, reject) => {
+                    script.onload = resolve;
+                    script.onerror = reject;
+                });
+                
+                testSuite = new window.MediaPipeLoadingTestSuite();
+                updateProgressText('Test suite loaded successfully');
+                
+            } catch (error) {
+                updateProgressText('Failed to load test suite: ' + error.message);
+                console.error('Failed to load test suite:', error);
+            }
+        }
+        
+        async function initializeSystemInfo() {
+            if (!testSuite) return;
+            
+            const systemInfo = {
+                browser: testSuite.getBrowserInfo(),
+                webgl: testSuite.getWebGLInfo(),
+                network: testSuite.getNetworkInfo(),
+                mediaDevices: await testSuite.getMediaDevicesInfo()
+            };
+            
+            document.getElementById('systemInfoContent').innerHTML = formatSystemInfo(systemInfo);
+        }
+        
+        function formatSystemInfo(info) {
+            return `
+                <div class="diagnostic-summary">
+                    <h4>Browser Information</h4>
+                    <p><strong>User Agent:</strong> ${info.browser.userAgent}</p>
+                    <p><strong>Platform:</strong> ${info.browser.platform}</p>
+                    <p><strong>Language:</strong> ${info.browser.language}</p>
+                    <p><strong>Hardware Concurrency:</strong> ${info.browser.hardwareConcurrency}</p>
+                    <p><strong>Device Memory:</strong> ${info.browser.memory} GB</p>
+                    <p><strong>Online:</strong> ${info.browser.onLine}</p>
+                </div>
+                
+                <div class="diagnostic-summary">
+                    <h4>WebGL Capabilities</h4>
+                    <p><strong>Supported:</strong> ${info.webgl.supported}</p>
+                    ${info.webgl.supported ? `
+                        <p><strong>Version:</strong> ${info.webgl.version}</p>
+                        <p><strong>Vendor:</strong> ${info.webgl.vendor}</p>
+                        <p><strong>Renderer:</strong> ${info.webgl.renderer}</p>
+                        <p><strong>Max Texture Size:</strong> ${info.webgl.maxTextureSize}</p>
+                    ` : `<p><strong>Error:</strong> ${info.webgl.error}</p>`}
+                </div>
+                
+                <div class="diagnostic-summary">
+                    <h4>Network Connection</h4>
+                    <p><strong>Online:</strong> ${info.network.online}</p>
+                    ${info.network.connection !== 'unknown' ? `
+                        <p><strong>Effective Type:</strong> ${info.network.connection.effectiveType}</p>
+                        <p><strong>Downlink:</strong> ${info.network.connection.downlink} Mbps</p>
+                        <p><strong>RTT:</strong> ${info.network.connection.rtt}ms</p>
+                    ` : '<p>Connection details not available</p>'}
+                </div>
+                
+                <div class="diagnostic-summary">
+                    <h4>Media Devices</h4>
+                    <p><strong>Supported:</strong> ${info.mediaDevices.supported}</p>
+                    ${info.mediaDevices.supported ? `
+                        <p><strong>Camera Permission:</strong> ${info.mediaDevices.permissions?.camera || 'unknown'}</p>
+                        <p><strong>Microphone Permission:</strong> ${info.mediaDevices.permissions?.microphone || 'unknown'}</p>
+                        <p><strong>Devices Found:</strong> ${info.mediaDevices.devices?.length || 0}</p>
+                    ` : `<p><strong>Error:</strong> ${info.mediaDevices.error}</p>`}
+                </div>
+            `;
+        }
+        
+        async function runAllTests() {
+            if (!testSuite) {
+                alert('Test suite not loaded');
+                return;
+            }
+            
+            setButtonsDisabled(true);
+            updateProgress(0, 'Starting comprehensive test suite...');
+            
+            try {
+                // Clear previous results
+                clearResults();
+                
+                // Run all tests with progress tracking
+                const report = await runTestsWithProgress();
+                
+                // Display final results
+                displayFinalReport(report);
+                updateProgress(100, 'All tests completed successfully');
+                
+            } catch (error) {
+                updateProgressText('Test suite failed: ' + error.message);
+                console.error('Test suite error:', error);
+            } finally {
+                setButtonsDisabled(false);
+            }
+        }
+        
+        async function runTestsWithProgress() {
+            const testCategories = [
+                { name: 'CDN Import Tests', method: 'testCDNImports', id: 'cdn' },
+                { name: 'Model Loading Tests', method: 'testModelLoading', id: 'model' },
+                { name: 'WASM Backend Tests', method: 'testWASMBackendInit', id: 'wasm' },
+                { name: 'GPU Acceleration Tests', method: 'testGPUAcceleration', id: 'gpu' },
+                { name: 'Browser Compatibility Tests', method: 'testCrossBrowserCompatibility', id: 'compat' }
+            ];
+            
+            totalTests = testCategories.length;
+            let completedTests = 0;
+            
+            // Set up result tracking
+            testSuite.testResults = [];
+            testSuite.errorLog = [];
+            
+            for (const category of testCategories) {
+                currentTestCategory = category.id;
+                updateProgress((completedTests / totalTests) * 100, `Running ${category.name}...`);
+                
+                try {
+                    await testSuite[category.method]();
+                    updateCategoryStatus(category.id, 'success');
+                    displayCategoryResults(category.id, testSuite.testResults.filter(r => 
+                        r.category.toLowerCase().includes(category.id) || 
+                        category.name.toLowerCase().includes(r.category.toLowerCase())
+                    ));
+                } catch (error) {
+                    updateCategoryStatus(category.id, 'error');
+                    console.error(`${category.name} failed:`, error);
+                }
+                
+                completedTests++;
+            }
+            
+            return testSuite.generateDiagnosticReport();
+        }
+        
+        async function runCDNTests() {
+            await runSingleTestCategory('testCDNImports', 'cdn', 'CDN Import Tests');
+        }
+        
+        async function runModelTests() {
+            await runSingleTestCategory('testModelLoading', 'model', 'Model Loading Tests');
+        }
+        
+        async function runWASMTests() {
+            await runSingleTestCategory('testWASMBackendInit', 'wasm', 'WASM Backend Tests');
+        }
+        
+        async function runGPUTests() {
+            await runSingleTestCategory('testGPUAcceleration', 'gpu', 'GPU Acceleration Tests');
+        }
+        
+        async function runCompatTests() {
+            await runSingleTestCategory('testCrossBrowserCompatibility', 'compat', 'Browser Compatibility Tests');
+        }
+        
+        async function runSingleTestCategory(methodName, categoryId, categoryName) {
+            if (!testSuite) {
+                alert('Test suite not loaded');
+                return;
+            }
+            
+            setButtonsDisabled(true);
+            updateProgress(0, `Running ${categoryName}...`);
+            
+            try {
+                const initialResultsCount = testSuite.testResults.length;
+                await testSuite[methodName]();
+                
+                const newResults = testSuite.testResults.slice(initialResultsCount);
+                displayCategoryResults(categoryId, newResults);
+                updateCategoryStatus(categoryId, newResults.some(r => r.level === 'error') ? 'error' : 'success');
+                updateProgress(100, `${categoryName} completed`);
+                
+            } catch (error) {
+                updateCategoryStatus(categoryId, 'error');
+                updateProgressText(`${categoryName} failed: ${error.message}`);
+                console.error(`${categoryName} error:`, error);
+            } finally {
+                setButtonsDisabled(false);
+            }
+        }
+        
+        function displayCategoryResults(categoryId, results) {
+            const container = document.getElementById(`${categoryId}TestResults`);
+            if (!container) return;
+            
+            if (results.length === 0) {
+                container.innerHTML = '<p>No results to display</p>';
+                return;
+            }
+            
+            const html = results.map(result => {
+                const hasData = result.data && Object.keys(result.data).length > 0;
+                return `
+                    <div class="test-result ${result.level}">
+                        <div class="expandable ${hasData ? 'has-data' : ''}" onclick="toggleDetails(this)">
+                            <strong>[${result.timestamp}] ${result.category}:</strong> ${result.message}
+                        </div>
+                        ${hasData ? `
+                            <div class="details">
+                                ${JSON.stringify(result.data, null, 2)}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = html;
+        }
+        
+        function displayFinalReport(report) {
+            // Display recommendations
+            const recommendationsContainer = document.getElementById('recommendationsContent');
+            if (report.recommendations && report.recommendations.length > 0) {
+                const html = report.recommendations.map(rec => `
+                    <div class="test-result ${rec.priority === 'critical' ? 'error' : rec.priority === 'high' ? 'warning' : 'info'}">
+                        <strong>${rec.issue}:</strong> ${rec.solution}
+                        <br><small>Priority: ${rec.priority}</small>
+                    </div>
+                `).join('');
+                recommendationsContainer.innerHTML = html;
+                updateCategoryStatus('recommendations', 'info');
+            } else {
+                recommendationsContainer.innerHTML = '<p>No specific recommendations - all tests passed!</p>';
+                updateCategoryStatus('recommendations', 'success');
+            }
+            
+            // Log full report to console
+            console.log('Full MediaPipe Test Report:', report);
+        }
+        
+        function updateCategoryStatus(categoryId, status) {
+            const statusIndicator = document.getElementById(`${categoryId}-status`);
+            if (statusIndicator) {
+                statusIndicator.className = `status-indicator ${status}`;
+            }
+        }
+        
+        function updateProgress(percentage, text) {
+            document.getElementById('progressBar').style.width = `${percentage}%`;
+            updateProgressText(text);
+        }
+        
+        function updateProgressText(text) {
+            document.getElementById('progressText').textContent = text;
+        }
+        
+        function setButtonsDisabled(disabled) {
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => btn.disabled = disabled);
+        }
+        
+        function toggleCategory(categoryId) {
+            const content = document.getElementById(categoryId);
+            content.classList.toggle('active');
+        }
+        
+        function toggleDetails(element) {
+            if (!element.classList.contains('has-data')) return;
+            
+            element.classList.toggle('expanded');
+            const details = element.parentNode.querySelector('.details');
+            if (details) {
+                details.classList.toggle('show');
+            }
+        }
+        
+        function clearResults() {
+            const resultContainers = [
+                'cdnTestResults',
+                'modelTestResults', 
+                'wasmTestResults',
+                'gpuTestResults',
+                'compatTestResults',
+                'recommendationsContent'
+            ];
+            
+            resultContainers.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.innerHTML = 'No tests run yet';
+                }
+            });
+            
+            // Reset status indicators
+            ['cdn', 'model', 'wasm', 'gpu', 'compat', 'recommendations'].forEach(id => {
+                updateCategoryStatus(id, '');
+            });
+            
+            updateProgress(0, 'Results cleared');
+            
+            if (testSuite) {
+                testSuite.testResults = [];
+                testSuite.errorLog = [];
+            }
+        }
+        
+        function exportResults() {
+            if (!testSuite || testSuite.testResults.length === 0) {
+                alert('No test results to export');
+                return;
+            }
+            
+            const report = testSuite.generateDiagnosticReport();
+            const dataStr = JSON.stringify(report, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = `mediapipe-test-report-${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.json`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+        }
+        
+        // Add some styling for expandable elements
+        document.addEventListener('DOMContentLoaded', () => {
+            const style = document.createElement('style');
+            style.textContent = `
+                .expandable.has-data {
+                    cursor: pointer;
+                    user-select: none;
+                }
+                
+                .expandable.has-data:hover {
+                    background-color: rgba(0,0,0,0.05);
+                    border-radius: 4px;
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
+</body>
+</html>

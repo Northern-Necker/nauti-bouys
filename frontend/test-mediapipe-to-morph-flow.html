@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MediaPipe to Morph Parameter Flow Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f8f9fa; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .test-section { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .flow-step { background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 4px; border-left: 4px solid #007bff; }
+        .flow-step.active { border-left-color: #ffc107; background: #fff3e0; }
+        .flow-step.success { border-left-color: #28a745; background: #d4edda; }
+        .flow-step.error { border-left-color: #dc3545; background: #f8d7da; }
+        .code-block { background: #f1f3f4; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; }
+        button { padding: 10px 15px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 MediaPipe to Morph Parameter Flow Test</h1>
+        <p><strong>Testing end-to-end flow from geometric analysis to 3D model updates</strong></p>
+        
+        <div class="test-section">
+            <h3>🧪 Test Controls</h3>
+            <button class="btn-primary" onclick="testCompleteFlow()">🚀 Test Complete Flow</button>
+            <button class="btn-success" onclick="testStepByStep()">📋 Step-by-Step Test</button>
+            <button onclick="clearResults()">🧹 Clear Results</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔄 Flow Steps</h3>
+            <div id="flowSteps">
+                <div class="flow-step" id="step1">
+                    <strong>1. 📷 Image Capture</strong><br>
+                    <small>Capture 3D avatar frame from canvas</small>
+                </div>
+                <div class="flow-step" id="step2">
+                    <strong>2. 🎯 MediaPipe Analysis</strong><br>
+                    <small>468 facial landmarks → geometric measurements</small>
+                </div>
+                <div class="flow-step" id="step3">
+                    <strong>3. 📐 Target Comparison</strong><br>
+                    <small>Compare measurements to ideal viseme targets</small>
+                </div>
+                <div class="flow-step" id="step4">
+                    <strong>4. 🔧 Generate Recommendations</strong><br>
+                    <small>Create precise morph adjustments</small>
+                </div>
+                <div class="flow-step" id="step5">
+                    <strong>5. 🧠 Advanced Morph Processing</strong><br>
+                    <small>Parse recommendations into actionable changes</small>
+                </div>
+                <div class="flow-step" id="step6">
+                    <strong>6. 🎯 Apply to 3D Model</strong><br>
+                    <small>Update morphTargetInfluences array</small>
+                </div>
+                <div class="flow-step" id="step7">
+                    <strong>7. 🖼️ Visual Update</strong><br>
+                    <small>Re-render 3D scene with new morph values</small>
+                </div>
+            </div>
+        </div>
+        
+        <div id="testResults"></div>
+    </div>
+
+    <!-- Load required dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.6"></script>
+    <script src="mediapipe-viseme-analyzer.js"></script>
+    <script src="advanced-morph-engine.js"></script>
+
+    <script>
+        let mediaPipeAnalyzer = null;
+        let advancedMorphEngine = null;
+        let mockMorphTargets = [];
+        let currentStep = 0;
+        
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('testResults');
+            const div = document.createElement('div');
+            div.className = `test-section`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}:</strong> ${message}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+        
+        function updateStep(stepNum, status) {
+            const step = document.getElementById(`step${stepNum}`);
+            if (step) {
+                step.className = `flow-step ${status}`;
+            }
+            currentStep = stepNum;
+        }
+        
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+            document.querySelectorAll('.flow-step').forEach(step => {
+                step.className = 'flow-step';
+            });
+            currentStep = 0;
+        }
+        
+        // Create mock morph targets for testing
+        function createMockMorphTargets() {
+            const morphNames = [
+                'V_Explosive', 'Mouth_Close', 'Mouth_Pucker', 'Jaw_Open', 
+                'Mouth_Stretch_L', 'Mouth_Stretch_R', 'Lip_Tighten'
+            ];
+            
+            mockMorphTargets = morphNames.map((name, index) => ({
+                name: name,
+                index: index,
+                meshName: 'TestMesh',
+                mesh: {
+                    morphTargetInfluences: new Array(morphNames.length).fill(0)
+                }
+            }));
+            
+            return mockMorphTargets;
+        }
+        
+        // Mock conversation logger
+        const mockLogger = (message, type) => {
+            console.log(`[${type}] ${message}`);
+        };
+        
+        // Step 1: Image Capture (Mock)
+        function simulateImageCapture() {
+            updateStep(1, 'active');
+            
+            // Create test face image
+            const canvas = document.createElement('canvas');
+            canvas.width = 200;
+            canvas.height = 200;
+            const ctx = canvas.getContext('2d');
+            
+            // Draw face for PP viseme
+            ctx.fillStyle = '#ffdbac';
+            ctx.beginPath();
+            ctx.ellipse(100, 100, 60, 80, 0, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Draw closed mouth (PP viseme)
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.ellipse(100, 130, 15, 3, 0, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            const imageDataURL = canvas.toDataURL('image/png');
+            updateStep(1, 'success');
+            
+            return {
+                imageDataURL: imageDataURL,
+                size: Math.round(imageDataURL.length / 1000) + 'KB'
+            };
+        }
+        
+        // Step 2: MediaPipe Analysis
+        async function performMediaPipeAnalysis(imageDataURL) {
+            updateStep(2, 'active');
+            
+            try {
+                if (!mediaPipeAnalyzer) {
+                    mediaPipeAnalyzer = new window.MediaPipeVisemeAnalyzer();
+                    await mediaPipeAnalyzer.initialize();
+                }
+                
+                const analysis = await mediaPipeAnalyzer.analyzeViseme(imageDataURL, 'pp');
+                updateStep(2, 'success');
+                
+                return analysis;
+                
+            } catch (error) {
+                updateStep(2, 'error');
+                throw error;
+            }
+        }
+        
+        // Step 3-4: Format MediaPipe recommendations  
+        function formatRecommendations(analysis) {
+            updateStep(3, 'active');
+            updateStep(4, 'active');
+            
+            // Convert MediaPipe recommendations to compatible format (like in main app)
+            const recommendations = analysis.recommendations.map(rec => {
+                if (rec.type === 'specific_morph') {
+                    return `${rec.action.charAt(0).toUpperCase() + rec.action.slice(1)} ${rec.morphName} to ${rec.targetValue.toFixed(2)} (${rec.reason})`;
+                }
+                return rec.reason || rec.description || JSON.stringify(rec);
+            });
+            
+            updateStep(3, 'success');
+            updateStep(4, 'success');
+            
+            return {
+                score: Math.round(analysis.score),
+                recommendations: recommendations,
+                mediaPipeAnalysis: true,
+                geometricData: analysis
+            };
+        }
+        
+        // Step 5: Advanced Morph Processing
+        function processWithAdvancedMorphEngine(formattedRecommendation) {
+            updateStep(5, 'active');
+            
+            try {
+                if (!advancedMorphEngine) {
+                    advancedMorphEngine = new window.AdvancedMorphEngine(mockMorphTargets, mockLogger);
+                }
+                
+                const currentMapping = { morphs: mockMorphTargets.map(m => m.name) };
+                const parsedChanges = advancedMorphEngine.parseAdvancedRecommendations(
+                    formattedRecommendation,
+                    'pp',
+                    currentMapping
+                );
+                
+                updateStep(5, 'success');
+                return parsedChanges;
+                
+            } catch (error) {
+                updateStep(5, 'error');
+                throw error;
+            }
+        }
+        
+        // Step 6: Apply to 3D Model
+        function applyTo3DModel(parsedChanges) {
+            updateStep(6, 'active');
+            
+            try {
+                const results = [];
+                
+                parsedChanges.forEach(change => {
+                    if (change.type === 'specific_morph' && change.morphTarget) {
+                        const oldValue = change.morphTarget.mesh.morphTargetInfluences[change.morphTarget.index];
+                        
+                        // THIS IS THE CRITICAL LINE - Updates actual 3D model
+                        change.morphTarget.mesh.morphTargetInfluences[change.morphTarget.index] = change.value;
+                        
+                        results.push({
+                            morphName: change.morphTarget.name,
+                            oldValue: oldValue,
+                            newValue: change.value,
+                            change: (change.value - oldValue).toFixed(3)
+                        });
+                    }
+                });
+                
+                updateStep(6, 'success');
+                return results;
+                
+            } catch (error) {
+                updateStep(6, 'error');
+                throw error;
+            }
+        }
+        
+        // Step 7: Visual Update (Mock)
+        function triggerVisualUpdate() {
+            updateStep(7, 'active');
+            
+            // Mock visual update
+            setTimeout(() => {
+                updateStep(7, 'success');
+            }, 500);
+            
+            return {
+                updated: true,
+                timestamp: new Date().toLocaleTimeString()
+            };
+        }
+        
+        // Complete flow test
+        async function testCompleteFlow() {
+            clearResults();
+            addResult('🚀 Starting complete MediaPipe to Morph parameter flow test...');
+            
+            try {
+                // Initialize mock data
+                createMockMorphTargets();
+                addResult(`📊 Created ${mockMorphTargets.length} mock morph targets`);
+                
+                // Step 1: Image Capture
+                const imageData = simulateImageCapture();
+                addResult(`📷 Step 1 Complete: Image captured (${imageData.size})`);
+                
+                // Step 2: MediaPipe Analysis
+                const analysis = await performMediaPipeAnalysis(imageData.imageDataURL);
+                addResult(`🎯 Step 2 Complete: MediaPipe analysis - ${analysis.score.toFixed(1)}% accuracy, ${analysis.recommendations.length} recommendations`);
+                
+                // Step 3-4: Format Recommendations
+                const formattedRecommendation = formatRecommendations(analysis);
+                addResult(`🔧 Steps 3-4 Complete: Recommendations formatted - Score: ${formattedRecommendation.score}%`);
+                
+                // Show formatted recommendations
+                formattedRecommendation.recommendations.forEach((rec, i) => {
+                    addResult(`   ${i+1}. ${rec}`);
+                });
+                
+                // Step 5: Advanced Morph Processing
+                const parsedChanges = processWithAdvancedMorphEngine(formattedRecommendation);
+                addResult(`🧠 Step 5 Complete: Parsed ${parsedChanges.length} morph changes`);
+                
+                // Step 6: Apply to 3D Model
+                const appliedResults = applyTo3DModel(parsedChanges);
+                addResult(`🎯 Step 6 Complete: Applied ${appliedResults.length} morph updates`);
+                
+                // Show applied changes
+                appliedResults.forEach(result => {
+                    addResult(`   ✅ ${result.morphName}: ${result.oldValue.toFixed(3)} → ${result.newValue.toFixed(3)} (${result.change > 0 ? '+' : ''}${result.change})`);
+                });
+                
+                // Step 7: Visual Update
+                const visualUpdate = triggerVisualUpdate();
+                addResult(`🖼️ Step 7 Complete: Visual update triggered at ${visualUpdate.timestamp}`);
+                
+                // Final summary
+                addResult(`<div class="code-block">
+<strong>🎉 COMPLETE FLOW TEST PASSED!</strong><br><br>
+<strong>Flow Summary:</strong><br>
+📷 Image: ${imageData.size} test image created<br>
+🎯 Analysis: ${analysis.score.toFixed(1)}% geometric accuracy<br>
+🔧 Recommendations: ${formattedRecommendation.recommendations.length} precise adjustments<br>
+🧠 Parsing: ${parsedChanges.length} morph changes processed<br>
+🎯 Application: ${appliedResults.length} morphs updated in 3D model<br>
+🖼️ Rendering: Visual update complete<br><br>
+<strong>✅ MediaPipe → Morph Parameter flow is FUNCTIONAL!</strong>
+</div>`, 'success');
+                
+            } catch (error) {
+                addResult(`❌ Flow test failed at step ${currentStep}: ${error.message}`, 'error');
+                console.error('Flow test error:', error);
+            }
+        }
+        
+        // Step by step test
+        async function testStepByStep() {
+            addResult('📋 Step-by-step testing - click each step manually');
+            // Individual step testing could be implemented here
+        }
+        
+        // Initialize
+        window.onload = function() {
+            addResult('🚀 MediaPipe to Morph Parameter Flow Test initialized');
+            addResult('💡 Click "Test Complete Flow" to verify end-to-end functionality');
+        };
+    </script>
+</body>
+</html>

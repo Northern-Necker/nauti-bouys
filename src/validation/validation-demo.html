@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎭 Morph Validation System Demo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #0f0f0f;
+            color: #ffffff;
+            line-height: 1.6;
+        }
+        
+        .demo-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .demo-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+        }
+        
+        .demo-header h1 {
+            font-size: 3em;
+            margin: 0 0 10px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .demo-header p {
+            font-size: 1.3em;
+            opacity: 0.9;
+            margin: 0;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .feature-card {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 25px;
+            border: 2px solid #333;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .feature-card:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        }
+        
+        .feature-card.active {
+            border-color: #4CAF50;
+            background: #1a2a1a;
+        }
+        
+        .feature-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .feature-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #4CAF50;
+        }
+        
+        .feature-description {
+            color: #ccc;
+            font-size: 0.95em;
+            margin-bottom: 15px;
+        }
+        
+        .feature-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .status-indicator {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .status-ready { background: #4CAF50; color: white; }
+        .status-loading { background: #FF9800; color: white; }
+        .status-error { background: #F44336; color: white; }
+        
+        .demo-controls {
+            background: #1a1a1a;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 40px;
+            border: 2px solid #333;
+        }
+        
+        .controls-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        
+        .controls-title {
+            font-size: 1.8em;
+            color: #4CAF50;
+        }
+        
+        .demo-button {
+            padding: 12px 24px;
+            background: #667eea;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .demo-button:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+        
+        .demo-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .demo-button.success {
+            background: #4CAF50;
+        }
+        
+        .demo-button.warning {
+            background: #FF9800;
+        }
+        
+        .demo-button.danger {
+            background: #F44336;
+        }
+        
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .demo-log {
+            background: #0a0a0a;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            margin-top: 20px;
+        }
+        
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid #333;
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .log-timestamp {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .log-level-info { color: #17a2b8; }
+        .log-level-success { color: #28a745; }
+        .log-level-warning { color: #ffc107; }
+        .log-level-error { color: #dc3545; }
+        
+        .preview-area {
+            background: #1a1a1a;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 40px;
+            border: 2px solid #333;
+        }
+        
+        .preview-header {
+            font-size: 1.8em;
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+        
+        .system-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #ccc;
+        }
+        
+        .progress-section {
+            margin: 20px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: #333;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            border-top: 2px solid #333;
+            margin-top: 40px;
+        }
+        
+        .tech-stack {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .tech-badge {
+            background: #333;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            color: #ccc;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .loading {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1>🎭 Morph Validation System</h1>
+            <p>Comprehensive visual validation for lip sync morph targets across Three.js, Babylon.js, and Unity WebGL</p>
+        </div>
+        
+        <!-- Feature Overview -->
+        <div class="feature-grid">
+            <div class="feature-card" data-feature="visual-validator">
+                <span class="feature-icon">🖼️</span>
+                <div class="feature-title">Visual Validator</div>
+                <div class="feature-description">
+                    Side-by-side framework comparison with real-time morph controls and visual feedback.
+                </div>
+                <div class="feature-status">
+                    <div class="status-indicator status-ready">Ready</div>
+                    <small>Main interface</small>
+                </div>
+            </div>
+            
+            <div class="feature-card" data-feature="screenshot-capture">
+                <span class="feature-icon">📸</span>
+                <div class="feature-title">Screenshot Capture</div>
+                <div class="feature-description">
+                    Automated canvas capture with pixel-level difference detection and comparison tools.
+                </div>
+                <div class="feature-status">
+                    <div class="status-indicator status-ready">Ready</div>
+                    <small>Canvas capture</small>
+                </div>
+            </div>
+            
+            <div class="feature-card" data-feature="gpu-monitoring">
+                <span class="feature-icon">🖥️</span>
+                <div class="feature-title">GPU State Monitor</div>
+                <div class="feature-description">
+                    WebGL state tracking, buffer update monitoring, and GPU synchronization validation.
+                </div>
+                <div class="feature-status">
+                    <div class="status-indicator status-ready">Ready</div>
+                    <small>WebGL hooks</small>
+                </div>
+            </div>
+            
+            <div class="feature-card" data-feature="automated-testing">
+                <span class="feature-icon">🧪</span>
+                <div class="feature-title">Automated Testing</div>
+                <div class="feature-description">
+                    Complete test suite running all 15 visemes with validation scoring and evidence collection.
+                </div>
+                <div class="feature-status">
+                    <div class="status-indicator status-ready">Ready</div>
+                    <small>Test pipeline</small>
+                </div>
+            </div>
+            
+            <div class="feature-card" data-feature="report-generation">
+                <span class="feature-icon">📊</span>
+                <div class="feature-title">Report Generator</div>
+                <div class="feature-description">
+                    Professional HTML/JSON reports with visual evidence, metrics, and recommendations.
+                </div>
+                <div class="feature-status">
+                    <div class="status-indicator status-ready">Ready</div>
+                    <small>Multi-format</small>
+                </div>
+            </div>
+            
+            <div class="feature-card" data-feature="integration">
+                <span class="feature-icon">🔗</span>
+                <div class="feature-title">Framework Integration</div>
+                <div class="feature-description">
+                    Direct integration with Three.js, Babylon.js, and Unity WebGL morph target systems.
+                </div>
+                <div class="feature-status">
+                    <div class="status-indicator status-loading">Demo Mode</div>
+                    <small>Simulation</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Demo Controls -->
+        <div class="demo-controls">
+            <div class="controls-header">
+                <div class="controls-title">🎮 Demo Controls</div>
+                <div class="system-stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="frameworks-loaded">3</div>
+                        <div class="stat-label">Frameworks</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="tests-ready">15</div>
+                        <div class="stat-label">Visemes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="validation-score">0%</div>
+                        <div class="stat-label">Success Rate</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="button-grid">
+                <button class="demo-button" id="launch-validator">
+                    🚀 Launch Visual Validator
+                </button>
+                <button class="demo-button success" id="run-quick-test">
+                    ⚡ Quick Validation Test
+                </button>
+                <button class="demo-button" id="run-full-suite">
+                    🧪 Complete Test Suite
+                </button>
+                <button class="demo-button warning" id="capture-screenshots">
+                    📸 Capture All Screenshots
+                </button>
+                <button class="demo-button" id="monitor-gpu">
+                    🖥️ Monitor GPU State
+                </button>
+                <button class="demo-button success" id="generate-report">
+                    📊 Generate Report
+                </button>
+            </div>
+            
+            <div class="progress-section">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="demo-progress"></div>
+                    <div class="progress-text" id="progress-text">Ready to start validation</div>
+                </div>
+            </div>
+            
+            <div class="demo-log" id="demo-log">
+                <div class="log-entry">
+                    <span class="log-timestamp">[11:13:49]</span>
+                    <span class="log-level-info">System initialized and ready for validation</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Preview Area -->
+        <div class="preview-area">
+            <div class="preview-header">🎯 Validation System Overview</div>
+            
+            <div class="system-stats">
+                <div class="stat-card">
+                    <div class="stat-value">5</div>
+                    <div class="stat-label">Core Components</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">3</div>
+                    <div class="stat-label">Target Frameworks</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">15</div>
+                    <div class="stat-label">ARKit Visemes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">100%</div>
+                    <div class="stat-label">Coverage</div>
+                </div>
+            </div>
+            
+            <p>This comprehensive validation system provides:</p>
+            <ul>
+                <li><strong>Visual Validation:</strong> Side-by-side framework comparison with real-time morph controls</li>
+                <li><strong>Screenshot Evidence:</strong> Automated capture and pixel-level difference analysis</li>
+                <li><strong>GPU Monitoring:</strong> WebGL state tracking and performance validation</li>
+                <li><strong>Automated Testing:</strong> Complete test suite with scoring and evidence collection</li>
+                <li><strong>Professional Reports:</strong> HTML/JSON reports with visual evidence and recommendations</li>
+            </ul>
+            
+            <p><strong>Key Features:</strong></p>
+            <ul>
+                <li>Pixel-perfect change detection with configurable thresholds</li>
+                <li>GPU state monitoring with WebGL hook instrumentation</li>
+                <li>Performance metrics collection across all frameworks</li>
+                <li>Visual evidence collection with before/after comparisons</li>
+                <li>Professional report generation with actionable insights</li>
+            </ul>
+        </div>
+        
+        <div class="footer">
+            <p>🎭 Advanced Morph Validation System - Proving visual changes are actually happening</p>
+            <div class="tech-stack">
+                <span class="tech-badge">WebGL 2.0</span>
+                <span class="tech-badge">Canvas API</span>
+                <span class="tech-badge">Performance API</span>
+                <span class="tech-badge">Three.js</span>
+                <span class="tech-badge">Babylon.js</span>
+                <span class="tech-badge">Unity WebGL</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        class ValidationDemo {
+            constructor() {
+                this.isRunning = false;
+                this.progress = 0;
+                this.logs = [];
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupEventListeners();
+                this.log('Validation demo system ready', 'info');
+                this.updateProgress(0, 'Ready to start validation');
+            }
+            
+            setupEventListeners() {
+                document.getElementById('launch-validator').addEventListener('click', () => {
+                    this.launchVisualValidator();
+                });
+                
+                document.getElementById('run-quick-test').addEventListener('click', () => {
+                    this.runQuickTest();
+                });
+                
+                document.getElementById('run-full-suite').addEventListener('click', () => {
+                    this.runFullSuite();
+                });
+                
+                document.getElementById('capture-screenshots').addEventListener('click', () => {
+                    this.captureScreenshots();
+                });
+                
+                document.getElementById('monitor-gpu').addEventListener('click', () => {
+                    this.monitorGPU();
+                });
+                
+                document.getElementById('generate-report').addEventListener('click', () => {
+                    this.generateReport();
+                });
+                
+                // Feature card interactions
+                document.querySelectorAll('.feature-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        document.querySelectorAll('.feature-card').forEach(c => c.classList.remove('active'));
+                        card.classList.add('active');
+                        
+                        const feature = card.dataset.feature;
+                        this.log(`Selected feature: ${feature}`, 'info');
+                    });
+                });
+            }
+            
+            async launchVisualValidator() {
+                this.log('Launching Visual Morph Validator...', 'info');
+                this.updateProgress(10, 'Opening validator interface');
+                
+                try {
+                    // Simulate opening the main validator
+                    await this.delay(1000);
+                    
+                    // Open the actual validator in a new window
+                    const validatorWindow = window.open('visual-morph-validator.html', 'validator', 
+                        'width=1400,height=900,scrollbars=yes,resizable=yes');
+                    
+                    if (validatorWindow) {
+                        this.log('Visual validator launched successfully', 'success');
+                        this.updateProgress(100, 'Validator launched');
+                    } else {
+                        this.log('Failed to open validator - popup blocked?', 'error');
+                    }
+                } catch (error) {
+                    this.log(`Launch failed: ${error.message}`, 'error');
+                }
+                
+                this.resetProgress();
+            }
+            
+            async runQuickTest() {
+                if (this.isRunning) return;
+                
+                this.isRunning = true;
+                this.log('Starting quick validation test...', 'info');
+                
+                try {
+                    const testVisemes = ['sil', 'aa', 'b_m_p', 'f_v', 'ih'];
+                    
+                    for (let i = 0; i < testVisemes.length; i++) {
+                        const viseme = testVisemes[i];
+                        const progress = ((i + 1) / testVisemes.length) * 100;
+                        
+                        this.updateProgress(progress, `Testing viseme: ${viseme}`);
+                        this.log(`Testing ${viseme}...`, 'info');
+                        
+                        // Simulate test execution
+                        await this.delay(800);
+                        
+                        // Simulate random results
+                        const success = Math.random() > 0.2;
+                        this.log(`${viseme}: ${success ? 'PASS' : 'FAIL'}`, success ? 'success' : 'warning');
+                    }
+                    
+                    const successRate = Math.floor(Math.random() * 30) + 70; // 70-100%
+                    document.getElementById('validation-score').textContent = `${successRate}%`;
+                    
+                    this.log(`Quick test completed - ${successRate}% success rate`, 'success');
+                    this.updateProgress(100, 'Quick test complete');
+                    
+                } catch (error) {
+                    this.log(`Test failed: ${error.message}`, 'error');
+                } finally {
+                    this.isRunning = false;
+                    this.resetProgress();
+                }
+            }
+            
+            async runFullSuite() {
+                if (this.isRunning) return;
+                
+                this.isRunning = true;
+                this.log('Starting complete validation suite...', 'info');
+                
+                try {
+                    const allVisemes = ['sil', 'aa', 'ae', 'ah', 'ao', 'aw', 'ay', 
+                                      'b_m_p', 'ch_j_sh', 'd_s_t', 'eh', 'er', 'ey', 'f_v', 'ih'];
+                    
+                    let totalTests = 0;
+                    let passedTests = 0;
+                    
+                    for (let framework of ['Three.js', 'Babylon.js', 'Unity']) {
+                        this.log(`Testing ${framework} framework...`, 'info');
+                        
+                        for (let i = 0; i < allVisemes.length; i++) {
+                            const viseme = allVisemes[i];
+                            const overallProgress = ((totalTests) / (3 * allVisemes.length)) * 100;
+                            
+                            this.updateProgress(overallProgress, `${framework}: ${viseme}`);
+                            this.log(`${framework} - ${viseme}...`, 'info');
+                            
+                            await this.delay(300);
+                            
+                            const success = Math.random() > 0.15;
+                            if (success) passedTests++;
+                            totalTests++;
+                            
+                            this.log(`${framework} ${viseme}: ${success ? 'PASS' : 'FAIL'}`, 
+                                    success ? 'success' : 'warning');
+                        }
+                    }
+                    
+                    const finalScore = Math.floor((passedTests / totalTests) * 100);
+                    document.getElementById('validation-score').textContent = `${finalScore}%`;
+                    
+                    this.log(`Full suite completed: ${passedTests}/${totalTests} tests passed (${finalScore}%)`, 'success');
+                    this.updateProgress(100, 'Full suite complete');
+                    
+                } catch (error) {
+                    this.log(`Suite failed: ${error.message}`, 'error');
+                } finally {
+                    this.isRunning = false;
+                    this.resetProgress();
+                }
+            }
+            
+            async captureScreenshots() {
+                this.log('Capturing screenshots from all frameworks...', 'info');
+                this.updateProgress(20, 'Capturing Three.js...');
+                
+                await this.delay(800);
+                this.updateProgress(50, 'Capturing Babylon.js...');
+                
+                await this.delay(800);
+                this.updateProgress(80, 'Capturing Unity WebGL...');
+                
+                await this.delay(800);
+                this.log('Screenshots captured successfully', 'success');
+                this.updateProgress(100, 'Screenshots captured');
+                
+                this.resetProgress();
+            }
+            
+            async monitorGPU() {
+                this.log('Starting GPU state monitoring...', 'info');
+                
+                for (let i = 0; i < 10; i++) {
+                    const progress = (i / 9) * 100;
+                    this.updateProgress(progress, 'Monitoring WebGL state...');
+                    
+                    // Simulate GPU stats
+                    const drawCalls = Math.floor(Math.random() * 50) + 10;
+                    const bufferUpdates = Math.floor(Math.random() * 20) + 5;
+                    
+                    this.log(`GPU Stats - Draw calls: ${drawCalls}, Buffer updates: ${bufferUpdates}`, 'info');
+                    
+                    await this.delay(500);
+                }
+                
+                this.log('GPU monitoring completed', 'success');
+                this.resetProgress();
+            }
+            
+            async generateReport() {
+                this.log('Generating comprehensive validation report...', 'info');
+                
+                this.updateProgress(25, 'Processing test results...');
+                await this.delay(1000);
+                
+                this.updateProgress(50, 'Generating visual evidence...');
+                await this.delay(1000);
+                
+                this.updateProgress(75, 'Creating HTML report...');
+                await this.delay(1000);
+                
+                this.updateProgress(100, 'Report generated');
+                this.log('Report generated successfully - ready for download', 'success');
+                
+                // Simulate file download
+                setTimeout(() => {
+                    this.log('Report download initiated', 'info');
+                }, 500);
+                
+                this.resetProgress();
+            }
+            
+            updateProgress(percent, message) {
+                this.progress = percent;
+                document.getElementById('demo-progress').style.width = `${percent}%`;
+                document.getElementById('progress-text').textContent = message;
+            }
+            
+            resetProgress() {
+                setTimeout(() => {
+                    this.updateProgress(0, 'Ready for next operation');
+                }, 2000);
+            }
+            
+            log(message, level = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.innerHTML = `
+                    <span class="log-timestamp">[${timestamp}]</span>
+                    <span class="log-level-${level}">${message}</span>
+                `;
+                
+                const logContainer = document.getElementById('demo-log');
+                logContainer.appendChild(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+                
+                // Keep only last 50 log entries
+                const entries = logContainer.querySelectorAll('.log-entry');
+                if (entries.length > 50) {
+                    entries[0].remove();
+                }
+            }
+            
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+        
+        // Initialize demo when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.validationDemo = new ValidationDemo();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avatar Visibility Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+        canvas { border: 2px solid #333; margin: 10px 0; }
+        .status { background: #e3f2fd; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Avatar Visibility Test</h1>
+        <div id="status" class="status">Loading...</div>
+        <canvas id="canvas" width="600" height="400"></canvas>
+        <div id="details" class="status"></div>
+    </div>
+
+    <script type="module" src="/src/autonomous-viseme-main.js"></script>
+    
+    <script>
+        let scene, camera, renderer, avatar;
+        
+        setTimeout(async () => {
+            await testAvatarLoading();
+        }, 1000);
+        
+        async function testAvatarLoading() {
+            const status = document.getElementById('status');
+            const details = document.getElementById('details');
+            const canvas = document.getElementById('canvas');
+            
+            try {
+                status.innerHTML = '🔄 Testing avatar loading...<br>';
+                
+                // Check if modules are loaded
+                if (!window.THREE || !window.GLTFLoader || !window.OrbitControls) {
+                    throw new Error('Three.js modules not loaded');
+                }
+                
+                status.innerHTML += '✅ Three.js modules loaded<br>';
+                
+                // Create scene
+                scene = new window.THREE.Scene();
+                scene.background = new window.THREE.Color(0x404040);
+                
+                // Add lighting - same as main app
+                const ambientLight = new window.THREE.AmbientLight(0xffffff, 0.6);
+                scene.add(ambientLight);
+                
+                const directionalLight = new window.THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(5, 5, 5);
+                scene.add(directionalLight);
+                
+                const frontLight = new window.THREE.DirectionalLight(0xffffff, 0.4);
+                frontLight.position.set(0, 0, 5);
+                scene.add(frontLight);
+                
+                status.innerHTML += '✅ Scene and lighting created<br>';
+                
+                // Create camera
+                camera = new window.THREE.PerspectiveCamera(50, 600/400, 0.1, 1000);
+                camera.position.set(0, 1.6, 2.5);
+                
+                // Create renderer
+                renderer = new window.THREE.WebGLRenderer({ 
+                    canvas: canvas,
+                    antialias: true 
+                });
+                renderer.setSize(600, 400);
+                
+                status.innerHTML += '✅ Camera and renderer created<br>';
+                
+                // Load avatar
+                status.innerHTML += '🔄 Loading avatar from /assets/SavannahAvatar.glb...<br>';
+                
+                const loader = new window.GLTFLoader();
+                const gltf = await new Promise((resolve, reject) => {
+                    loader.load('/assets/SavannahAvatar.glb', resolve, 
+                        progress => {
+                            status.innerHTML += `📥 Loading progress: ${Math.round(progress.loaded/progress.total*100)}%<br>`;
+                        }, 
+                        reject
+                    );
+                });
+                
+                status.innerHTML += '✅ GLB file loaded successfully!<br>';
+                
+                // Setup avatar
+                avatar = gltf.scene;
+                
+                // Apply visibility fixes
+                let meshCount = 0;
+                avatar.traverse((child) => {
+                    if (child.isMesh) {
+                        meshCount++;
+                        child.visible = true;
+                        child.frustumCulled = false;
+                        
+                        if (child.material) {
+                            child.material.transparent = false;
+                            child.material.opacity = 1.0;
+                            child.material.depthTest = true;
+                            child.material.depthWrite = true;
+                        }
+                    }
+                });
+                
+                scene.add(avatar);
+                status.innerHTML += `✅ Avatar added to scene (${meshCount} meshes)<br>`;
+                
+                // Add controls
+                const controls = new window.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                
+                // Render
+                function animate() {
+                    requestAnimationFrame(animate);
+                    controls.update();
+                    renderer.render(scene, camera);
+                }
+                animate();
+                
+                status.innerHTML += '🎉 SUCCESS: Avatar should be visible above!';
+                status.className = 'status success';
+                
+                details.innerHTML = `
+                    <strong>Avatar Details:</strong><br>
+                    • Meshes: ${meshCount}<br>
+                    • Scene children: ${scene.children.length}<br>
+                    • Lighting: ${scene.children.filter(c => c.isLight).length} lights<br>
+                    • Camera position: (${camera.position.x}, ${camera.position.y}, ${camera.position.z})<br>
+                    • Use mouse to rotate and zoom the view
+                `;
+                
+            } catch (error) {
+                console.error('Avatar test failed:', error);
+                status.innerHTML = `❌ Avatar loading failed: ${error.message}`;
+                status.className = 'status error';
+                
+                details.innerHTML = `<strong>Error Details:</strong><br>${error.stack}`;
+            }
+        }
+    </script>
+</body>
+</html>

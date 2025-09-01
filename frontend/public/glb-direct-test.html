@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct GLB Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            width: 100vw;
+            height: 100vh;
+            background: #222;
+            overflow: hidden;
+            font-family: monospace;
+        }
+        
+        #container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        
+        #status {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            font-size: 12px;
+            width: 300px;
+            height: 100px;
+        }
+        
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="status">
+            <div>Status: Loading...</div>
+            <div>GLB: Not loaded</div>
+            <div>Time: <span id="time"></span></div>
+            <div>CLS Test: Direct HTML</div>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        const container = document.getElementById('container');
+        const status = document.getElementById('status');
+        
+        // Update time
+        setInterval(() => {
+            document.getElementById('time').textContent = new Date().toLocaleTimeString();
+        }, 1000);
+
+        function updateStatus(line, text) {
+            const lines = status.children;
+            if (lines[line]) {
+                lines[line].textContent = text;
+            }
+        }
+
+        // Create scene
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x222222);
+        container.appendChild(renderer.domElement);
+        
+        camera.position.set(0, 0, 5);
+        
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 5, 5);
+        scene.add(directionalLight);
+        
+        updateStatus(0, 'Status: Scene created');
+
+        // Add a test cube first to verify rendering works
+        const testCube = new THREE.Mesh(
+            new THREE.BoxGeometry(0.5, 0.5, 0.5),
+            new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+        );
+        testCube.position.set(2, 0, 0);
+        scene.add(testCube);
+        
+        updateStatus(0, 'Status: Test cube added');
+
+        // Load GLB
+        const loader = new GLTFLoader();
+        console.log('Starting GLB load...');
+        updateStatus(1, 'GLB: Starting load...');
+        
+        loader.load(
+            '/assets/SavannahAvatar.glb',
+            (gltf) => {
+                console.log('✅ GLB loaded:', gltf);
+                console.log('GLB scene:', gltf.scene);
+                console.log('GLB scene children:', gltf.scene.children);
+                updateStatus(1, 'GLB: Loaded successfully');
+                
+                // Detailed scene analysis
+                console.log('GLB scene traversal:');
+                let meshCount = 0;
+                let boneCount = 0;
+                let materialCount = 0;
+                
+                gltf.scene.traverse((child) => {
+                    console.log('Child:', child.name, child.type);
+                    if (child.isMesh) {
+                        meshCount++;
+                        console.log('  Mesh:', child.name, 'visible:', child.visible);
+                        if (child.material) {
+                            if (Array.isArray(child.material)) {
+                                materialCount += child.material.length;
+                                child.material.forEach((mat, i) => {
+                                    console.log(`    Material[${i}]:`, mat.name, 'transparent:', mat.transparent, 'opacity:', mat.opacity);
+                                    mat.transparent = false;
+                                    mat.opacity = 1;
+                                    mat.needsUpdate = true;
+                                });
+                            } else {
+                                materialCount++;
+                                console.log('    Material:', child.material.name, 'transparent:', child.material.transparent, 'opacity:', child.material.opacity);
+                                child.material.transparent = false;
+                                child.material.opacity = 1;
+                                child.material.needsUpdate = true;
+                            }
+                        }
+                    } else if (child.isBone) {
+                        boneCount++;
+                    }
+                });
+                
+                console.log(`Found: ${meshCount} meshes, ${boneCount} bones, ${materialCount} materials`);
+                
+                // Scale and position analysis
+                const box = new THREE.Box3().setFromObject(gltf.scene);
+                const size = box.getSize(new THREE.Vector3());
+                const center = box.getCenter(new THREE.Vector3());
+                
+                console.log('GLB bounds:', box);
+                console.log('GLB size:', size);
+                console.log('GLB center:', center);
+                
+                if (size.x === 0 && size.y === 0 && size.z === 0) {
+                    console.warn('⚠️  GLB has zero size!');
+                    updateStatus(1, 'GLB: Warning - zero size');
+                } else {
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const scale = 2 / maxDim;
+                    gltf.scene.scale.setScalar(scale);
+                    
+                    // Center the model
+                    gltf.scene.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+                    
+                    console.log('Applied scale:', scale);
+                    console.log('Applied position:', gltf.scene.position);
+                }
+                
+                scene.add(gltf.scene);
+                
+                // Final verification
+                console.log('GLB added to scene. Scene children count:', scene.children.length);
+                updateStatus(0, `Status: Avatar added (${meshCount}m, ${materialCount}mt)`);
+            },
+            (progress) => {
+                const percent = Math.round((progress.loaded / progress.total) * 100);
+                updateStatus(1, `GLB: Loading ${percent}%`);
+            },
+            (error) => {
+                console.error('❌ GLB loading error:', error);
+                updateStatus(1, `GLB: Error - ${error.message}`);
+                
+                // Add fallback cube
+                const cube = new THREE.Mesh(
+                    new THREE.BoxGeometry(1, 1, 1),
+                    new THREE.MeshBasicMaterial({ color: 0xff0000 })
+                );
+                scene.add(cube);
+            }
+        );
+
+        // Render loop
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        console.log('Direct GLB test initialized');
+    </script>
+</body>
+</html>

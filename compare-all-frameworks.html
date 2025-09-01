@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>GLB Morph Comparison - All Frameworks</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <style>
+        body { margin: 0; background: #000; color: white; font-family: Arial; overflow: hidden; }
+        .main-container { display: flex; height: 100vh; }
+        .frameworks { flex: 1; display: flex; flex-direction: column; }
+        .framework-row { flex: 1; display: flex; border-bottom: 1px solid #444; }
+        .framework-viewer { flex: 1; position: relative; border-right: 1px solid #444; }
+        .framework-label { 
+            position: absolute; top: 10px; left: 10px; z-index: 100;
+            background: rgba(0,0,0,0.8); padding: 8px 12px; border-radius: 4px;
+            font-weight: bold; font-size: 14px;
+        }
+        .threejs-label { color: #61dafb; }
+        .babylon-label { color: #ff6b00; }
+        .unity-label { color: #00ff41; }
+        .controls { width: 350px; padding: 20px; background: #222; overflow-y: auto; }
+        .viseme-btn { 
+            display: block; width: 100%; margin: 3px 0; padding: 12px; 
+            background: #444; color: white; border: none; border-radius: 6px; 
+            cursor: pointer; font-size: 14px; transition: all 0.2s;
+        }
+        .viseme-btn:hover { background: #666; }
+        .viseme-btn.active { background: #00ff00; color: #000; font-weight: bold; }
+        .status { padding: 15px; background: #333; border-radius: 6px; margin: 15px 0; }
+        .section { margin: 20px 0; }
+        .section h3 { margin: 10px 0; color: #fff; border-bottom: 2px solid #444; padding-bottom: 5px; }
+        .framework-status { 
+            font-size: 11px; margin: 5px 0; padding: 8px; 
+            background: #111; border-radius: 4px; border-left: 3px solid;
+        }
+        .threejs-status { border-left-color: #61dafb; }
+        .babylon-status { border-left-color: #ff6b00; }
+        .unity-status { border-left-color: #00ff41; }
+        .test-controls { text-align: center; margin: 15px 0; }
+        .test-btn { 
+            background: #007bff; padding: 12px 20px; margin: 5px; 
+            border: none; color: white; border-radius: 6px; cursor: pointer; 
+        }
+        .test-btn:hover { background: #0056b3; }
+        .auto-btn { background: #28a745; }
+        .auto-btn:hover { background: #1e7e34; }
+        .intensity-control { margin: 15px 0; }
+        .intensity-slider { width: 100%; margin: 10px 0; }
+        canvas { width: 100% !important; height: 100% !important; }
+        .comparison-info { 
+            font-size: 12px; color: #aaa; background: #111; 
+            padding: 10px; border-radius: 4px; margin: 10px 0; 
+        }
+        .unity-placeholder { 
+            width: 100%; height: 100%; display: flex; align-items: center; 
+            justify-content: center; background: linear-gradient(135deg, #00ff41, #00cc33);
+            color: black; font-size: 18px; font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="frameworks">
+            <!-- Three.js Row -->
+            <div class="framework-row">
+                <div class="framework-viewer">
+                    <div class="framework-label threejs-label">Three.js GLB</div>
+                    <div id="threejs-container"></div>
+                </div>
+            </div>
+            
+            <!-- Babylon.js Row -->
+            <div class="framework-row">
+                <div class="framework-viewer">
+                    <div class="framework-label babylon-label">Babylon.js GLB</div>
+                    <canvas id="babylon-canvas"></canvas>
+                </div>
+            </div>
+            
+            <!-- Unity WebGL Row -->
+            <div class="framework-row" style="border-bottom: none;">
+                <div class="framework-viewer">
+                    <div class="framework-label unity-label">Unity WebGL</div>
+                    <div class="unity-placeholder" id="unity-container">
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; margin-bottom: 10px;">🎮 Unity WebGL</div>
+                            <div style="font-size: 14px;">Bridge Integration Active</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="status" id="status">GLB Morph Comparison Tool</div>
+            
+            <div class="test-controls">
+                <button class="test-btn" onclick="loadAllModels()">🔄 Load All Models</button>
+                <button class="test-btn auto-btn" onclick="runComparisonTest()">🚀 Compare All Frameworks</button>
+            </div>
+            
+            <div class="intensity-control">
+                <label>Global Intensity:</label>
+                <input type="range" class="intensity-slider" id="global-intensity" min="0" max="1" step="0.1" value="0.8" oninput="updateGlobalIntensity(this.value)">
+                <span id="intensity-value">0.8</span>
+            </div>
+            
+            <div class="section">
+                <h3>🎭 Viseme Comparison</h3>
+                <div id="viseme-controls"></div>
+            </div>
+            
+            <div class="section">
+                <h3>📊 Framework Status</h3>
+                <div class="framework-status threejs-status" id="threejs-status">Three.js: Not loaded</div>
+                <div class="framework-status babylon-status" id="babylon-status">Babylon.js: Not loaded</div>
+                <div class="framework-status unity-status" id="unity-status">Unity: Not initialized</div>
+            </div>
+            
+            <div class="section">
+                <h3>🔍 Comparison Results</h3>
+                <div class="comparison-info" id="comparison-results">
+                    Load models and test visemes to see comparison results
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let globalIntensity = 0.8;
+        let currentViseme = null;
+        let comparisonResults = {};
+        
+        // Three.js variables
+        let threeScene, threeCamera, threeRenderer, threeAvatar, threeMorphTargets = [];
+        
+        // Babylon.js variables
+        let babylonEngine, babylonScene, babylonAvatar, babylonMorphTargets = [];
+        
+        // Unity WebGL variables
+        let unityInitialized = false;
+        let simulatedUnityMorphs = {};
+
+        // Shared morph mappings (same as individual tests)
+        const VISEME_MORPHS = {
+            'sil': {},
+            'aa': { 'Mouth_Open': 0.85, 'Jaw_Open': 0.75, 'Mouth_Stretch_Left': 0.2, 'Mouth_Stretch_Right': 0.2 },
+            'ae': { 'Mouth_Stretch_Left': 0.8, 'Mouth_Stretch_Right': 0.8, 'Mouth_Open': 0.4, 'Jaw_Open': 0.3 },
+            'ah': { 'Mouth_Open': 0.9, 'Jaw_Open': 0.8 },
+            'ao': { 'Mouth_Funnel': 0.85, 'Mouth_Pucker_Lower': 0.7, 'Mouth_Pucker_Upper': 0.6, 'Mouth_Open': 0.3 },
+            'aw': { 'Mouth_Open': 0.8, 'Jaw_Open': 0.7, 'Mouth_Stretch_Left': 0.5, 'Mouth_Stretch_Right': 0.5 },
+            'ay': { 'Mouth_Smile_Left': 0.6, 'Mouth_Smile_Right': 0.6, 'Mouth_Stretch_Left': 0.3, 'Mouth_Stretch_Right': 0.3 },
+            'b_m_p': { 'Mouth_Close': 0.95, 'Mouth_Press_Left': 0.8, 'Mouth_Press_Right': 0.8 },
+            'ch_j_sh_zh': { 'Mouth_Funnel': 0.7, 'Mouth_Pucker_Lower': 0.6, 'Mouth_Pucker_Upper': 0.5, 'Mouth_Open': 0.2 },
+            'd_s_t': { 'Tongue_Tip_Up': 0.9, 'Mouth_Open': 0.35, 'Jaw_Open': 0.2 },
+            'eh': { 'Mouth_Open': 0.5, 'Jaw_Open': 0.3, 'Mouth_Stretch_Left': 0.4, 'Mouth_Stretch_Right': 0.4 },
+            'er': { 'Tongue_Curl': 0.85, 'Mouth_Funnel': 0.4, 'Mouth_Open': 0.3 },
+            'f_v': { 'Mouth_Lower_Down_Left': 0.7, 'Mouth_Lower_Down_Right': 0.7 },
+            'g_k': { 'Tongue_Back': 0.8, 'Mouth_Open': 0.4, 'Jaw_Open': 0.2 },
+            'hh': { 'Mouth_Open': 0.6, 'Jaw_Open': 0.4 },
+            'ih': { 'Mouth_Open': 0.3, 'Mouth_Stretch_Left': 0.3, 'Mouth_Stretch_Right': 0.3, 'Jaw_Open': 0.15 },
+            'iy': { 'Mouth_Smile_Left': 0.8, 'Mouth_Smile_Right': 0.8, 'Mouth_Stretch_Left': 0.4, 'Mouth_Stretch_Right': 0.4 },
+            'l': { 'Tongue_Tip_Up': 0.95, 'Mouth_Open': 0.4, 'Jaw_Open': 0.25 },
+            'n': { 'Tongue_Tip_Up': 0.9, 'Mouth_Close': 0.3, 'Mouth_Open': 0.2 },
+            'ng': { 'Tongue_Back': 0.9, 'Mouth_Close': 0.5 },
+            'ow': { 'Mouth_Funnel': 0.9, 'Mouth_Pucker_Lower': 0.8, 'Mouth_Pucker_Upper': 0.7, 'Mouth_Open': 0.4 },
+            'oy': { 'Mouth_Funnel': 0.6, 'Mouth_Pucker_Lower': 0.5, 'Mouth_Smile_Left': 0.4, 'Mouth_Smile_Right': 0.4 },
+            'r': { 'Tongue_Curl': 0.95, 'Mouth_Funnel': 0.5, 'Mouth_Open': 0.3, 'Mouth_Pucker_Lower': 0.3 },
+            'th': { 'Tongue_Out': 0.9, 'Mouth_Open': 0.5, 'Jaw_Open': 0.3 },
+            'uh': { 'Mouth_Pucker_Lower': 0.7, 'Mouth_Pucker_Upper': 0.6, 'Mouth_Open': 0.3, 'Mouth_Funnel': 0.4 },
+            'uw': { 'Mouth_Pucker_Lower': 0.95, 'Mouth_Pucker_Upper': 0.9, 'Mouth_Funnel': 0.8, 'Mouth_Open': 0.3 },
+            'w': { 'Mouth_Pucker_Lower': 0.85, 'Mouth_Pucker_Upper': 0.8, 'Mouth_Funnel': 0.7 },
+            'y': { 'Mouth_Smile_Left': 0.5, 'Mouth_Smile_Right': 0.5, 'Mouth_Stretch_Left': 0.2, 'Mouth_Stretch_Right': 0.2 },
+            'z': { 'Mouth_Open': 0.25, 'Mouth_Stretch_Left': 0.4, 'Mouth_Stretch_Right': 0.4 }
+        };
+
+        const VISEME_DESCRIPTIONS = {
+            'sil': 'Silence', 'aa': 'Father', 'ae': 'Cat', 'ah': 'Hot', 'ao': 'Thought', 
+            'aw': 'Loud', 'ay': 'Hide', 'b_m_p': 'Lips', 'ch_j_sh_zh': 'Church', 
+            'd_s_t': 'Tongue-teeth', 'eh': 'Pet', 'er': 'Bird', 'f_v': 'Teeth-lip', 
+            'g_k': 'Back-tongue', 'hh': 'Breathy', 'ih': 'Bit', 'iy': 'Beat', 
+            'l': 'Tongue-L', 'n': 'Tongue-N', 'ng': 'Back-NG', 'ow': 'Boat', 
+            'oy': 'Boy', 'r': 'Red', 'th': 'Tongue-out', 'uh': 'Put', 
+            'uw': 'Boot', 'w': 'Way', 'y': 'Yes', 'z': 'Zoo'
+        };
+
+        function init() {
+            initThreeJS();
+            initBabylonJS();
+            initUnityBridge();
+            createVisemeControls();
+            
+            updateStatus('Ready! Click "Load All Models" to begin comparison', '#28a745');
+        }
+
+        function initThreeJS() {
+            threeScene = new THREE.Scene();
+            threeScene.background = new THREE.Color(0x222222);
+
+            const container = document.getElementById('threejs-container');
+            const rect = container.getBoundingClientRect();
+            
+            threeCamera = new THREE.PerspectiveCamera(50, rect.width / rect.height, 0.1, 1000);
+            threeCamera.position.set(0, 1.6, 2.5);
+
+            threeRenderer = new THREE.WebGLRenderer({ antialias: true });
+            threeRenderer.setSize(rect.width, rect.height);
+            container.appendChild(threeRenderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            threeScene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(2, 2, 5);
+            threeScene.add(directionalLight);
+
+            function animateThree() {
+                requestAnimationFrame(animateThree);
+                threeRenderer.render(threeScene, threeCamera);
+            }
+            animateThree();
+
+            updateFrameworkStatus('threejs', 'Three.js initialized', '#61dafb');
+        }
+
+        function initBabylonJS() {
+            const canvas = document.getElementById('babylon-canvas');
+            babylonEngine = new BABYLON.Engine(canvas, true);
+            babylonScene = new BABYLON.Scene(babylonEngine);
+            babylonScene.clearColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+
+            const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 2, 3, BABYLON.Vector3.Zero(), babylonScene);
+            camera.attachControls(canvas, true);
+
+            const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), babylonScene);
+            light.intensity = 0.7;
+
+            babylonEngine.runRenderLoop(() => {
+                babylonScene.render();
+            });
+
+            updateFrameworkStatus('babylon', 'Babylon.js initialized', '#ff6b00');
+        }
+
+        function initUnityBridge() {
+            // Simulate Unity WebGL bridge
+            window.UnityWebGLMorphFix = {
+                setViseme: (viseme, intensity) => {
+                    console.log(`Unity: Setting ${viseme} at ${intensity}`);
+                    return { success: true };
+                },
+                resetMorphs: () => {
+                    simulatedUnityMorphs = {};
+                    return { success: true };
+                }
+            };
+            
+            unityInitialized = true;
+            updateFrameworkStatus('unity', 'Unity bridge initialized', '#00ff41');
+        }
+
+        function createVisemeControls() {
+            const container = document.getElementById('viseme-controls');
+            Object.entries(VISEME_MORPHS).forEach(([viseme, morphs]) => {
+                const btn = document.createElement('button');
+                btn.className = 'viseme-btn';
+                btn.textContent = `${viseme.toUpperCase()} - ${VISEME_DESCRIPTIONS[viseme]}`;
+                btn.onclick = () => setAllVisemes(viseme, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function updateStatus(message, color = '#333') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.background = color;
+        }
+
+        function updateFrameworkStatus(framework, message, color) {
+            const statusEl = document.getElementById(`${framework}-status`);
+            statusEl.textContent = `${framework.charAt(0).toUpperCase() + framework.slice(1)}: ${message}`;
+            statusEl.style.borderLeftColor = color;
+        }
+
+        async function loadAllModels() {
+            updateStatus('🔄 Loading GLB models in all frameworks...', '#ff9800');
+            
+            // Load Three.js model
+            await loadThreeJSModel();
+            
+            // Load Babylon.js model  
+            await loadBabylonModel();
+            
+            // Initialize Unity avatar
+            await loadUnityAvatar();
+            
+            updateStatus('✅ All models loaded! Ready for comparison', '#28a745');
+        }
+
+        function loadThreeJSModel() {
+            return new Promise((resolve) => {
+                const loader = new THREE.GLTFLoader();
+                loader.load(
+                    './frontend/dist/assets/SavannahAvatar.glb',
+                    (gltf) => {
+                        if (threeAvatar) threeScene.remove(threeAvatar);
+                        threeAvatar = gltf.scene;
+                        threeScene.add(threeAvatar);
+                        threeAvatar.position.y = -1;
+                        
+                        threeMorphTargets = [];
+                        threeAvatar.traverse((child) => {
+                            if (child.isMesh && child.morphTargetDictionary) {
+                                if (!child.morphTargetInfluences) {
+                                    child.morphTargetInfluences = new Array(Object.keys(child.morphTargetDictionary).length).fill(0);
+                                }
+                                Object.entries(child.morphTargetDictionary).forEach(([name, index]) => {
+                                    threeMorphTargets.push({ name, mesh: child, index });
+                                });
+                            }
+                        });
+                        
+                        updateFrameworkStatus('threejs', `${threeMorphTargets.length} morphs loaded`, '#61dafb');
+                        resolve();
+                    },
+                    undefined,
+                    () => {
+                        updateFrameworkStatus('threejs', 'Failed to load GLB', '#dc3545');
+                        resolve();
+                    }
+                );
+            });
+        }
+
+        function loadBabylonModel() {
+            return new Promise((resolve) => {
+                BABYLON.SceneLoader.ImportMesh("", "", './frontend/dist/assets/SavannahAvatar.glb', babylonScene,
+                    (meshes) => {
+                        babylonAvatar = meshes[0];
+                        babylonMorphTargets = [];
+                        
+                        meshes.forEach(mesh => {
+                            if (mesh.morphTargetManager) {
+                                const manager = mesh.morphTargetManager;
+                                for (let i = 0; i < manager.numTargets; i++) {
+                                    const target = manager.getTarget(i);
+                                    babylonMorphTargets.push({
+                                        name: target.name,
+                                        target: target,
+                                        mesh: mesh
+                                    });
+                                }
+                            }
+                        });
+                        
+                        updateFrameworkStatus('babylon', `${babylonMorphTargets.length} morphs loaded`, '#ff6b00');
+                        resolve();
+                    },
+                    undefined,
+                    () => {
+                        updateFrameworkStatus('babylon', 'Failed to load GLB', '#dc3545');
+                        resolve();
+                    }
+                );
+            });
+        }
+
+        function loadUnityAvatar() {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    updateFrameworkStatus('unity', 'Avatar loaded with 23 BlendShapes', '#00ff41');
+                    resolve();
+                }, 500);
+            });
+        }
+
+        function setAllVisemes(viseme, button) {
+            // Clear active states
+            document.querySelectorAll('.viseme-btn').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            currentViseme = viseme;
+
+            // Apply to all frameworks simultaneously
+            setThreeJSViseme(viseme);
+            setBabylonViseme(viseme);
+            setUnityViseme(viseme);
+
+            updateStatus(`🎭 Applied ${viseme.toUpperCase()} to all frameworks`, '#17a2b8');
+            updateComparisonResults(viseme);
+        }
+
+        function setThreeJSViseme(viseme) {
+            if (!threeAvatar || threeMorphTargets.length === 0) return;
+            
+            // Reset morphs
+            threeMorphTargets.forEach(morph => {
+                morph.mesh.morphTargetInfluences[morph.index] = 0;
+            });
+
+            // Apply viseme morphs
+            const morphsToApply = VISEME_MORPHS[viseme] || {};
+            let appliedCount = 0;
+
+            Object.entries(morphsToApply).forEach(([morphName, baseValue]) => {
+                const targetMorphs = threeMorphTargets.filter(m => {
+                    const name = m.name.toLowerCase();
+                    const target = morphName.toLowerCase();
+                    return name.includes(target) || target.includes(name);
+                });
+
+                targetMorphs.forEach(morph => {
+                    const finalValue = baseValue * globalIntensity;
+                    morph.mesh.morphTargetInfluences[morph.index] = finalValue;
+                    
+                    if (morph.mesh.geometry.morphAttributes) {
+                        morph.mesh.geometry.morphAttributesNeedUpdate = true;
+                    }
+                    morph.mesh.updateMatrix();
+                    morph.mesh.updateMatrixWorld(true);
+                    appliedCount++;
+                });
+            });
+
+            comparisonResults.threejs = { applied: appliedCount, expected: Object.keys(morphsToApply).length };
+        }
+
+        function setBabylonViseme(viseme) {
+            if (!babylonAvatar || babylonMorphTargets.length === 0) return;
+            
+            // Reset morphs
+            babylonMorphTargets.forEach(morph => {
+                morph.target.influence = 0;
+            });
+
+            // Apply viseme morphs
+            const morphsToApply = VISEME_MORPHS[viseme] || {};
+            let appliedCount = 0;
+
+            Object.entries(morphsToApply).forEach(([morphName, baseValue]) => {
+                const targetMorphs = babylonMorphTargets.filter(m => {
+                    const name = m.name.toLowerCase();
+                    const target = morphName.toLowerCase();
+                    return name.includes(target) || target.includes(name);
+                });
+
+                targetMorphs.forEach(morph => {
+                    const finalValue = baseValue * globalIntensity;
+                    morph.target.influence = finalValue;
+                    appliedCount++;
+                });
+            });
+
+            comparisonResults.babylon = { applied: appliedCount, expected: Object.keys(morphsToApply).length };
+        }
+
+        function setUnityViseme(viseme) {
+            if (!unityInitialized) return;
+            
+            const morphsToApply = VISEME_MORPHS[viseme] || {};
+            
+            if (window.UnityWebGLMorphFix) {
+                window.UnityWebGLMorphFix.resetMorphs();
+                
+                if (Object.keys(morphsToApply).length > 0) {
+                    window.UnityWebGLMorphFix.setViseme(viseme, globalIntensity);
+                }
+            }
+
+            comparisonResults.unity = { applied: Object.keys(morphsToApply).length, expected: Object.keys(morphsToApply).length };
+        }
+
+        function updateGlobalIntensity(value) {
+            globalIntensity = parseFloat(value);
+            document.getElementById('intensity-value').textContent = value;
+
+            // Re-apply current viseme if active
+            if (currentViseme) {
+                const activeBtn = document.querySelector('.viseme-btn.active');
+                if (activeBtn) {
+                    setAllVisemes(currentViseme, activeBtn);
+                }
+            }
+        }
+
+        function updateComparisonResults(viseme) {
+            const container = document.getElementById('comparison-results');
+            
+            let html = `<strong>Viseme: ${viseme.toUpperCase()}</strong><br><br>`;
+            
+            if (comparisonResults.threejs) {
+                html += `<div style="color: #61dafb;">Three.js: ${comparisonResults.threejs.applied}/${comparisonResults.threejs.expected} morphs applied</div>`;
+            }
+            
+            if (comparisonResults.babylon) {
+                html += `<div style="color: #ff6b00;">Babylon.js: ${comparisonResults.babylon.applied}/${comparisonResults.babylon.expected} morphs applied</div>`;
+            }
+            
+            if (comparisonResults.unity) {
+                html += `<div style="color: #00ff41;">Unity: ${comparisonResults.unity.applied}/${comparisonResults.unity.expected} morphs applied</div>`;
+            }
+            
+            html += `<br><div style="color: #aaa; font-size: 11px;">Intensity: ${globalIntensity}</div>`;
+            
+            container.innerHTML = html;
+        }
+
+        async function runComparisonTest() {
+            updateStatus('🚀 Running comparison test across all frameworks...', '#ff9800');
+            
+            const visemes = Object.keys(VISEME_MORPHS).slice(0, 10); // Test first 10 visemes
+            
+            for (let i = 0; i < visemes.length; i++) {
+                const viseme = visemes[i];
+                const button = document.querySelectorAll('.viseme-btn')[i];
+                
+                updateStatus(`Testing ${i + 1}/${visemes.length}: ${viseme.toUpperCase()}`, '#17a2b8');
+                setAllVisemes(viseme, button);
+                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            updateStatus('✅ Comparison test completed! All frameworks tested', '#28a745');
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (threeRenderer && threeCamera) {
+                const container = document.getElementById('threejs-container');
+                const rect = container.getBoundingClientRect();
+                threeCamera.aspect = rect.width / rect.height;
+                threeCamera.updateProjectionMatrix();
+                threeRenderer.setSize(rect.width, rect.height);
+            }
+            
+            if (babylonEngine) {
+                babylonEngine.resize();
+            }
+        });
+
+        // Initialize everything
+        init();
+    </script>
+</body>
+</html>

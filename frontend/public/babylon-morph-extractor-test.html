@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babylon.js Morph Target Extractor - Browser Test</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: #2d2d2d;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .section {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        .button:hover {
+            background: #005a99;
+        }
+        .button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        .log-output {
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 15px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+        .results-section {
+            display: none;
+        }
+        .morph-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .morph-item {
+            background: #1a4a1a;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #00aa00;
+        }
+        .mesh-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #333;
+            border-radius: 5px;
+        }
+        .mesh-title {
+            color: #00dd00;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .validation-results {
+            margin: 20px 0;
+        }
+        .success { color: #00dd00; }
+        .warning { color: #ffaa00; }
+        .error { color: #ff4444; }
+        .canvas-container {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 Babylon.js Morph Target Extractor</h1>
+            <p>Extract definitive morph target names from GLB using native Babylon.js parsing</p>
+            <p>This ensures 100% accuracy with the actual runtime implementation</p>
+        </div>
+
+        <div class="section">
+            <h2>🚀 Extraction Controls</h2>
+            <button id="extractBtn" class="button" onclick="extractMorphTargets()">
+                Extract Morph Targets
+            </button>
+            <button id="validateBtn" class="button" onclick="validateMappings()" disabled>
+                Validate Viseme Mappings
+            </button>
+            <button id="clearBtn" class="button" onclick="clearLogs()">
+                Clear Logs
+            </button>
+        </div>
+
+        <div class="section">
+            <h2>📋 Extraction Log</h2>
+            <div id="logOutput" class="log-output">
+                Ready to extract morph targets from party-f-0013-fixed.glb...
+            </div>
+        </div>
+
+        <div id="resultsSection" class="section results-section">
+            <h2>📊 Extraction Results</h2>
+            <div id="resultsContent"></div>
+        </div>
+
+        <div id="validationSection" class="section results-section">
+            <h2>🔍 Viseme Mapping Validation</h2>
+            <div id="validationContent"></div>
+        </div>
+
+        <!-- Hidden canvas for Babylon.js -->
+        <div class="canvas-container">
+            <canvas id="extractorCanvas" width="1" height="1"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Current viseme mappings from the Babylon.js implementation
+        const CURRENT_VISEME_MAPPINGS = {
+            sil: { morphs: ['V_None'], weights: [1.0] },
+            PP: { morphs: ['V_Explosive'], weights: [1.0] },
+            FF: { morphs: ['V_Dental_Lip'], weights: [1.0] },
+            TH: { morphs: ['V_Dental_Lip', 'V_Open'], weights: [0.8, 0.4] },
+            DD: { morphs: ['V_Dental_Lip', 'V_Open'], weights: [0.7, 0.5] },
+            kk: { morphs: ['V_Tight-O'], weights: [1.0] },
+            CH: { morphs: ['V_Wide'], weights: [1.0] },
+            SS: { morphs: ['V_Tight-O', 'V_Wide'], weights: [0.6, 0.8] },
+            nn: { morphs: ['V_Explosive'], weights: [0.8] },
+            RR: { morphs: ['V_Open', 'V_Wide'], weights: [0.6, 0.4] },
+            aa: { morphs: ['V_Open'], weights: [1.0] },
+            E: { morphs: ['V_Wide'], weights: [1.0] },
+            I: { morphs: ['V_Open'], weights: [0.5] },
+            O: { morphs: ['V_Tight-O'], weights: [1.0] },
+            U: { morphs: ['V_Tight-O'], weights: [1.0] }
+        };
+
+        let extractedData = null;
+        let babylonEngine = null;
+        let babylonScene = null;
+
+        function log(message, type = 'info') {
+            const logOutput = document.getElementById('logOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'warning' ? '⚠️' : type === 'success' ? '✅' : 'ℹ️';
+            
+            logOutput.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('logOutput').textContent = 'Ready to extract morph targets...\n';
+        }
+
+        async function initializeBabylon() {
+            try {
+                log('🚀 Initializing Babylon.js environment...');
+                
+                const canvas = document.getElementById('extractorCanvas');
+                
+                // Create minimal engine
+                babylonEngine = new BABYLON.Engine(canvas, false, {
+                    preserveDrawingBuffer: false,
+                    stencil: false,
+                    antialias: false
+                });
+                
+                // Create minimal scene
+                babylonScene = new BABYLON.Scene(babylonEngine);
+                
+                // Minimal lighting
+                const light = new BABYLON.HemisphericLight("extractorLight", new BABYLON.Vector3(0, 1, 0), babylonScene);
+                light.intensity = 0.1;
+                
+                log('✅ Babylon.js environment initialized', 'success');
+                return true;
+                
+            } catch (error) {
+                log(`Failed to initialize Babylon.js: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function loadGLBModel(glbUrl) {
+            return new Promise((resolve, reject) => {
+                log('📥 Loading GLB model with Babylon.js SceneLoader...');
+                
+                try {
+                    BABYLON.SceneLoader.ImportMesh(
+                        '',
+                        '',
+                        glbUrl,
+                        babylonScene,
+                        (meshes, particleSystems, skeletons) => {
+                            log(`✅ GLB loaded: ${meshes.length} meshes, ${particleSystems.length} particles, ${skeletons.length} skeletons`, 'success');
+                            
+                            // Filter meshes with morph targets
+                            const meshesWithMorphs = meshes.filter(mesh => 
+                                mesh.morphTargetManager && 
+                                mesh.morphTargetManager.numTargets > 0
+                            );
+                            
+                            if (meshesWithMorphs.length === 0) {
+                                reject(new Error('No meshes with morph targets found in GLB file'));
+                                return;
+                            }
+                            
+                            log(`🎯 Found ${meshesWithMorphs.length} meshes with morph targets`, 'success');
+                            resolve(meshesWithMorphs);
+                        },
+                        (progressEvent) => {
+                            if (progressEvent.lengthComputable) {
+                                const percent = (progressEvent.loaded / progressEvent.total * 100).toFixed(1);
+                                log(`📥 Loading progress: ${percent}%`);
+                            }
+                        },
+                        (scene, message, exception) => {
+                            const errorMsg = exception?.message || message || 'GLB import failed';
+                            log(`GLB import error: ${errorMsg}`, 'error');
+                            reject(new Error(`GLB import failed: ${errorMsg}`));
+                        }
+                    );
+                    
+                } catch (error) {
+                    reject(new Error(`SceneLoader error: ${error.message}`));
+                }
+            });
+        }
+
+        function extractMorphTargetsFromMeshes(meshes) {
+            log('🔍 Extracting morph targets from meshes...');
+            
+            const extractedData = {
+                extractionTimestamp: new Date().toISOString(),
+                totalMeshes: meshes.length,
+                totalMorphTargets: 0,
+                meshesByType: {
+                    CC_Game_Body: [],
+                    CC_Game_Tongue: [],
+                    Other: []
+                },
+                morphsByMesh: {},
+                allMorphNames: [],
+                uniqueMorphNames: new Set()
+            };
+            
+            let totalMorphs = 0;
+            
+            meshes.forEach(mesh => {
+                const manager = mesh.morphTargetManager;
+                const meshMorphs = [];
+                
+                log(`📊 Processing mesh: ${mesh.name} (${manager.numTargets} morphs)`);
+                
+                for (let i = 0; i < manager.numTargets; i++) {
+                    try {
+                        const target = manager.getTarget(i);
+                        const morphData = {
+                            name: target.name,
+                            meshName: mesh.name,
+                            index: i,
+                            influence: target.influence
+                        };
+                        
+                        meshMorphs.push(morphData);
+                        extractedData.allMorphNames.push(target.name);
+                        extractedData.uniqueMorphNames.add(target.name);
+                        totalMorphs++;
+                        
+                        log(`    ${i + 1}. "${target.name}"`);
+                        
+                    } catch (error) {
+                        log(`  ⚠️ Failed to process morph target ${i} for mesh ${mesh.name}: ${error.message}`, 'warning');
+                    }
+                }
+                
+                // Categorize mesh
+                const meshInfo = {
+                    name: mesh.name,
+                    id: mesh.id,
+                    morphCount: meshMorphs.length,
+                    morphNames: meshMorphs.map(m => m.name)
+                };
+                
+                if (mesh.name.includes('CC_Game_Body')) {
+                    extractedData.meshesByType.CC_Game_Body.push(meshInfo);
+                } else if (mesh.name.includes('CC_Game_Tongue')) {
+                    extractedData.meshesByType.CC_Game_Tongue.push(meshInfo);
+                } else {
+                    extractedData.meshesByType.Other.push(meshInfo);
+                }
+                
+                extractedData.morphsByMesh[mesh.name] = meshMorphs;
+            });
+            
+            extractedData.totalMorphTargets = totalMorphs;
+            extractedData.uniqueMorphNames = Array.from(extractedData.uniqueMorphNames);
+            
+            log(`✅ Extracted ${totalMorphs} morph targets from ${meshes.length} meshes`, 'success');
+            return extractedData;
+        }
+
+        function displayResults(data) {
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsContent = document.getElementById('resultsContent');
+            
+            let html = `
+                <div class="validation-results">
+                    <h3>📊 Summary</h3>
+                    <p><strong>Total Meshes:</strong> ${data.totalMeshes}</p>
+                    <p><strong>Total Morph Targets:</strong> ${data.totalMorphTargets}</p>
+                    <p><strong>Unique Morph Names:</strong> ${data.uniqueMorphNames.length}</p>
+                    <p><strong>Extraction Time:</strong> ${new Date(data.extractionTimestamp).toLocaleString()}</p>
+                </div>
+            `;
+            
+            // CC_Game_Body morphs
+            if (data.meshesByType.CC_Game_Body.length > 0) {
+                html += `
+                    <div class="mesh-section">
+                        <div class="mesh-title">🧑 CC_Game_Body Morphs</div>
+                        <div class="morph-list">
+                `;
+                data.meshesByType.CC_Game_Body.forEach(mesh => {
+                    mesh.morphNames.forEach(name => {
+                        html += `<div class="morph-item">${name}</div>`;
+                    });
+                });
+                html += `</div></div>`;
+            }
+            
+            // CC_Game_Tongue morphs
+            if (data.meshesByType.CC_Game_Tongue.length > 0) {
+                html += `
+                    <div class="mesh-section">
+                        <div class="mesh-title">👅 CC_Game_Tongue Morphs</div>
+                        <div class="morph-list">
+                `;
+                data.meshesByType.CC_Game_Tongue.forEach(mesh => {
+                    mesh.morphNames.forEach(name => {
+                        html += `<div class="morph-item">${name}</div>`;
+                    });
+                });
+                html += `</div></div>`;
+            }
+            
+            // Other meshes
+            if (data.meshesByType.Other.length > 0) {
+                html += `
+                    <div class="mesh-section">
+                        <div class="mesh-title">🔧 Other Meshes</div>
+                `;
+                data.meshesByType.Other.forEach(mesh => {
+                    html += `<p><strong>${mesh.name}:</strong> ${mesh.morphCount} morphs</p>`;
+                });
+                html += `</div>`;
+            }
+            
+            // All unique morph names
+            html += `
+                <div class="mesh-section">
+                    <div class="mesh-title">📝 All Unique Morph Names</div>
+                    <div class="morph-list">
+            `;
+            data.uniqueMorphNames.forEach(name => {
+                html += `<div class="morph-item">${name}</div>`;
+            });
+            html += `</div></div>`;
+            
+            resultsContent.innerHTML = html;
+            resultsSection.style.display = 'block';
+            
+            // Enable validation button
+            document.getElementById('validateBtn').disabled = false;
+        }
+
+        function validateVisemeMappings(extractedData, visemeMappings) {
+            log('🔍 Validating viseme mappings against extracted morph names...');
+            
+            const results = {
+                found: [],
+                missing: [],
+                alternatives: []
+            };
+            
+            // Get all expected morph names from mappings
+            const expectedMorphs = new Set();
+            Object.values(visemeMappings).forEach(mapping => {
+                if (mapping.morphs) {
+                    mapping.morphs.forEach(morphName => expectedMorphs.add(morphName));
+                }
+            });
+            
+            log(`Expected morph names: ${expectedMorphs.size}`);
+            log(`Found morph names: ${extractedData.uniqueMorphNames.length}`);
+            
+            // Check each expected morph
+            expectedMorphs.forEach(expectedMorph => {
+                const exactMatch = extractedData.uniqueMorphNames.includes(expectedMorph);
+                
+                if (exactMatch) {
+                    results.found.push(expectedMorph);
+                    log(`✅ FOUND: ${expectedMorph}`, 'success');
+                } else {
+                    results.missing.push(expectedMorph);
+                    log(`❌ MISSING: ${expectedMorph}`, 'error');
+                    
+                    // Look for similar names
+                    const similar = extractedData.uniqueMorphNames.filter(name => 
+                        name.toLowerCase().includes(expectedMorph.toLowerCase()) ||
+                        expectedMorph.toLowerCase().includes(name.toLowerCase())
+                    );
+                    
+                    if (similar.length > 0) {
+                        log(`    🔍 Possible alternatives: ${similar.join(', ')}`, 'warning');
+                        results.alternatives.push({
+                            expected: expectedMorph,
+                            alternatives: similar
+                        });
+                    }
+                }
+            });
+            
+            const totalExpected = results.found.length + results.missing.length;
+            const successRate = ((results.found.length / totalExpected) * 100).toFixed(1);
+            
+            log(`✅ Found: ${results.found.length}/${totalExpected}`, 'success');
+            log(`❌ Missing: ${results.missing.length}/${totalExpected}`, results.missing.length > 0 ? 'error' : 'success');
+            log(`Success Rate: ${successRate}%`, results.missing.length > 0 ? 'warning' : 'success');
+            
+            return {
+                ...results,
+                successRate: parseFloat(successRate),
+                needsCorrection: results.missing.length > 0
+            };
+        }
+
+        function displayValidationResults(validationResult) {
+            const validationSection = document.getElementById('validationSection');
+            const validationContent = document.getElementById('validationContent');
+            
+            const statusClass = validationResult.needsCorrection ? 'warning' : 'success';
+            const statusText = validationResult.needsCorrection ? 'NEEDS CORRECTION ⚠️' : 'ALL CORRECT ✅';
+            
+            let html = `
+                <div class="validation-results">
+                    <h3>📊 Validation Summary</h3>
+                    <p><strong>Success Rate:</strong> <span class="${statusClass}">${validationResult.successRate}%</span></p>
+                    <p><strong>Status:</strong> <span class="${statusClass}">${statusText}</span></p>
+                    <p><strong>Found:</strong> <span class="success">${validationResult.found.length}</span></p>
+                    <p><strong>Missing:</strong> <span class="error">${validationResult.missing.length}</span></p>
+                </div>
+            `;
+            
+            if (validationResult.found.length > 0) {
+                html += `
+                    <div class="mesh-section">
+                        <div class="mesh-title success">✅ Found Morphs</div>
+                        <div class="morph-list">
+                `;
+                validationResult.found.forEach(name => {
+                    html += `<div class="morph-item" style="background: #1a4a1a;">${name}</div>`;
+                });
+                html += `</div></div>`;
+            }
+            
+            if (validationResult.missing.length > 0) {
+                html += `
+                    <div class="mesh-section">
+                        <div class="mesh-title error">❌ Missing Morphs</div>
+                        <div class="morph-list">
+                `;
+                validationResult.missing.forEach(name => {
+                    html += `<div class="morph-item" style="background: #4a1a1a;">${name}</div>`;
+                });
+                html += `</div></div>`;
+            }
+            
+            if (validationResult.alternatives.length > 0) {
+                html += `
+                    <div class="mesh-section">
+                        <div class="mesh-title warning">🔧 Suggested Corrections</div>
+                `;
+                validationResult.alternatives.forEach(({ expected, alternatives }) => {
+                    html += `<p><strong>${expected}</strong> → <span class="warning">${alternatives[0]}</span> (${alternatives.length} alternatives)</p>`;
+                });
+                html += `</div>`;
+            }
+            
+            validationContent.innerHTML = html;
+            validationSection.style.display = 'block';
+        }
+
+        async function extractMorphTargets() {
+            const extractBtn = document.getElementById('extractBtn');
+            const validateBtn = document.getElementById('validateBtn');
+            
+            try {
+                extractBtn.disabled = true;
+                validateBtn.disabled = true;
+                
+                log('🔬 BABYLON.JS MORPH TARGET EXTRACTION STARTED');
+                log('='.repeat(50));
+                
+                // Step 1: Initialize Babylon.js
+                const initialized = await initializeBabylon();
+                if (!initialized) {
+                    throw new Error('Failed to initialize Babylon.js environment');
+                }
+                
+                // Step 2: Load GLB model
+                const glbUrl = './assets/party-f-0013-fixed.glb';
+                const meshes = await loadGLBModel(glbUrl);
+                
+                // Step 3: Extract morph targets
+                extractedData = extractMorphTargetsFromMeshes(meshes);
+                
+                // Step 4: Display results
+                displayResults(extractedData);
+                
+                log('='.repeat(50));
+                log('✅ EXTRACTION COMPLETE!', 'success');
+                
+            } catch (error) {
+                log(`❌ EXTRACTION FAILED: ${error.message}`, 'error');
+                console.error('Extraction error:', error);
+            } finally {
+                extractBtn.disabled = false;
+            }
+        }
+
+        async function validateMappings() {
+            if (!extractedData) {
+                log('❌ No extracted data available. Please extract morph targets first.', 'error');
+                return;
+            }
+            
+            try {
+                log('🔍 VISEME MAPPING VALIDATION STARTED');
+                log('='.repeat(50));
+                
+                const validationResult = validateVisemeMappings(extractedData, CURRENT_VISEME_MAPPINGS);
+                displayValidationResults(validationResult);
+                
+                log('='.repeat(50));
+                if (validationResult.needsCorrection) {
+                    log('⚠️ VALIDATION COMPLETE - CORRECTIONS NEEDED', 'warning');
+                } else {
+                    log('✅ VALIDATION COMPLETE - ALL MAPPINGS CORRECT!', 'success');
+                }
+                
+            } catch (error) {
+                log(`❌ VALIDATION FAILED: ${error.message}`, 'error');
+                console.error('Validation error:', error);
+            }
+        }
+        
+        // Cleanup function
+        window.addEventListener('beforeunload', () => {
+            if (babylonScene) babylonScene.dispose();
+            if (babylonEngine) babylonEngine.dispose();
+        });
+    </script>
+</body>
+</html>

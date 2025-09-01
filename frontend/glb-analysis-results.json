@@ -1,0 +1,33 @@
+{
+  "primitives": {
+    "total": 9,
+    "withMorphTargets": 8
+  },
+  "accessories": {
+    "total": 448,
+    "morphTargetAccessors": 0
+  },
+  "nodes": {
+    "total": 124,
+    "bones": 24,
+    "facialBones": 1
+  },
+  "meshes": {
+    "total": 9,
+    "withMorphTargets": 8,
+    "totalMorphTargets": 105
+  },
+  "animations": {
+    "total": 1,
+    "animations": [
+      {
+        "name": "0_T-Pose",
+        "channels": 144,
+        "samplers": 144
+      }
+    ]
+  },
+  "materials": {
+    "total": 1
+  }
+}

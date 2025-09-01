@@ -295,33 +295,72 @@ export const VisemeToActorCore = (viseme, blendShapeRef) => {
 /**
  * Enhanced lerp morph target function for smooth animation
  */
-export const lerpActorCoreMorphTarget = (target, value, speed, scene) => {
-  if (scene && target) {
-    scene.traverse((child) => {
-      if (child.isSkinnedMesh && child.morphTargetDictionary) {
+export const lerpActorCoreMorphTarget = (target, value, speed, model) => {
+  if (!model || !target) {
+    console.warn('lerpActorCoreMorphTarget: Missing model or target', { target, model });
+    return;
+  }
+
+  let foundTarget = false;
+  let skinnedMeshCount = 0;
+  
+  model.traverse((child) => {
+    if (child.isSkinnedMesh) {
+      skinnedMeshCount++;
+      console.log(`Found SkinnedMesh: ${child.name || 'unnamed'}, has morphTargetDictionary: ${!!child.morphTargetDictionary}`);
+      
+      if (child.morphTargetDictionary) {
+        console.log(`Available morph targets in ${child.name || 'mesh'}:`, Object.keys(child.morphTargetDictionary).slice(0, 10));
+        
         const index = child.morphTargetDictionary[target];
         
-        if (index !== undefined && child.morphTargetInfluences[index] !== undefined) {
-          // Smooth interpolation using Three.js lerp
-          child.morphTargetInfluences[index] = THREE.MathUtils.lerp(
-            child.morphTargetInfluences[index],
-            value,
-            speed
-          );
+        if (index !== undefined) {
+          if (child.morphTargetInfluences && child.morphTargetInfluences[index] !== undefined) {
+            foundTarget = true;
+            const previousValue = child.morphTargetInfluences[index];
+            
+            // Calculate new value
+            const newValue = THREE.MathUtils.lerp(previousValue, value, speed);
+            
+            // Apply the new value
+            child.morphTargetInfluences[index] = newValue;
+            
+            // Log detailed information
+            console.log(`✓ Updated morph target: ${target}`);
+            console.log(`  - Mesh: ${child.name || 'unnamed'}`);
+            console.log(`  - Index: ${index}`);
+            console.log(`  - Previous: ${previousValue.toFixed(4)}`);
+            console.log(`  - Target: ${value.toFixed(4)}`);
+            console.log(`  - New: ${newValue.toFixed(4)}`);
+            console.log(`  - Speed: ${speed}`);
+            console.log(`  - Delta: ${(newValue - previousValue).toFixed(4)}`);
+          } else {
+            console.warn(`Morph target "${target}" found at index ${index} but morphTargetInfluences is invalid`);
+          }
+        } else {
+          console.log(`Morph target "${target}" not found in ${child.name || 'mesh'}'s dictionary`);
         }
+      } else {
+        console.log(`SkinnedMesh ${child.name || 'unnamed'} has no morphTargetDictionary`);
       }
-    });
+    }
+  });
+  
+  if (skinnedMeshCount === 0) {
+    console.error('No SkinnedMesh found in model!');
+  } else if (!foundTarget) {
+    console.warn(`Morph target "${target}" not found in any of the ${skinnedMeshCount} SkinnedMesh(es)`);
   }
 };
 
 /**
  * Apply multiple morph targets from a blend shape object
  */
-export const applyBlendShape = (blendShape, speed, scene) => {
-  if (blendShape && scene) {
+export const applyBlendShape = (blendShape, speed, model) => {
+  if (blendShape && model) {
     for (const [morphTarget, value] of Object.entries(blendShape)) {
       if (morphTarget && value !== undefined) {
-        lerpActorCoreMorphTarget(morphTarget, value, speed, scene);
+        lerpActorCoreMorphTarget(morphTarget, value, speed, model);
       }
     }
   }

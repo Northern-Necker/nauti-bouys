@@ -1,5 +1,6 @@
 import React from 'react';
 import InteractiveAvatar from '../components/avatar3d/InteractiveAvatar';
+import MinimalAvatar from '../components/avatar3d/MinimalAvatar';
 
 export default function InteractiveAvatarPage() {
   return (
@@ -17,7 +18,21 @@ export default function InteractiveAvatarPage() {
         </div>
 
         <div className="max-w-4xl mx-auto">
-          <InteractiveAvatar className="mb-8" />
+          <div className="bg-red-100 border border-red-400 p-4 rounded-lg mb-8">
+            <h2 className="text-2xl font-semibold text-red-800 mb-4">
+              🔧 Debug Test - Minimal Avatar
+            </h2>
+            <p className="text-red-700 mb-4">If you see a 3D model below, the GLB loading is working:</p>
+            <MinimalAvatar />
+          </div>
+          
+          <div className="bg-blue-100 border border-blue-400 p-4 rounded-lg mb-8">
+            <h2 className="text-2xl font-semibold text-blue-800 mb-4">
+              🎭 Full Interactive Avatar
+            </h2>
+            <p className="text-blue-700 mb-4">Advanced avatar with mouse tracking and animations:</p>
+            <InteractiveAvatar className="mb-8" />
+          </div>
           
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">

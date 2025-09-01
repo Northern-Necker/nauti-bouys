@@ -14,9 +14,11 @@ import {
   RotateCcw,
   Download,
   Upload,
-  Wrench
+  Wrench,
+  User
 } from 'lucide-react'
 import { inspectFbx } from '../utils/fbxInspector'
+import AvatarPersonalityEditor from '../components/settings/AvatarPersonalityEditor'
 
 // Lazy load the FbxViewer for performance
 const FbxViewer = lazy(() => import('./FbxViewer'))
@@ -123,6 +125,7 @@ export default function SettingsPage() {
 
   const tabs = [
     { id: 'avatar', label: '3D Avatar', icon: Monitor },
+    { id: 'personality', label: 'Personality', icon: User },
     { id: 'testing', label: 'Testing Tools', icon: TestTube },
     { id: 'system', label: 'System Status', icon: Cpu },
     { id: 'performance', label: 'Performance', icon: Zap }
@@ -276,6 +279,20 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Personality Tab */}
+            {activeTab === 'personality' && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold flex items-center">
+                  <User className="h-5 w-5 mr-2" />
+                  Avatar Personality Settings
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Customize your AI assistant's personality, voice settings, and conversation style.
+                </p>
+                <AvatarPersonalityEditor />
               </div>
             )}
 

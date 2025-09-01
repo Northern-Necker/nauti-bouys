@@ -1,4 +1,7 @@
 import apiClient from './apiClient'
+import { ConversationFlow, moodDetection, personalityModes } from '../../utils/conversationPatterns.js'
+import { maritimeStories, educationalTopics } from '../../data/maritimeStories.js'
+import BartenderGestureService from '../BartenderGestureService.js'
 
 class ConversationService {
   constructor() {
@@ -6,6 +9,11 @@ class ConversationService {
     this.conversationHistory = []
     this.patronProfile = null
     this.emotionalState = null
+    this.conversationFlow = new ConversationFlow()
+    this.currentPersonality = 'seasoned_bartender'
+    this.storytellingEnabled = true
+    this.gestureService = BartenderGestureService
+    this.gesturesEnabled = true
   }
 
   // Summarize recent conversation messages
@@ -152,10 +160,25 @@ class ConversationService {
     }
   }
 
-  // Generate contextual response with patron profiling
+  // Generate contextual response with storytelling and mood adaptation
   async generateResponse(userMessage, context = {}) {
     try {
-      const contextPayload = { ...context }
+      // Generate enhanced response using conversation patterns
+      let enhancedResponse = null
+      if (this.storytellingEnabled) {
+        enhancedResponse = this.conversationFlow.generateResponse(
+          userMessage, 
+          context.order || null
+        )
+      }
+
+      const contextPayload = { 
+        ...context,
+        storytelling: this.storytellingEnabled,
+        personality: this.currentPersonality,
+        enhancedResponse: enhancedResponse
+      }
+      
       if (this.patronProfile) contextPayload.patronProfile = this.patronProfile
       if (this.emotionalState) contextPayload.emotionalState = this.emotionalState
       if (this.conversationHistory.length) {
@@ -168,21 +191,54 @@ class ConversationService {
         context: contextPayload
       })
 
+      // Use enhanced response if available, fallback to API response
+      const finalResponse = enhancedResponse || response.data.response
+
       // Store both user message and AI response
       await this.storeMessage(userMessage, 'user')
-      await this.storeMessage(response.data.response, 'assistant', {
+      await this.storeMessage(finalResponse, 'assistant', {
         confidence: response.data.confidence,
-        recommendedActions: response.data.recommendedActions
+        recommendedActions: response.data.recommendedActions,
+        storytellingUsed: !!enhancedResponse,
+        detectedMood: this.conversationFlow.currentMood
       })
+
+      // Trigger gesture if enabled
+      if (this.gesturesEnabled) {
+        this.handleGestureForMessage(finalResponse, 'assistant', {
+          conversationContext: this.determineConversationContext(userMessage, finalResponse),
+          confidence: response.data.confidence,
+          actions: response.data.recommendedActions
+        })
+      }
 
       return {
         success: true,
-        response: response.data.response,
+        response: finalResponse,
         actions: response.data.recommendedActions,
-        confidence: response.data.confidence
+        confidence: response.data.confidence,
+        storytelling: !!enhancedResponse,
+        mood: this.conversationFlow.currentMood
       }
     } catch (error) {
       console.error('Failed to generate response:', error)
+      
+      // Fallback to local storytelling if API fails
+      if (this.storytellingEnabled) {
+        const fallbackResponse = this.conversationFlow.generateResponse(
+          userMessage, 
+          context.order || null
+        )
+        
+        return {
+          success: true,
+          response: fallbackResponse,
+          fallback: true,
+          storytelling: true,
+          mood: this.conversationFlow.currentMood
+        }
+      }
+      
       return {
         success: false,
         error: error.response?.data?.message || 'Failed to generate response'
@@ -259,6 +315,157 @@ class ConversationService {
     return keywords.filter(keyword => messages.includes(keyword))
   }
 
+  // Storytelling and personality management methods
+  setPersonality(personalityType) {
+    if (personalityModes[personalityType]) {
+      this.currentPersonality = personalityType
+      return { success: true, personality: personalityModes[personalityType] }
+    }
+    return { success: false, error: 'Invalid personality type' }
+  }
+
+  toggleStorytelling() {
+    this.storytellingEnabled = !this.storytellingEnabled
+    return { success: true, enabled: this.storytellingEnabled }
+  }
+
+  // Get available stories for current context
+  getAvailableStories(category = null) {
+    if (category) {
+      return maritimeStories[category] || {}
+    }
+    return maritimeStories
+  }
+
+  // Get conversation flow status
+  getConversationFlowStatus() {
+    return {
+      currentMood: this.conversationFlow.currentMood,
+      topicsDiscussed: Array.from(this.conversationFlow.topicsDiscussed),
+      conversationLength: this.conversationFlow.conversationHistory.length,
+      context: this.conversationFlow.currentContext
+    }
+  }
+
+  // Reset conversation flow (useful for new conversations)
+  resetConversationFlow() {
+    this.conversationFlow.resetConversation()
+    return { success: true }
+  }
+
+  // Get mood-based recommendations
+  getMoodBasedRecommendations(detectedMood = null) {
+    const mood = detectedMood || this.conversationFlow.currentMood
+    const structure = this.conversationFlow.getResponseStructure(mood)
+    
+    return {
+      mood: mood,
+      structure: structure,
+      recommendedStories: this.getSuggestedStoriesForMood(mood),
+      conversationStyle: structure.pacing
+    }
+  }
+
+  // Get suggested stories for a specific mood
+  getSuggestedStoriesForMood(mood) {
+    const suggestions = []
+    
+    Object.entries(maritimeStories.cocktailOrigins).forEach(([key, story]) => {
+      if (story.mood === mood && !this.conversationFlow.topicsDiscussed.has(key)) {
+        suggestions.push({
+          key: key,
+          story: story,
+          type: 'cocktailOrigin'
+        })
+      }
+    })
+    
+    Object.entries(maritimeStories.navalTraditions).forEach(([key, story]) => {
+      if (story.mood === mood && !this.conversationFlow.topicsDiscussed.has(key)) {
+        suggestions.push({
+          key: key,
+          story: story,
+          type: 'navalTradition'
+        })
+      }
+    })
+    
+    return suggestions.slice(0, 3) // Return top 3 suggestions
+  }
+
+  // Determine conversation context for gesture selection
+  determineConversationContext(userMessage, assistantResponse) {
+    const userLower = userMessage.toLowerCase()
+    const responseLower = assistantResponse.toLowerCase()
+    
+    // Context detection based on keywords
+    if (userLower.includes('recommend') || responseLower.includes('suggest')) {
+      return 'cocktail_recommendation'
+    }
+    if (userLower.includes('order') || responseLower.includes('perfect choice')) {
+      return 'order_confirmation'
+    }
+    if (responseLower.includes('ingredient') || responseLower.includes('made with')) {
+      return 'ingredient_explanation'
+    }
+    if (userLower.includes('hello') || userLower.includes('hi') || responseLower.includes('welcome')) {
+      return 'greeting_customer'
+    }
+    if (responseLower.includes('great') || responseLower.includes('excellent')) {
+      return 'positive_feedback'
+    }
+    if (responseLower.includes('pour') || responseLower.includes('mix') || responseLower.includes('shake')) {
+      return 'bartending_action'
+    }
+    
+    return 'general'
+  }
+
+  // Handle gesture triggering for messages
+  handleGestureForMessage(messageContent, messageType, context = {}) {
+    try {
+      this.gestureService.handleConversationGesture(
+        messageContent,
+        messageType,
+        {
+          ...context,
+          delay: 800, // Slight delay for natural timing
+          duration: context.confidence > 0.8 ? 3.0 : 2.5 // Longer gestures for confident responses
+        }
+      )
+    } catch (error) {
+      console.error('Error handling gesture for message:', error)
+    }
+  }
+
+  // Enable/disable gesture system
+  setGesturesEnabled(enabled) {
+    this.gesturesEnabled = enabled
+    return { success: true, enabled: this.gesturesEnabled }
+  }
+
+  // Manually trigger a specific gesture
+  triggerGesture(gestureName, options = {}) {
+    if (!this.gesturesEnabled) {
+      return { success: false, error: 'Gestures disabled' }
+    }
+    
+    try {
+      this.gestureService.playBartenderGesture(gestureName, options)
+      return { success: true, gesture: gestureName }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  }
+
+  // Get gesture system status
+  getGestureStatus() {
+    return {
+      enabled: this.gesturesEnabled,
+      ...this.gestureService.getGestureStatus()
+    }
+  }
+
   // Get session status
   getSessionStatus() {
     return {
@@ -266,7 +473,13 @@ class ConversationService {
       isActive: !!this.sessionId,
       messageCount: this.conversationHistory.length,
       patronProfile: this.patronProfile,
-      emotionalState: this.emotionalState
+      emotionalState: this.emotionalState,
+      storytelling: {
+        enabled: this.storytellingEnabled,
+        personality: this.currentPersonality,
+        conversationFlow: this.getConversationFlowStatus()
+      },
+      gestures: this.getGestureStatus()
     }
   }
 }

@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLB Morph Target Diagnostic - RobotExpressive</title>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <style>
+        body { 
+            margin: 0; 
+            background: #000; 
+            color: white; 
+            font-family: Arial, sans-serif; 
+            overflow: hidden; 
+        }
+        .container { 
+            display: flex; 
+            height: 100vh; 
+        }
+        .viewer { 
+            flex: 1; 
+            position: relative; 
+        }
+        .controls { 
+            width: 400px; 
+            padding: 20px; 
+            background: #222; 
+            overflow-y: auto; 
+        }
+        .morph-btn { 
+            display: block; 
+            width: 100%; 
+            margin: 3px 0; 
+            padding: 10px; 
+            background: #444; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 13px; 
+            text-align: left;
+            transition: all 0.2s;
+        }
+        .morph-btn:hover { background: #666; }
+        .morph-btn.active { background: #00ff00; color: #000; font-weight: bold; }
+        .status { 
+            padding: 15px; 
+            background: #333; 
+            border-radius: 6px; 
+            margin: 15px 0; 
+            font-size: 14px;
+        }
+        .test-btn { 
+            background: #007bff; 
+            padding: 12px 20px; 
+            margin: 5px; 
+            border: none; 
+            color: white; 
+            border-radius: 6px; 
+            cursor: pointer; 
+        }
+        .test-btn:hover { background: #0056b3; }
+        canvas { display: block; }
+        .intensity-control { margin: 15px 0; }
+        .intensity-slider { width: 100%; margin: 10px 0; }
+        .section { margin: 20px 0; }
+        .section h3 { 
+            margin: 10px 0; 
+            color: #fff; 
+            border-bottom: 2px solid #444; 
+            padding-bottom: 5px; 
+        }
+        .morph-info { 
+            font-size: 12px; 
+            color: #aaa; 
+            max-height: 200px; 
+            overflow-y: auto; 
+            background: #111; 
+            padding: 10px; 
+            border-radius: 4px; 
+            white-space: pre-wrap;
+        }
+        .current-values { 
+            font-size: 11px; 
+            color: #4CAF50; 
+            max-height: 150px; 
+            overflow-y: auto; 
+            background: #111; 
+            padding: 10px; 
+            border-radius: 4px; 
+        }
+        .error { background: #dc3545; color: white; padding: 10px; border-radius: 6px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="viewer">
+            <div id="three-container"></div>
+        </div>
+        
+        <div class="controls">
+            <div class="status" id="status">Ready to load RobotExpressive GLB model</div>
+            
+            <div style="text-align: center; margin: 15px 0;">
+                <button class="test-btn" onclick="loadGLB()">🔄 Load RobotExpressive</button>
+                <button class="test-btn" onclick="resetAll()">🔄 Reset All</button>
+                <button class="test-btn" onclick="autoTestAll()">🚀 Auto Test All</button>
+            </div>
+            
+            <div class="intensity-control">
+                <label>Morph Intensity:</label>
+                <input type="range" class="intensity-slider" id="intensity" min="0" max="1" step="0.1" value="1.0" oninput="updateIntensity(this.value)">
+                <span id="intensity-value">1.0</span>
+            </div>
+            
+            <div class="section">
+                <h3>🎯 Individual Morph Targets</h3>
+                <div id="morph-controls">Load model first...</div>
+            </div>
+            
+            <div class="section">
+                <h3>📊 Model Analysis</h3>
+                <div class="morph-info" id="model-info">No model loaded</div>
+            </div>
+            
+            <div class="section">
+                <h3>🔧 Current Values</h3>
+                <div class="current-values" id="current-values">No active morphs</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        let scene, camera, renderer, avatar, morphTargets = [], currentIntensity = 1.0;
+        let isAutoTesting = false;
+
+        window.loadGLB = loadGLB;
+        window.resetAll = resetAll;
+        window.updateIntensity = updateIntensity;
+        window.autoTestAll = autoTestAll;
+
+        function updateStatus(message, color = '#333') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.background = color;
+            console.log('Status:', message);
+        }
+
+        function showError(message) {
+            const container = document.getElementById('morph-controls');
+            container.innerHTML = `<div class="error">${message}</div>`;
+            console.error(message);
+        }
+
+        function init() {
+            try {
+                updateStatus('Initializing Three.js...', '#17a2b8');
+                
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x222222);
+
+                const containerWidth = window.innerWidth - 400;
+                const containerHeight = window.innerHeight;
+                
+                camera = new THREE.PerspectiveCamera(50, containerWidth / containerHeight, 0.1, 1000);
+                camera.position.set(0, 1.6, 2.5);
+
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(containerWidth, containerHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                
+                const container = document.getElementById('three-container');
+                container.appendChild(renderer.domElement);
+
+                // Enhanced lighting for better morph visibility
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+                directionalLight.position.set(2, 2, 5);
+                directionalLight.castShadow = true;
+                scene.add(directionalLight);
+
+                const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+                fillLight.position.set(-2, 1, 2);
+                scene.add(fillLight);
+
+                // Add rim lighting
+                const rimLight = new THREE.DirectionalLight(0x4a90e2, 0.3);
+                rimLight.position.set(0, 2, -3);
+                scene.add(rimLight);
+
+                animate();
+                
+                updateStatus('✅ Three.js initialized! Click "Load RobotExpressive" to begin', '#28a745');
+                
+            } catch (error) {
+                showError(`Failed to initialize Three.js: ${error.message}`);
+            }
+        }
+
+        function loadGLB() {
+            try {
+                updateStatus('🔄 Loading RobotExpressive GLB model...', '#ff9800');
+                
+                const loader = new GLTFLoader();
+                
+                // Load the Three.js RobotExpressive example directly
+                loader.load(
+                    'https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb',
+                    (gltf) => {
+                        updateStatus('✅ RobotExpressive GLB loaded successfully!', '#28a745');
+                        setupAvatar(gltf);
+                    },
+                    (progress) => {
+                        if (progress.total > 0) {
+                            const percent = Math.round((progress.loaded / progress.total) * 100);
+                            updateStatus(`📥 Loading RobotExpressive... ${percent}%`, '#17a2b8');
+                        }
+                    },
+                    (error) => {
+                        showError(`Failed to load RobotExpressive: ${error.message}`);
+                        updateStatus('❌ Failed to load model', '#dc3545');
+                    }
+                );
+                
+            } catch (error) {
+                showError(`Failed to start GLB loading: ${error.message}`);
+            }
+        }
+
+        function setupAvatar(gltf) {
+            try {
+                if (avatar) {
+                    scene.remove(avatar);
+                    avatar = null;
+                }
+                
+                avatar = gltf.scene;
+                scene.add(avatar);
+                
+                // Auto-scale and center the model
+                const box = new THREE.Box3().setFromObject(avatar);
+                const size = box.getSize(new THREE.Vector3());
+                const center = box.getCenter(new THREE.Vector3());
+                
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const targetSize = 2;
+                const scale = targetSize / maxDim;
+                avatar.scale.setScalar(scale);
+                
+                avatar.position.copy(center).multiplyScalar(-scale);
+                avatar.position.y -= 0.5;
+                
+                // Discover and catalog ALL morph targets
+                morphTargets = [];
+                let totalMorphs = 0;
+                let meshCount = 0;
+                let detailedInfo = "ROBOTEXPRESSIVE MORPH TARGET ANALYSIS:\n\n";
+                
+                avatar.traverse((child) => {
+                    if (child.isMesh && child.morphTargetDictionary) {
+                        meshCount++;
+                        const morphDict = child.morphTargetDictionary;
+                        const morphCount = Object.keys(morphDict).length;
+                        
+                        console.log(`\n=== MESH: ${child.name} ===`);
+                        console.log(`Morph targets (${morphCount}):`, morphDict);
+                        
+                        detailedInfo += `MESH: ${child.name} (${morphCount} morphs)\n`;
+                        
+                        // Ensure morphTargetInfluences array exists and is properly sized
+                        if (!child.morphTargetInfluences) {
+                            child.morphTargetInfluences = new Array(morphCount).fill(0);
+                        } else if (child.morphTargetInfluences.length !== morphCount) {
+                            const newInfluences = new Array(morphCount).fill(0);
+                            for (let i = 0; i < Math.min(child.morphTargetInfluences.length, morphCount); i++) {
+                                newInfluences[i] = child.morphTargetInfluences[i];
+                            }
+                            child.morphTargetInfluences = newInfluences;
+                        }
+                        
+                        // Store each morph target with full details
+                        Object.entries(morphDict).forEach(([morphName, index]) => {
+                            morphTargets.push({
+                                name: morphName,
+                                mesh: child,
+                                meshName: child.name,
+                                index: index,
+                                currentValue: 0,
+                                fullName: `${child.name}.${morphName}`
+                            });
+                            totalMorphs++;
+                            
+                            detailedInfo += `  [${index}] ${morphName}\n`;
+                            console.log(`  Added: ${child.name}.${morphName} (index: ${index})`);
+                        });
+                        
+                        detailedInfo += "\n";
+                    }
+                });
+                
+                updateStatus(`✅ Ready! Found ${totalMorphs} morph targets in ${meshCount} meshes`, '#28a745');
+                
+                // Display detailed model info
+                document.getElementById('model-info').textContent = detailedInfo;
+                
+                // Create individual morph control buttons
+                createMorphControls();
+                
+                // Position camera for optimal viewing
+                if (meshCount > 0) {
+                    camera.position.set(0, center.y * scale, 3);
+                    camera.lookAt(0, center.y * scale, 0);
+                }
+                
+                // Log the complete mapping data for reference
+                console.log('\n==== COMPLETE ROBOTEXPRESSIVE MORPH MAPPING ====');
+                console.log('Copy this for creating proper viseme mappings:');
+                console.log(JSON.stringify(morphTargets.map(m => ({
+                    name: m.name, 
+                    mesh: m.meshName, 
+                    index: m.index,
+                    fullName: m.fullName
+                })), null, 2));
+                
+            } catch (error) {
+                showError(`Failed to setup avatar: ${error.message}`);
+            }
+        }
+
+        function createMorphControls() {
+            const container = document.getElementById('morph-controls');
+            container.innerHTML = '';
+            
+            if (morphTargets.length === 0) {
+                container.innerHTML = '<div style="color: #dc3545;">No morph targets found</div>';
+                return;
+            }
+            
+            // Group morphs by mesh for better organization
+            const morphsByMesh = {};
+            morphTargets.forEach(morph => {
+                if (!morphsByMesh[morph.meshName]) {
+                    morphsByMesh[morph.meshName] = [];
+                }
+                morphsByMesh[morph.meshName].push(morph);
+            });
+            
+            // Create controls organized by mesh
+            Object.entries(morphsByMesh).forEach(([meshName, morphs]) => {
+                const meshHeader = document.createElement('div');
+                meshHeader.style.cssText = 'color: #4CAF50; font-weight: bold; margin: 10px 0 5px 0; border-bottom: 1px solid #444; padding-bottom: 3px;';
+                meshHeader.textContent = `${meshName} (${morphs.length} morphs)`;
+                container.appendChild(meshHeader);
+                
+                morphs.forEach(morph => {
+                    const btn = document.createElement('button');
+                    btn.className = 'morph-btn';
+                    btn.textContent = `[${morph.index}] ${morph.name}`;
+                    btn.onclick = () => testSingleMorph(morph, btn);
+                    container.appendChild(btn);
+                });
+            });
+        }
+
+        function testSingleMorph(morph, button) {
+            try {
+                // Clear all button states
+                document.querySelectorAll('.morph-btn').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+
+                // Reset all morphs first
+                resetAllMorphs();
+
+                // Apply this specific morph
+                morph.mesh.morphTargetInfluences[morph.index] = currentIntensity;
+                morph.currentValue = currentIntensity;
+                
+                // Force updates for proper rendering
+                if (morph.mesh.geometry && morph.mesh.geometry.morphAttributes) {
+                    morph.mesh.geometry.morphAttributesNeedUpdate = true;
+                    if (morph.mesh.geometry.morphAttributes.normal) {
+                        morph.mesh.geometry.morphNormalsNeedUpdate = true;
+                    }
+                }
+                
+                morph.mesh.updateMatrix();
+                morph.mesh.updateMatrixWorld(true);
+
+                updateStatus(`🎭 Applied: ${morph.fullName} = ${currentIntensity}`, '#17a2b8');
+                updateCurrentValues([`${morph.fullName}: ${currentIntensity.toFixed(2)}`]);
+                
+                console.log(`Applied morph: ${morph.fullName} = ${currentIntensity}`);
+                
+            } catch (error) {
+                showError(`Error applying morph ${morph.name}: ${error.message}`);
+            }
+        }
+
+        function resetAllMorphs() {
+            try {
+                morphTargets.forEach(morph => {
+                    morph.mesh.morphTargetInfluences[morph.index] = 0;
+                    morph.currentValue = 0;
+                    
+                    if (morph.mesh.geometry && morph.mesh.geometry.morphAttributes) {
+                        morph.mesh.geometry.morphAttributesNeedUpdate = true;
+                    }
+                });
+                
+                updateCurrentValues([]);
+            } catch (error) {
+                showError(`Error resetting morphs: ${error.message}`);
+            }
+        }
+
+        function resetAll() {
+            try {
+                resetAllMorphs();
+                document.querySelectorAll('.morph-btn').forEach(btn => btn.classList.remove('active'));
+                updateStatus('🔄 All morphs reset', '#17a2b8');
+                isAutoTesting = false;
+            } catch (error) {
+                showError(`Error during reset: ${error.message}`);
+            }
+        }
+
+        function updateIntensity(value) {
+            currentIntensity = parseFloat(value);
+            document.getElementById('intensity-value').textContent = value;
+            
+            // Re-apply current morph if any is active
+            const activeBtn = document.querySelector('.morph-btn.active');
+            if (activeBtn) {
+                const morphIndex = morphTargets.findIndex(m => 
+                    activeBtn.textContent.includes(m.name) && activeBtn.textContent.includes(m.index.toString()));
+                if (morphIndex >= 0) {
+                    testSingleMorph(morphTargets[morphIndex], activeBtn);
+                }
+            }
+        }
+
+        function updateCurrentValues(values) {
+            const container = document.getElementById('current-values');
+            if (values.length === 0) {
+                container.textContent = 'No active morphs';
+                return;
+            }
+            
+            container.innerHTML = values.map(value => 
+                `<div style="margin: 2px 0;">${value}</div>`
+            ).join('');
+        }
+
+        async function autoTestAll() {
+            if (!avatar || morphTargets.length === 0) {
+                showError('Load RobotExpressive model first');
+                return;
+            }
+
+            try {
+                isAutoTesting = true;
+                updateStatus('🚀 Auto-testing all morphs...', '#ff9800');
+                
+                for (let i = 0; i < morphTargets.length && isAutoTesting; i++) {
+                    const morph = morphTargets[i];
+                    const button = document.querySelectorAll('.morph-btn')[i];
+                    
+                    updateStatus(`Testing ${i + 1}/${morphTargets.length}: ${morph.name}`, '#17a2b8');
+                    testSingleMorph(morph, button);
+                    
+                    await new Promise(resolve => setTimeout(resolve, 1500)); // 1.5 seconds per morph
+                }
+                
+                if (isAutoTesting) {
+                    updateStatus('✅ Auto test completed!', '#28a745');
+                    resetAll();
+                }
+            } catch (error) {
+                showError(`Error during auto test: ${error.message}`);
+            } finally {
+                isAutoTesting = false;
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                const width = window.innerWidth - 400;
+                const height = window.innerHeight;
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+            }
+        });
+
+        // Stop auto test on page unload
+        window.addEventListener('beforeunload', () => {
+            isAutoTesting = false;
+        });
+
+        // Initialize when page loads
+        init();
+    </script>
+</body>
+</html>

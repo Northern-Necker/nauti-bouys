@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syntax Fix Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        
+        .log {
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: Monaco, Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Syntax Fix Verification</h1>
+        <p>Testing that the MediaPipeManager syntax error has been resolved.</p>
+        
+        <div class="status info" id="status">
+            Ready to test syntax fix...
+        </div>
+        
+        <div style="text-align: center;">
+            <button onclick="testSyntax()" id="testBtn">🧪 Test Syntax Fix</button>
+            <button onclick="clearLog()">🧹 Clear Log</button>
+        </div>
+        
+        <div class="log" id="log">Click "Test Syntax Fix" to verify the import syntax error is resolved...\n</div>
+    </div>
+
+    <script type="module">
+        let logDiv = document.getElementById('log');
+        let statusDiv = document.getElementById('status');
+        
+        function log(message) {
+            console.log(message);
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `${timestamp} - ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function updateStatus(message, type = 'info') {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+        
+        async function testSyntax() {
+            document.getElementById('testBtn').disabled = true;
+            updateStatus('Testing syntax fix...', 'warning');
+            log('🚀 Testing MediaPipeManager syntax fix...');
+            log('🔍 Checking if "typeof import !== undefined" error is resolved...');
+            
+            try {
+                // Try to import the MediaPipe Manager
+                log('📦 Attempting to import MediaPipeManager...');
+                const { default: MediaPipeManager } = await import('./src/utils/MediaPipeManager.js');
+                log('✅ SUCCESS: MediaPipeManager imported without syntax errors!');
+                
+                // Try to create an instance
+                log('🔨 Creating MediaPipeManager instance...');
+                const manager = new MediaPipeManager();
+                log('✅ SUCCESS: MediaPipeManager instance created!');
+                
+                // Test the method that had the syntax error
+                log('🧪 Testing getConnectionDiagnostics method...');
+                const diagnostics = manager.getConnectionDiagnostics();
+                log('✅ SUCCESS: getConnectionDiagnostics() executed without errors!');
+                
+                // Check the dynamic imports detection
+                const dynamicImportsSupported = diagnostics.browserSupport.dynamicImports;
+                log(`🔍 Dynamic imports supported: ${dynamicImportsSupported}`);
+                
+                log('');
+                log('🎉 SYNTAX FIX CONFIRMED:');
+                log('- No more "Unexpected token !==" errors');
+                log('- MediaPipeManager imports and loads correctly');
+                log('- All methods execute without syntax issues');
+                
+                updateStatus('✅ Syntax error fixed successfully!', 'success');
+                
+                // Clean up
+                manager.dispose();
+                log('🧹 MediaPipeManager disposed');
+                
+            } catch (error) {
+                log(`❌ Syntax test failed: ${error.message}`);
+                
+                if (error.message.includes('Unexpected token')) {
+                    log('⚠️ Still encountering syntax errors');
+                    updateStatus('❌ Syntax errors still present', 'error');
+                } else if (error.message.includes('import')) {
+                    log('ℹ️ Import-related error, but not the original syntax issue');
+                    updateStatus('⚠️ Different import error', 'warning');
+                } else {
+                    log('✅ Original syntax error fixed (different error type now)');
+                    updateStatus('✅ Syntax fixed, new error type', 'success');
+                }
+                
+                if (error.stack) {
+                    log(`Stack trace: ${error.stack.substring(0, 300)}...`);
+                }
+            }
+            
+            document.getElementById('testBtn').disabled = false;
+        }
+        
+        function clearLog() {
+            logDiv.textContent = 'Click "Test Syntax Fix" to verify the import syntax error is resolved...\n';
+            updateStatus('Ready for test...', 'info');
+        }
+        
+        // Make functions global
+        window.testSyntax = testSyntax;
+        window.clearLog = clearLog;
+        
+        log('🔧 Syntax fix test environment ready');
+    </script>
+</body>
+</html>

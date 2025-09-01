@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avatar Rendering Test - Direct GLB Load</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        #status {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 400px;
+            z-index: 100;
+        }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .warning { color: #f59e0b; }
+        .info { color: #60a5fa; }
+        #canvas {
+            width: 100%;
+            height: 100%;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="status">
+            <h2>Avatar Rendering Test</h2>
+            <div id="test-results"></div>
+        </div>
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.157.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        class AvatarRenderTest {
+            constructor() {
+                this.results = {
+                    webglSupported: false,
+                    canvasCreated: false,
+                    sceneCreated: false,
+                    glbLoaded: false,
+                    meshesFound: 0,
+                    materialsFound: 0,
+                    renderSuccessful: false,
+                    frameCount: 0,
+                    errors: []
+                };
+                
+                this.init();
+            }
+            
+            init() {
+                this.testWebGL();
+                if (this.results.webglSupported) {
+                    this.setupScene();
+                    this.loadAvatar();
+                }
+                this.displayResults();
+            }
+            
+            testWebGL() {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                    this.results.webglSupported = !!gl;
+                    this.log('WebGL Support', this.results.webglSupported ? 'Supported' : 'Not Supported', 
+                            this.results.webglSupported ? 'success' : 'error');
+                } catch (e) {
+                    this.results.webglSupported = false;
+                    this.results.errors.push('WebGL test failed: ' + e.message);
+                }
+            }
+            
+            setupScene() {
+                try {
+                    // Get canvas
+                    this.canvas = document.getElementById('canvas');
+                    this.results.canvasCreated = !!this.canvas;
+                    
+                    // Create scene
+                    this.scene = new THREE.Scene();
+                    this.scene.background = new THREE.Color(0x222222);
+                    
+                    // Create camera
+                    this.camera = new THREE.PerspectiveCamera(
+                        50,
+                        window.innerWidth / window.innerHeight,
+                        0.1,
+                        1000
+                    );
+                    this.camera.position.set(0, 0, 5);
+                    
+                    // Create renderer
+                    this.renderer = new THREE.WebGLRenderer({
+                        canvas: this.canvas,
+                        antialias: true
+                    });
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                    this.renderer.setPixelRatio(window.devicePixelRatio);
+                    
+                    // Add lights
+                    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                    this.scene.add(ambientLight);
+                    
+                    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                    directionalLight.position.set(5, 5, 5);
+                    this.scene.add(directionalLight);
+                    
+                    // Add controls
+                    this.controls = new OrbitControls(this.camera, this.canvas);
+                    this.controls.enableDamping = true;
+                    
+                    // Add grid for reference
+                    const gridHelper = new THREE.GridHelper(10, 10);
+                    this.scene.add(gridHelper);
+                    
+                    this.results.sceneCreated = true;
+                    this.log('Scene Setup', 'Complete', 'success');
+                    
+                } catch (e) {
+                    this.results.errors.push('Scene setup failed: ' + e.message);
+                    this.log('Scene Setup', 'Failed: ' + e.message, 'error');
+                }
+            }
+            
+            loadAvatar() {
+                const loader = new GLTFLoader();
+                const glbPath = '/frontend/public/assets/SavannahAvatar.glb';
+                
+                this.log('Loading GLB', glbPath, 'info');
+                
+                loader.load(
+                    glbPath,
+                    (gltf) => {
+                        this.log('GLB Load', 'Success', 'success');
+                        this.results.glbLoaded = true;
+                        
+                        // Analyze the model
+                        this.analyzeModel(gltf.scene);
+                        
+                        // Add to scene
+                        this.scene.add(gltf.scene);
+                        
+                        // Auto-scale and center
+                        const box = new THREE.Box3().setFromObject(gltf.scene);
+                        const size = box.getSize(new THREE.Vector3());
+                        const center = box.getCenter(new THREE.Vector3());
+                        
+                        const maxDim = Math.max(size.x, size.y, size.z);
+                        const scale = 2 / maxDim;
+                        gltf.scene.scale.setScalar(scale);
+                        gltf.scene.position.sub(center.multiplyScalar(scale));
+                        
+                        this.log('Model Size', `${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}`, 'info');
+                        this.log('Scale Applied', scale.toFixed(4), 'info');
+                        
+                        // Start render loop
+                        this.animate();
+                    },
+                    (progress) => {
+                        const percent = ((progress.loaded / progress.total) * 100).toFixed(1);
+                        this.log('Loading Progress', `${percent}%`, 'info');
+                    },
+                    (error) => {
+                        this.results.errors.push('GLB load failed: ' + error.message);
+                        this.log('GLB Load', 'Failed: ' + error.message, 'error');
+                        
+                        // Try alternative path
+                        this.tryAlternativePath();
+                    }
+                );
+            }
+            
+            tryAlternativePath() {
+                // Try loading from relative path
+                const alternativePath = './frontend/public/assets/SavannahAvatar.glb';
+                this.log('Trying Alternative Path', alternativePath, 'warning');
+                
+                const loader = new GLTFLoader();
+                loader.load(
+                    alternativePath,
+                    (gltf) => {
+                        this.log('Alternative Load', 'Success', 'success');
+                        this.results.glbLoaded = true;
+                        this.analyzeModel(gltf.scene);
+                        this.scene.add(gltf.scene);
+                        this.animate();
+                    },
+                    null,
+                    (error) => {
+                        this.log('Alternative Load', 'Also Failed', 'error');
+                        // Add a placeholder cube
+                        this.addPlaceholder();
+                    }
+                );
+            }
+            
+            addPlaceholder() {
+                const geometry = new THREE.BoxGeometry(1, 2, 0.5);
+                const material = new THREE.MeshPhongMaterial({ color: 0x667eea });
+                const cube = new THREE.Mesh(geometry, material);
+                this.scene.add(cube);
+                this.log('Placeholder', 'Added fallback cube', 'warning');
+                this.animate();
+            }
+            
+            analyzeModel(model) {
+                let meshCount = 0;
+                let materialCount = 0;
+                const materials = new Set();
+                
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        meshCount++;
+                        if (child.material) {
+                            materials.add(child.material);
+                            
+                            // Ensure visibility
+                            child.material.transparent = false;
+                            child.material.opacity = 1;
+                            child.frustumCulled = false;
+                        }
+                    }
+                });
+                
+                this.results.meshesFound = meshCount;
+                this.results.materialsFound = materials.size;
+                
+                this.log('Meshes Found', meshCount, meshCount > 0 ? 'success' : 'error');
+                this.log('Materials Found', materials.size, materials.size > 0 ? 'success' : 'error');
+            }
+            
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                
+                this.controls.update();
+                this.renderer.render(this.scene, this.camera);
+                
+                this.results.frameCount++;
+                
+                // Check render success after first 10 frames
+                if (this.results.frameCount === 10) {
+                    this.checkRenderSuccess();
+                }
+            }
+            
+            checkRenderSuccess() {
+                // Check if WebGL context is still valid
+                const gl = this.renderer.getContext();
+                const error = gl.getError();
+                
+                if (error === gl.NO_ERROR) {
+                    this.results.renderSuccessful = true;
+                    this.log('Render Status', 'Successfully rendering', 'success');
+                } else {
+                    this.results.renderSuccessful = false;
+                    this.log('Render Status', 'WebGL Error: ' + error, 'error');
+                }
+                
+                // Final summary
+                this.showSummary();
+            }
+            
+            log(label, value, type = 'info') {
+                const resultsDiv = document.getElementById('test-results');
+                const entry = document.createElement('div');
+                entry.className = `test-result ${type}`;
+                entry.innerHTML = `<strong>${label}:</strong> ${value}`;
+                resultsDiv.appendChild(entry);
+            }
+            
+            displayResults() {
+                setTimeout(() => {
+                    console.log('Test Results:', this.results);
+                }, 100);
+            }
+            
+            showSummary() {
+                const isWorking = this.results.webglSupported && 
+                                 this.results.sceneCreated && 
+                                 this.results.glbLoaded && 
+                                 this.results.meshesFound > 0 && 
+                                 this.results.renderSuccessful;
+                
+                const summary = document.createElement('div');
+                summary.className = `test-result ${isWorking ? 'success' : 'error'}`;
+                summary.style.fontSize = '1.2em';
+                summary.style.fontWeight = 'bold';
+                summary.innerHTML = isWorking ? 
+                    '✅ AVATAR IS WORKING CORRECTLY' : 
+                    '❌ AVATAR HAS ISSUES';
+                
+                document.getElementById('test-results').appendChild(summary);
+                
+                // Log to console for external verification
+                console.log('=================================');
+                console.log('AVATAR TEST RESULT:', isWorking ? 'SUCCESS' : 'FAILURE');
+                console.log('Details:', {
+                    glbLoaded: this.results.glbLoaded,
+                    meshesFound: this.results.meshesFound,
+                    rendering: this.results.renderSuccessful,
+                    frames: this.results.frameCount
+                });
+                console.log('=================================');
+            }
+        }
+        
+        // Run test on page load
+        window.addEventListener('load', () => {
+            new AvatarRenderTest();
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (window.avatarTest) {
+                window.avatarTest.camera.aspect = window.innerWidth / window.innerHeight;
+                window.avatarTest.camera.updateProjectionMatrix();
+                window.avatarTest.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+    </script>
+</body>
+</html>

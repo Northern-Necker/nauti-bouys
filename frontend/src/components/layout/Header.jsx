@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Menu, X, User, Calendar, Wine, Coffee, Flame, Settings } from 'lucide-react'
+import { Menu, X, User, Calendar, Wine, Coffee, Flame, Settings, Crown } from 'lucide-react'
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -15,6 +15,10 @@ const Header = () => {
     { name: 'Calendar', href: '/calendar', icon: Calendar },
     { name: 'IA Assistant', href: '/ia', icon: User },
     { name: 'Settings', href: '/settings', icon: Settings },
+  ]
+
+  const ownerNavigation = [
+    { name: 'Captain\'s Dashboard', href: '/owner/dashboard', icon: Crown },
   ]
 
   const isActive = (path) => location.pathname === path
@@ -47,6 +51,24 @@ const Header = () => {
                     isActive(item.href)
                       ? 'text-teal-700 bg-teal-50 border-b-2 border-teal-600'
                       : 'text-gray-600 hover:text-teal-700 hover:bg-teal-50'
+                  }`}
+                >
+                  {Icon && <Icon className="h-4 w-4 mr-2" />}
+                  {item.name}
+                </Link>
+              )
+            })}
+            {/* Owner Navigation */}
+            {ownerNavigation.map((item) => {
+              const Icon = item.icon
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                    isActive(item.href)
+                      ? 'text-purple-700 bg-purple-50 border-b-2 border-purple-600'
+                      : 'text-purple-600 hover:text-purple-700 hover:bg-purple-50'
                   }`}
                 >
                   {Icon && <Icon className="h-4 w-4 mr-2" />}
@@ -101,6 +123,25 @@ const Header = () => {
                     isActive(item.href)
                       ? 'text-teal-700 bg-teal-50'
                       : 'text-gray-600 hover:text-teal-700 hover:bg-teal-50'
+                  }`}
+                >
+                  {Icon && <Icon className="h-5 w-5 mr-3" />}
+                  {item.name}
+                </Link>
+              )
+            })}
+            {/* Owner Navigation Mobile */}
+            {ownerNavigation.map((item) => {
+              const Icon = item.icon
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`flex items-center px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
+                    isActive(item.href)
+                      ? 'text-purple-700 bg-purple-50'
+                      : 'text-purple-600 hover:text-purple-700 hover:bg-purple-50'
                   }`}
                 >
                   {Icon && <Icon className="h-5 w-5 mr-3" />}

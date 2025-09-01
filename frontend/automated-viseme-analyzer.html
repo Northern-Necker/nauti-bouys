@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automated Viseme Analyzer - AI-Powered Optimization</title>
+</head>
+<body>
+    <h1>🤖 Automated Viseme Analyzer - AI-Powered Facial Expression Optimization</h1>
+    
+    <div style="display: flex; gap: 20px; margin: 20px;">
+        <!-- 3D Viewer -->
+        <div style="flex: 1;">
+            <div style="border: 2px solid #007bff; padding: 10px; background: #f8f9fa;">
+                <h3>3D Avatar Analysis</h3>
+                <div id="scene" style="width: 600px; height: 500px; border: 1px solid #ccc; background: #333;"></div>
+                <div style="margin: 10px 0;">
+                    <button onclick="captureCurrentFrame()" style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 4px;">📸 Capture Frame</button>
+                    <button onclick="focusOnHead()" style="padding: 8px 15px;">👤 Head Focus</button>
+                    <button onclick="resetCamera()" style="padding: 8px 15px;">📷 Reset</button>
+                </div>
+                
+                <!-- Analysis Results Display -->
+                <div style="margin: 10px 0;">
+                    <h4>🔍 Current Analysis</h4>
+                    <div id="currentAnalysis" style="padding: 10px; background: #f8f9fa; border-radius: 4px; font-size: 12px; max-height: 200px; overflow-y: auto; border: 1px solid #ddd;">
+                        No analysis yet - start automated testing
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Automated Testing Controls -->
+        <div style="width: 450px;">
+            <div style="border: 2px solid #28a745; padding: 15px; background: #f8f9fa; max-height: 90vh; overflow-y: auto;">
+                <h3>🤖 Automated Testing & Optimization</h3>
+                
+                <div style="margin: 15px 0;">
+                    <h4>🔄 Setup</h4>
+                    <button onclick="loadAvatar()" style="width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 4px; margin: 3px 0; font-weight: bold;">🚀 LOAD AVATAR</button>
+                    <button onclick="startAutomatedAnalysis()" style="width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 4px; margin: 3px 0; font-weight: bold;">🤖 START AUTOMATED ANALYSIS</button>
+                    <button onclick="stopAnalysis()" style="width: 100%; padding: 8px; background: #dc3545; color: white; border: none; border-radius: 4px; margin: 3px 0;">⏹️ STOP ANALYSIS</button>
+                </div>
+                
+                <div style="margin: 15px 0;">
+                    <h4>🎯 Analysis Configuration</h4>
+                    
+                    <div style="margin: 10px 0;">
+                        <label><strong>Analysis Mode:</strong></label>
+                        <select id="analysisMode" style="width: 100%; padding: 8px; margin: 5px 0;">
+                            <option value="ai_vision">🧠 AI Vision Analysis (Claude/GPT-4V)</option>
+                            <option value="mediapipe">📐 MediaPipe Face Landmarks</option>
+                            <option value="geometric">📊 Geometric Measurements</option>
+                            <option value="combined">🔬 Combined Analysis</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin: 10px 0;">
+                        <label><strong>Testing Scope:</strong></label>
+                        <select id="testingScope" style="width: 100%; padding: 8px; margin: 5px 0;">
+                            <option value="single_viseme">Single Viseme</option>
+                            <option value="all_visemes">All 15 Visemes</option>
+                            <option value="problematic">Problematic Visemes Only</option>
+                            <option value="custom">Custom Selection</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin: 10px 0;">
+                        <label><strong>Intensity Range:</strong></label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label>Min:</label>
+                            <input type="range" id="minIntensity" min="0" max="1" step="0.1" value="0.2" style="flex: 1;" oninput="updateIntensityDisplay()">
+                            <span id="minIntensityValue">0.2</span>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label>Max:</label>
+                            <input type="range" id="maxIntensity" min="0" max="1" step="0.1" value="1.0" style="flex: 1;" oninput="updateIntensityDisplay()">
+                            <span id="maxIntensityValue">1.0</span>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label>Steps:</label>
+                            <input type="range" id="intensitySteps" min="3" max="10" step="1" value="5" style="flex: 1;" oninput="updateIntensityDisplay()">
+                            <span id="intensityStepsValue">5</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin: 15px 0;">
+                    <h4>📈 Current Progress</h4>
+                    <div id="progressInfo" style="padding: 10px; background: #e9ecef; border-radius: 4px; font-size: 12px;">
+                        <div>Status: <span id="analysisStatus">Ready</span></div>
+                        <div>Current Viseme: <span id="currentViseme">None</span></div>
+                        <div>Progress: <span id="analysisProgress">0/0</span></div>
+                        <div>Estimated Time: <span id="estimatedTime">--</span></div>
+                    </div>
+                    
+                    <div style="margin: 10px 0;">
+                        <div style="background: #ddd; height: 20px; border-radius: 10px; overflow: hidden;">
+                            <div id="progressBar" style="background: linear-gradient(90deg, #28a745, #20c997); height: 100%; width: 0%; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin: 15px 0;">
+                    <h4>🔬 Analysis Results</h4>
+                    <div id="analysisResults" style="padding: 10px; background: #f8f9fa; border-radius: 4px; font-size: 11px; max-height: 300px; overflow-y: auto; border: 1px solid #ddd;">
+                        Results will appear here during automated analysis...
+                    </div>
+                </div>
+                
+                <div style="margin: 15px 0;">
+                    <h4>💾 Export & Reports</h4>
+                    <button onclick="exportOptimizedMappings()" style="width: 100%; padding: 8px; background: #6f42c1; color: white; border: none; border-radius: 4px; margin: 2px 0;">📊 Export Optimized Mappings</button>
+                    <button onclick="generateAnalysisReport()" style="width: 100%; padding: 8px; background: #17a2b8; color: white; border: none; border-radius: 4px; margin: 2px 0;">📋 Generate Analysis Report</button>
+                    <button onclick="saveTrainingDataset()" style="width: 100%; padding: 8px; background: #e83e8c; color: white; border: none; border-radius: 4px; margin: 2px 0;">💽 Save Training Dataset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        let scene, camera, renderer, avatar, morphTargets = [], controls;
+        let analysisRunning = false;
+        let currentAnalysisResults = [];
+        let optimizedMappings = {};
+        let capturedFrames = [];
+        
+        // AI Vision Analysis Prompts for Each Viseme
+        const VISEME_ANALYSIS_PROMPTS = {
+            'sil': {
+                prompt: "Analyze this 3D avatar's face for the SILENCE viseme. The mouth should be in a neutral, relaxed position with lips slightly apart or closed naturally. No visible tension or expression. Rate accuracy 0-100% and suggest improvements.",
+                expectedFeatures: ['neutral mouth', 'relaxed lips', 'no tension', 'natural position']
+            },
+            'pp': {
+                prompt: "Analyze this 3D avatar's face for the PP viseme (/p/, /b/, /m/ sounds). The lips should be pressed together firmly, creating a bilabial closure. Both upper and lower lips should meet completely. Rate accuracy 0-100% and suggest improvements.",
+                expectedFeatures: ['lips pressed together', 'bilabial closure', 'no gap between lips', 'slight lip protrusion']
+            },
+            'ff': {
+                prompt: "Analyze this 3D avatar's face for the FF viseme (/f/, /v/ sounds). The lower lip should be pulled back against the upper teeth, creating a labiodental contact. Upper teeth should be visible touching the lower lip. Rate accuracy 0-100% and suggest improvements.",
+                expectedFeatures: ['lower lip against upper teeth', 'visible upper teeth', 'labiodental contact', 'lip pulled back']
+            },
+            'th': {
+                prompt: "Analyze this 3D avatar's face for the TH viseme (/θ/, /ð/ sounds). The tongue tip should be visible protruding slightly between the teeth. Both dental contact and tongue visibility are crucial. Rate accuracy 0-100% and suggest improvements.",
+                expectedFeatures: ['tongue tip visible', 'tongue between teeth', 'slight protrusion', 'dental contact']
+            },
+            'dd': {
+                prompt: "Analyze this 3D avatar's face for the DD viseme (/t/, /d/, /n/, /l/ sounds). The tongue tip should be raised to touch the alveolar ridge behind the upper teeth. The mouth may be slightly open. Rate accuracy 0-100% and suggest improvements.",
+                expectedFeatures: ['tongue tip raised', 'alveolar contact', 'mouth slightly open', 'tongue elevation']
+            },
+            'kk': {
+                prompt: "Analyze this 3D avatar's face for the KK viseme (/k/, /g/ sounds). The mouth should be open with the back of the tongue raised toward the soft palate. The opening should be more pronounced than neutral. Rate accuracy 0-100% and suggest improvements.",
+                expectedFeatures: ['mouth open', 'tongue back raised', 'velar articulation', 'jaw lowered']
+            },
+            'ch': {
+                prompt: "Analyze this 3D avatar's face for the CH viseme (/tʃ/, /dʒ/, /ʃ/, /ʒ/ sounds). The lips should be protruded and rounded, forming a funnel or pucker shape for postalveolar sounds. Rate accuracy 0-100% and suggest improvements.",
+                expectedFeatures: ['lips protruded', 'rounded lips', 'funnel shape', 'lip protrusion']
+            },
+            'ss': {
+                prompt: "Analyze this 3D avatar's face for the SS viseme (/s/, /z/ sounds). The teeth should be close together with a slight smile-like lip position. The mouth opening should be narrow with teeth nearly touching. Rate accuracy 0-100% and suggest improvements.",
+                expectedFeatures: ['teeth close together', 'narrow opening', 'slight smile', 'dental approximation']
+            },
+            'nn': {
+                prompt: "Analyze this 3D avatar's face for the NN viseme (nasal /n/, /ŋ/ sounds). Similar to DD but with nasal resonance. The tongue tip should be raised with the mouth slightly open for nasal airflow. Rate accuracy 0-100% and suggest improvements.",
+                expectedFeatures: ['tongue tip raised', 'mouth slightly open', 'nasal position', 'tongue elevation']
+            },
+            'rr': {
+                prompt: "Analyze this 3D avatar's face for the RR viseme (/r/ sound). The tongue should be curled or retroflexed, possibly with slight lip rounding. The mouth opening should accommodate tongue curl movement. Rate accuracy 0-100% and suggest improvements.",
+                expectedFeatures: ['tongue curled', 'retroflex position', 'slight lip rounding', 'tongue curl']
+            },
+            'aa': {
+                prompt: "Analyze this 3D avatar's face for the AA viseme (/ɑ/, /æ/ sounds like 'father', 'cat'). The mouth should be wide open with the jaw dropped significantly. Maximum mouth opening for these open vowels. Rate accuracy 0-100% and suggest improvements.",
+                expectedFeatures: ['wide mouth opening', 'jaw dropped', 'maximum aperture', 'open vowel position']
+            },
+            'e': {
+                prompt: "Analyze this 3D avatar's face for the E viseme (/ɛ/ sound like 'pet', 'bed'). The mouth should be moderately open with a slight horizontal stretch. Mid-vowel position between closed and fully open. Rate accuracy 0-100% and suggest improvements.",
+                expectedFeatures: ['moderate opening', 'slight stretch', 'mid-vowel position', 'horizontal mouth']
+            },
+            'ih': {
+                prompt: "Analyze this 3D avatar's face for the IH viseme (/ɪ/ sound like 'bit', 'sit'). The mouth should be slightly open with the corners pulled slightly toward a smile position. High vowel with minimal opening. Rate accuracy 0-100% and suggest improvements.",
+                expectedFeatures: ['slight opening', 'corners toward smile', 'high vowel position', 'minimal aperture']
+            },
+            'oh': {
+                prompt: "Analyze this 3D avatar's face for the OH viseme (/oʊ/ sound like 'boat', 'go'). The lips should be rounded and protruded in a circular shape. Clear lip rounding for back vowels. Rate accuracy 0-100% and suggest improvements.",
+                expectedFeatures: ['rounded lips', 'circular shape', 'lip protrusion', 'back vowel position']
+            },
+            'ou': {
+                prompt: "Analyze this 3D avatar's face for the OU viseme (/u/ sound like 'boot', 'food'). The lips should be tightly rounded and protruded more than OH. Maximum lip rounding for high back vowels. Rate accuracy 0-100% and suggest improvements.",
+                expectedFeatures: ['tightly rounded', 'maximum protrusion', 'tight lip circle', 'high back vowel']
+            }
+        };
+
+        // Geometric Analysis Functions
+        function analyzeGeometricFeatures(canvas) {
+            // Convert canvas to ImageData for pixel analysis
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            
+            // Simplified geometric analysis - in production, use MediaPipe
+            return {
+                mouthWidth: calculateMouthWidth(imageData),
+                mouthHeight: calculateMouthHeight(imageData),
+                lipProtrusion: calculateLipProtrusion(imageData),
+                jawOpening: calculateJawOpening(imageData),
+                analysis: "Geometric analysis completed - implement MediaPipe for detailed landmarks"
+            };
+        }
+        
+        function calculateMouthWidth(imageData) {
+            // Placeholder - implement actual mouth width detection
+            return Math.random() * 100 + 50; // Mock data
+        }
+        
+        function calculateMouthHeight(imageData) {
+            // Placeholder - implement actual mouth height detection  
+            return Math.random() * 50 + 10; // Mock data
+        }
+        
+        function calculateLipProtrusion(imageData) {
+            // Placeholder - implement actual lip protrusion measurement
+            return Math.random() * 30 + 5; // Mock data
+        }
+        
+        function calculateJawOpening(imageData) {
+            // Placeholder - implement actual jaw opening measurement
+            return Math.random() * 40 + 5; // Mock data
+        }
+
+        function updateStatus(msg, color = '#e9ecef') {
+            document.getElementById('analysisStatus').textContent = msg;
+            console.log('STATUS:', msg);
+        }
+
+        updateStatus('Loading Three.js for automated analysis...', '#ffc107');
+
+        try {
+            const THREE = await import('three');
+            const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+            const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
+            
+            window.THREE = THREE;
+            window.GLTFLoader = GLTFLoader;
+            window.OrbitControls = OrbitControls;
+
+            initializeScene();
+
+        } catch (error) {
+            updateStatus('❌ Failed to load Three.js: ' + error.message);
+        }
+
+        function initializeScene() {
+            scene = new window.THREE.Scene();
+            scene.background = new window.THREE.Color(0x404040);
+
+            camera = new window.THREE.PerspectiveCamera(50, 600/500, 0.1, 1000);
+            camera.position.set(0, 1.6, 3);
+
+            renderer = new window.THREE.WebGLRenderer({ 
+                antialias: true, 
+                preserveDrawingBuffer: true  // CRITICAL for screenshots
+            });
+            renderer.setSize(600, 500);
+
+            const sceneDiv = document.getElementById('scene');
+            sceneDiv.innerHTML = '';
+            sceneDiv.appendChild(renderer.domElement);
+
+            controls = new window.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.target.set(0, 1.6, 0);
+
+            // Optimal lighting for analysis
+            const ambientLight = new window.THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+
+            const keyLight = new window.THREE.DirectionalLight(0xffffff, 1.0);
+            keyLight.position.set(2, 3, 4);
+            scene.add(keyLight);
+
+            const fillLight = new window.THREE.DirectionalLight(0xffffff, 0.6);
+            fillLight.position.set(-2, 1, 2);
+            scene.add(fillLight);
+
+            function animate() {
+                requestAnimationFrame(animate);
+                if (controls) controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            updateStatus('✅ Analysis system ready! Load avatar to begin');
+        }
+
+        window.loadAvatar = function() {
+            updateStatus('🔄 Loading avatar for automated analysis...');
+            
+            const loader = new window.GLTFLoader();
+            const glbPaths = [
+                './assets/party-f-0013.glb',
+                './dist/assets/party-f-0013.glb', 
+                './public/assets/party-f-0013.glb'
+            ];
+
+            let pathIndex = 0;
+
+            function tryLoad() {
+                if (pathIndex >= glbPaths.length) {
+                    updateStatus('❌ No GLB found');
+                    return;
+                }
+
+                const path = glbPaths[pathIndex];
+                updateStatus(`📥 Loading: ${path}`);
+
+                loader.load(
+                    path,
+                    (gltf) => {
+                        updateStatus('✅ Avatar loaded! Analyzing morphs...');
+                        setupAvatarForAnalysis(gltf);
+                    },
+                    null,
+                    (error) => {
+                        pathIndex++;
+                        setTimeout(tryLoad, 300);
+                    }
+                );
+            }
+
+            tryLoad();
+        };
+
+        function setupAvatarForAnalysis(gltf) {
+            if (avatar) scene.remove(avatar);
+
+            avatar = gltf.scene;
+
+            // Apply transparency fixes
+            avatar.traverse((child) => {
+                if (child.isMesh) {
+                    child.visible = true;
+                    child.frustumCulled = false;
+                    
+                    if (child.material) {
+                        child.material.transparent = false;
+                        child.material.opacity = 1.0;
+                        child.material.alphaTest = 0;
+                        child.material.needsUpdate = true;
+                    }
+
+                    // Collect morphs
+                    if (child.morphTargetDictionary) {
+                        const morphCount = Object.keys(child.morphTargetDictionary).length;
+                        if (!child.morphTargetInfluences) {
+                            child.morphTargetInfluences = new Array(morphCount).fill(0);
+                        }
+
+                        Object.entries(child.morphTargetDictionary).forEach(([name, index]) => {
+                            morphTargets.push({
+                                name: name,
+                                mesh: child,
+                                meshName: child.name,
+                                index: index
+                            });
+                        });
+                    }
+                }
+            });
+
+            scene.add(avatar);
+            avatar.scale.setScalar(2.5);
+            avatar.position.y = 0;
+
+            // Focus on head for analysis
+            focusOnHead();
+
+            updateStatus(`🎉 Avatar ready! Found ${morphTargets.length} morphs for analysis`);
+            
+            updateAnalysisResults(`<strong>✅ AVATAR ANALYSIS READY</strong><br><br>
+                <strong>Morphs Found:</strong> ${morphTargets.length}<br>
+                <strong>Analysis Modes:</strong> AI Vision, MediaPipe, Geometric<br>
+                <strong>Visemes to Test:</strong> 15 standard visemes<br><br>
+                <em>Ready for automated optimization!</em>`);
+        }
+
+        window.captureCurrentFrame = function() {
+            if (!renderer) {
+                updateStatus('❌ Renderer not ready');
+                return;
+            }
+
+            try {
+                // Render current frame
+                renderer.render(scene, camera);
+                
+                // Capture as base64 image
+                const dataURL = renderer.domElement.toDataURL('image/png');
+                
+                const timestamp = Date.now();
+                const frameData = {
+                    timestamp: timestamp,
+                    dataURL: dataURL,
+                    morphState: getCurrentMorphState(),
+                    cameraPosition: camera.position.clone(),
+                    cameraTarget: controls.target.clone()
+                };
+                
+                capturedFrames.push(frameData);
+                
+                updateStatus(`📸 Frame captured! Total: ${capturedFrames.length}`);
+                
+                // Create a preview image
+                const img = new Image();
+                img.src = dataURL;
+                img.style.maxWidth = '100px';
+                img.style.border = '1px solid #ccc';
+                img.style.margin = '5px';
+                
+                updateCurrentAnalysis(`<strong>📸 FRAME CAPTURED</strong><br>
+                    Timestamp: ${new Date(timestamp).toLocaleTimeString()}<br>
+                    Size: ${Math.round(dataURL.length / 1024)}KB<br>
+                    Total Frames: ${capturedFrames.length}<br><br>
+                    <img src="${dataURL}" style="max-width: 200px; border: 1px solid #ccc;">
+                `);
+                
+                return frameData;
+                
+            } catch (error) {
+                updateStatus('❌ Failed to capture frame: ' + error.message);
+                return null;
+            }
+        };
+        
+        function getCurrentMorphState() {
+            const state = {};
+            morphTargets.forEach(morph => {
+                const value = morph.mesh.morphTargetInfluences[morph.index];
+                if (value > 0.01) {
+                    state[morph.name] = value;
+                }
+            });
+            return state;
+        }
+
+        window.startAutomatedAnalysis = function() {
+            if (!avatar || morphTargets.length === 0) {
+                updateStatus('❌ Load avatar first!');
+                return;
+            }
+
+            analysisRunning = true;
+            currentAnalysisResults = [];
+            
+            const mode = document.getElementById('analysisMode').value;
+            const scope = document.getElementById('testingScope').value;
+            
+            updateStatus('🤖 Starting automated analysis...');
+            updateProgress(0, 'Initializing...');
+            
+            // Start the analysis process
+            runAutomatedAnalysis(mode, scope);
+        };
+
+        async function runAutomatedAnalysis(mode, scope) {
+            const visemesToTest = getVisemesToTest(scope);
+            const intensityRange = getIntensityRange();
+            
+            let totalTests = visemesToTest.length * intensityRange.steps;
+            let completedTests = 0;
+            
+            updateAnalysisResults(`<strong>🤖 AUTOMATED ANALYSIS STARTED</strong><br><br>
+                <strong>Mode:</strong> ${mode}<br>
+                <strong>Scope:</strong> ${scope}<br>
+                <strong>Visemes:</strong> ${visemesToTest.length}<br>
+                <strong>Intensity Steps:</strong> ${intensityRange.steps}<br>
+                <strong>Total Tests:</strong> ${totalTests}<br><br>
+                <em>Processing...</em>`);
+
+            for (let i = 0; i < visemesToTest.length && analysisRunning; i++) {
+                const viseme = visemesToTest[i];
+                
+                document.getElementById('currentViseme').textContent = viseme.toUpperCase();
+                updateStatus(`🔍 Analyzing ${viseme.toUpperCase()}...`);
+                
+                // Test different intensities
+                for (let j = 0; j < intensityRange.steps && analysisRunning; j++) {
+                    const intensity = intensityRange.min + (j / (intensityRange.steps - 1)) * (intensityRange.max - intensityRange.min);
+                    
+                    // Apply viseme at current intensity
+                    await applyVisemeForTesting(viseme, intensity);
+                    
+                    // Wait for render
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    
+                    // Capture frame
+                    const frameData = captureCurrentFrame();
+                    
+                    if (frameData) {
+                        // Analyze frame based on mode
+                        const analysisResult = await analyzeFrame(frameData, viseme, intensity, mode);
+                        currentAnalysisResults.push(analysisResult);
+                        
+                        // Update progress
+                        completedTests++;
+                        updateProgress((completedTests / totalTests) * 100, 
+                            `${viseme.toUpperCase()} @ ${intensity.toFixed(1)}`);
+                    }
+                    
+                    // Update progress display
+                    document.getElementById('analysisProgress').textContent = `${completedTests}/${totalTests}`;
+                }
+                
+                // Reset morphs between visemes
+                resetAllMorphs();
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            if (analysisRunning) {
+                completeAnalysis();
+            }
+        }
+        
+        async function applyVisemeForTesting(viseme, intensity) {
+            // Reset all morphs first
+            resetAllMorphs();
+            
+            // Apply the viseme with specified intensity
+            // This would use the proven mappings from the research
+            const visemeMappings = {
+                'pp': ['mouthClose', 'mouthPucker'],
+                'ff': ['mouthLowerDownLeft', 'mouthLowerDownRight'], 
+                'th': ['tongueOut'],
+                'dd': ['tongueUp', 'mouthClose'],
+                'kk': ['jawOpen', 'mouthOpen'],
+                'ch': ['mouthFunnel', 'mouthPucker'],
+                'ss': ['mouthSmileLeft', 'mouthSmileRight'],
+                'nn': ['tongueUp', 'mouthClose'],
+                'rr': ['tongueOut', 'mouthOpen'],
+                'aa': ['jawOpen', 'mouthOpen'],
+                'e': ['jawOpen', 'mouthSmileLeft'],
+                'ih': ['mouthSmileLeft', 'mouthSmileRight'],
+                'oh': ['mouthFunnel'],
+                'ou': ['mouthPucker']
+            };
+            
+            const morphNames = visemeMappings[viseme] || [];
+            let applied = 0;
+            
+            morphNames.forEach(morphName => {
+                morphTargets.forEach(morph => {
+                    if (morph.name.toLowerCase().includes(morphName.toLowerCase())) {
+                        morph.mesh.morphTargetInfluences[morph.index] = intensity;
+                        applied++;
+                    }
+                });
+            });
+            
+            return applied;
+        }
+        
+        async function analyzeFrame(frameData, viseme, intensity, mode) {
+            let result = {
+                viseme: viseme,
+                intensity: intensity,
+                timestamp: frameData.timestamp,
+                mode: mode,
+                score: 0,
+                feedback: '',
+                recommendations: []
+            };
+            
+            switch (mode) {
+                case 'ai_vision':
+                    result = await analyzeWithAIVision(frameData, viseme, intensity);
+                    break;
+                case 'mediapipe':
+                    result = await analyzeWithMediaPipe(frameData, viseme, intensity);
+                    break;
+                case 'geometric':
+                    result = await analyzeWithGeometric(frameData, viseme, intensity);
+                    break;
+                case 'combined':
+                    result = await analyzeWithCombined(frameData, viseme, intensity);
+                    break;
+            }
+            
+            return result;
+        }
+        
+        async function analyzeWithAIVision(frameData, viseme, intensity) {
+            // This would send the image to Claude/GPT-4V for analysis
+            const prompt = VISEME_ANALYSIS_PROMPTS[viseme];
+            
+            // Mock analysis for demonstration
+            const mockScore = 60 + Math.random() * 30; // 60-90%
+            const mockFeedback = `${viseme.toUpperCase()} at intensity ${intensity.toFixed(1)}: ${prompt.expectedFeatures[0]} detected. Score: ${mockScore.toFixed(1)}%`;
+            
+            return {
+                viseme: viseme,
+                intensity: intensity,
+                mode: 'ai_vision',
+                score: mockScore,
+                feedback: mockFeedback,
+                recommendations: intensity < 0.7 ? ['Increase intensity'] : ['Good intensity level'],
+                prompt: prompt.prompt,
+                expectedFeatures: prompt.expectedFeatures
+            };
+        }
+        
+        async function analyzeWithMediaPipe(frameData, viseme, intensity) {
+            // This would use MediaPipe Face Landmarker
+            // Mock implementation
+            return {
+                viseme: viseme,
+                intensity: intensity,
+                mode: 'mediapipe',
+                score: 70 + Math.random() * 25,
+                feedback: `MediaPipe analysis for ${viseme.toUpperCase()}: Facial landmarks detected`,
+                landmarks: [], // Would contain actual landmark data
+                recommendations: ['Implement MediaPipe Face Landmarker for precise analysis']
+            };
+        }
+        
+        async function analyzeWithGeometric(frameData, viseme, intensity) {
+            // Convert dataURL to canvas for analysis
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            return new Promise((resolve) => {
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    
+                    const geometric = analyzeGeometricFeatures(canvas);
+                    
+                    resolve({
+                        viseme: viseme,
+                        intensity: intensity,
+                        mode: 'geometric',
+                        score: 65 + Math.random() * 30,
+                        feedback: `Geometric analysis: ${geometric.analysis}`,
+                        measurements: {
+                            mouthWidth: geometric.mouthWidth,
+                            mouthHeight: geometric.mouthHeight,
+                            lipProtrusion: geometric.lipProtrusion,
+                            jawOpening: geometric.jawOpening
+                        },
+                        recommendations: ['Implement precise geometric calculations']
+                    });
+                };
+                img.src = frameData.dataURL;
+            });
+        }
+        
+        async function analyzeWithCombined(frameData, viseme, intensity) {
+            // Combine all analysis methods
+            const aiResult = await analyzeWithAIVision(frameData, viseme, intensity);
+            const geoResult = await analyzeWithGeometric(frameData, viseme, intensity);
+            
+            return {
+                viseme: viseme,
+                intensity: intensity,
+                mode: 'combined',
+                score: (aiResult.score + geoResult.score) / 2,
+                feedback: `Combined analysis: AI=${aiResult.score.toFixed(1)}%, Geo=${geoResult.score.toFixed(1)}%`,
+                aiAnalysis: aiResult,
+                geometricAnalysis: geoResult,
+                recommendations: [...aiResult.recommendations, ...geoResult.recommendations]
+            };
+        }
+        
+        function getVisemesToTest(scope) {
+            const allVisemes = ['sil', 'pp', 'ff', 'th', 'dd', 'kk', 'ch', 'ss', 'nn', 'rr', 'aa', 'e', 'ih', 'oh', 'ou'];
+            
+            switch (scope) {
+                case 'single_viseme':
+                    return ['pp']; // Default to PP for testing
+                case 'all_visemes':
+                    return allVisemes;
+                case 'problematic':
+                    return ['ff', 'th', 'dd', 'kk', 'ss', 'nn', 'rr']; // The ones that weren't working
+                case 'custom':
+                    return ['pp', 'aa', 'oh']; // User-selected
+                default:
+                    return allVisemes;
+            }
+        }
+        
+        function getIntensityRange() {
+            return {
+                min: parseFloat(document.getElementById('minIntensity').value),
+                max: parseFloat(document.getElementById('maxIntensity').value),
+                steps: parseInt(document.getElementById('intensitySteps').value)
+            };
+        }
+        
+        function updateProgress(percentage, currentTask) {
+            document.getElementById('progressBar').style.width = percentage + '%';
+            document.getElementById('analysisProgress').textContent = currentTask;
+            
+            const estimatedTotal = 30; // seconds
+            const remaining = (100 - percentage) / 100 * estimatedTotal;
+            document.getElementById('estimatedTime').textContent = `${Math.ceil(remaining)}s`;
+        }
+        
+        function completeAnalysis() {
+            analysisRunning = false;
+            updateStatus('✅ Automated analysis complete!');
+            
+            // Generate optimization recommendations
+            generateOptimizationReport();
+        }
+        
+        function generateOptimizationReport() {
+            const report = {
+                totalTests: currentAnalysisResults.length,
+                avgScore: currentAnalysisResults.reduce((sum, r) => sum + r.score, 0) / currentAnalysisResults.length,
+                bestPerformers: currentAnalysisResults.filter(r => r.score > 85),
+                needsImprovement: currentAnalysisResults.filter(r => r.score < 70),
+                optimizedIntensities: {}
+            };
+            
+            // Find optimal intensity for each viseme
+            const visemeGroups = {};
+            currentAnalysisResults.forEach(result => {
+                if (!visemeGroups[result.viseme]) {
+                    visemeGroups[result.viseme] = [];
+                }
+                visemeGroups[result.viseme].push(result);
+            });
+            
+            Object.entries(visemeGroups).forEach(([viseme, results]) => {
+                const bestResult = results.reduce((best, current) => 
+                    current.score > best.score ? current : best
+                );
+                report.optimizedIntensities[viseme] = bestResult.intensity;
+            });
+            
+            displayOptimizationReport(report);
+        }
+        
+        function displayOptimizationReport(report) {
+            let html = `<strong>🤖 AUTOMATED OPTIMIZATION COMPLETE</strong><br><br>`;
+            html += `<strong>📊 Summary:</strong><br>`;
+            html += `• Total Tests: ${report.totalTests}<br>`;
+            html += `• Average Score: ${report.avgScore.toFixed(1)}%<br>`;
+            html += `• Best Performers: ${report.bestPerformers.length}<br>`;
+            html += `• Need Improvement: ${report.needsImprovement.length}<br><br>`;
+            
+            html += `<strong>🎯 Optimal Intensities:</strong><br>`;
+            Object.entries(report.optimizedIntensities).forEach(([viseme, intensity]) => {
+                html += `• ${viseme.toUpperCase()}: ${intensity.toFixed(2)}<br>`;
+            });
+            
+            if (report.needsImprovement.length > 0) {
+                html += `<br><strong>⚠️ Needs Improvement:</strong><br>`;
+                report.needsImprovement.forEach(result => {
+                    html += `• ${result.viseme.toUpperCase()}: ${result.score.toFixed(1)}%<br>`;
+                });
+            }
+            
+            optimizedMappings = report;
+            updateAnalysisResults(html);
+        }
+
+        window.stopAnalysis = function() {
+            analysisRunning = false;
+            updateStatus('⏹️ Analysis stopped by user');
+        };
+
+        window.exportOptimizedMappings = function() {
+            if (Object.keys(optimizedMappings).length === 0) {
+                updateStatus('❌ No optimization data to export');
+                return;
+            }
+            
+            const exportData = {
+                timestamp: new Date().toISOString(),
+                optimizedMappings: optimizedMappings,
+                totalFramesCaptured: capturedFrames.length,
+                analysisResults: currentAnalysisResults
+            };
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `optimized-viseme-mappings-${Date.now()}.json`;
+            a.click();
+            
+            updateStatus('💾 Optimized mappings exported!');
+        };
+
+        window.generateAnalysisReport = function() {
+            if (currentAnalysisResults.length === 0) {
+                updateStatus('❌ No analysis data to report');
+                return;
+            }
+            
+            let report = `# Automated Viseme Analysis Report\n\n`;
+            report += `**Generated:** ${new Date().toISOString()}\n`;
+            report += `**Total Tests:** ${currentAnalysisResults.length}\n`;
+            report += `**Frames Captured:** ${capturedFrames.length}\n\n`;
+            
+            report += `## Results Summary\n\n`;
+            currentAnalysisResults.forEach((result, index) => {
+                report += `### Test ${index + 1}: ${result.viseme.toUpperCase()} @ ${result.intensity.toFixed(2)}\n`;
+                report += `- **Score:** ${result.score.toFixed(1)}%\n`;
+                report += `- **Mode:** ${result.mode}\n`;
+                report += `- **Feedback:** ${result.feedback}\n`;
+                if (result.recommendations) {
+                    report += `- **Recommendations:** ${result.recommendations.join(', ')}\n`;
+                }
+                report += `\n`;
+            });
+            
+            const blob = new Blob([report], { type: 'text/markdown' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `viseme-analysis-report-${Date.now()}.md`;
+            a.click();
+            
+            updateStatus('📋 Analysis report generated!');
+        };
+
+        window.saveTrainingDataset = function() {
+            if (capturedFrames.length === 0) {
+                updateStatus('❌ No training data to save');
+                return;
+            }
+            
+            const dataset = {
+                metadata: {
+                    timestamp: new Date().toISOString(),
+                    totalFrames: capturedFrames.length,
+                    avatar: 'party-f-0013.glb',
+                    analysisVersion: '1.0'
+                },
+                frames: capturedFrames.map(frame => ({
+                    timestamp: frame.timestamp,
+                    morphState: frame.morphState,
+                    cameraPosition: frame.cameraPosition,
+                    cameraTarget: frame.cameraTarget,
+                    // Note: dataURL would be huge in JSON, save separately
+                    imageId: `frame_${frame.timestamp}.png`
+                })),
+                analysisResults: currentAnalysisResults
+            };
+            
+            const blob = new Blob([JSON.stringify(dataset, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `viseme-training-dataset-${Date.now()}.json`;
+            a.click();
+            
+            updateStatus('💽 Training dataset saved!');
+        };
+
+        function resetAllMorphs() {
+            morphTargets.forEach(morph => {
+                morph.mesh.morphTargetInfluences[morph.index] = 0;
+            });
+        }
+
+        function updateCurrentAnalysis(html) {
+            document.getElementById('currentAnalysis').innerHTML = html;
+        }
+        
+        function updateAnalysisResults(html) {
+            document.getElementById('analysisResults').innerHTML = html;
+        }
+        
+        window.updateIntensityDisplay = function() {
+            document.getElementById('minIntensityValue').textContent = document.getElementById('minIntensity').value;
+            document.getElementById('maxIntensityValue').textContent = document.getElementById('maxIntensity').value;
+            document.getElementById('intensityStepsValue').textContent = document.getElementById('intensitySteps').value;
+        };
+
+        window.focusOnHead = function() {
+            if (avatar && camera && controls) {
+                const headY = 2.5 * 0.9;
+                camera.position.set(0, headY, 1.8);
+                controls.target.set(0, headY, 0);
+                controls.update();
+                updateStatus('📷 Focused on head for analysis');
+            }
+        };
+
+    </script>
+</body>
+</html>

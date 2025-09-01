@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Test - Step by Step</title>
+    <style>
+        body { 
+            font-family: Arial; 
+            margin: 20px; 
+            background: #f0f0f0; 
+            color: #333; 
+        }
+        .step {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            background: #e9ecef;
+            border-left: 4px solid #007bff;
+        }
+        .error {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+        .success {
+            background: #d4edda;
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #viewer {
+            width: 400px;
+            height: 300px;
+            border: 2px solid #ddd;
+            background: #000;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 GLB Morph Debug Test</h1>
+    <p>This page will test each step individually to identify issues.</p>
+
+    <div class="step">
+        <h3>Step 1: Basic HTML/CSS Test</h3>
+        <div class="status" id="step1-status">Testing basic page functionality...</div>
+        <button onclick="testStep1()">Test HTML/CSS</button>
+    </div>
+
+    <div class="step">
+        <h3>Step 2: JavaScript Test</h3>
+        <div class="status" id="step2-status">Click button to test JavaScript</div>
+        <button onclick="testStep2()">Test JavaScript</button>
+    </div>
+
+    <div class="step">
+        <h3>Step 3: Three.js CDN Test</h3>
+        <div class="status" id="step3-status">Click button to test Three.js loading</div>
+        <button onclick="testStep3()">Test Three.js CDN</button>
+    </div>
+
+    <div class="step">
+        <h3>Step 4: Three.js Scene Test</h3>
+        <div class="status" id="step4-status">Click button to create 3D scene</div>
+        <button onclick="testStep4()">Create 3D Scene</button>
+        <div id="viewer"></div>
+    </div>
+
+    <div class="step">
+        <h3>Step 5: GLB Loader Test</h3>
+        <div class="status" id="step5-status">Click button to test GLB loading capability</div>
+        <button onclick="testStep5()">Test GLB Loader</button>
+    </div>
+
+    <div class="step">
+        <h3>Debug Information</h3>
+        <div class="status" id="debug-info">Debug info will appear here</div>
+    </div>
+
+    <!-- Try multiple CDN sources -->
+    <script>
+        // Step 1: Test basic functionality
+        function testStep1() {
+            const status = document.getElementById('step1-status');
+            status.textContent = '✅ HTML, CSS, and basic JavaScript are working!';
+            status.className = 'status success';
+            
+            updateDebug('Step 1 passed: Basic page functionality works');
+        }
+
+        // Step 2: Test JavaScript features
+        function testStep2() {
+            const status = document.getElementById('step2-status');
+            try {
+                // Test modern JavaScript features
+                const testArray = [1, 2, 3];
+                const testResult = testArray.map(x => x * 2);
+                const testObject = { test: 'value' };
+                
+                if (testResult.length === 3 && testObject.test === 'value') {
+                    status.textContent = '✅ JavaScript ES6+ features working correctly';
+                    status.className = 'status success';
+                    updateDebug('Step 2 passed: Modern JavaScript features work');
+                } else {
+                    throw new Error('JavaScript feature test failed');
+                }
+            } catch (error) {
+                status.textContent = '❌ JavaScript error: ' + error.message;
+                status.className = 'status error';
+                updateDebug('Step 2 failed: ' + error.message);
+            }
+        }
+
+        // Step 3: Test Three.js loading
+        function testStep3() {
+            const status = document.getElementById('step3-status');
+            
+            // First check if THREE is already loaded
+            if (typeof THREE !== 'undefined') {
+                status.textContent = '✅ Three.js already loaded! Version: ' + THREE.REVISION;
+                status.className = 'status success';
+                updateDebug('Step 3 passed: Three.js version ' + THREE.REVISION);
+                return;
+            }
+            
+            status.textContent = '⏳ Loading Three.js from CDN...';
+            status.className = 'status';
+            
+            // Try to load Three.js dynamically
+            const script = document.createElement('script');
+            script.onload = function() {
+                if (typeof THREE !== 'undefined') {
+                    status.textContent = '✅ Three.js loaded successfully! Version: ' + THREE.REVISION;
+                    status.className = 'status success';
+                    updateDebug('Step 3 passed: Three.js loaded dynamically');
+                } else {
+                    status.textContent = '❌ Three.js loaded but not accessible';
+                    status.className = 'status error';
+                    updateDebug('Step 3 failed: Three.js not accessible after loading');
+                }
+            };
+            script.onerror = function() {
+                status.textContent = '❌ Failed to load Three.js from CDN';
+                status.className = 'status error';
+                updateDebug('Step 3 failed: CDN loading failed');
+                
+                // Try alternative CDN
+                tryAlternativeCDN();
+            };
+            script.src = 'https://unpkg.com/three@0.154.0/build/three.min.js';
+            document.head.appendChild(script);
+        }
+
+        function tryAlternativeCDN() {
+            updateDebug('Trying alternative Three.js CDN...');
+            const script = document.createElement('script');
+            script.onload = function() {
+                const status = document.getElementById('step3-status');
+                if (typeof THREE !== 'undefined') {
+                    status.textContent = '✅ Three.js loaded from alternative CDN! Version: ' + THREE.REVISION;
+                    status.className = 'status success';
+                    updateDebug('Alternative CDN worked: Three.js version ' + THREE.REVISION);
+                } else {
+                    status.textContent = '❌ All CDN attempts failed';
+                    status.className = 'status error';
+                    updateDebug('All Three.js CDN attempts failed');
+                }
+            };
+            script.onerror = function() {
+                const status = document.getElementById('step3-status');
+                status.textContent = '❌ All Three.js CDN sources failed';
+                status.className = 'status error';
+                updateDebug('All Three.js CDN sources failed');
+            };
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+            document.head.appendChild(script);
+        }
+
+        // Step 4: Create basic Three.js scene
+        function testStep4() {
+            const status = document.getElementById('step4-status');
+            
+            if (typeof THREE === 'undefined') {
+                status.textContent = '❌ Three.js not loaded. Run Step 3 first.';
+                status.className = 'status error';
+                return;
+            }
+
+            try {
+                status.textContent = '⏳ Creating Three.js scene...';
+                
+                // Create scene
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x444444);
+                
+                // Create camera
+                const camera = new THREE.PerspectiveCamera(75, 400/300, 0.1, 1000);
+                camera.position.z = 5;
+                
+                // Create renderer
+                const renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(400, 300);
+                
+                // Clear viewer and add canvas
+                const viewer = document.getElementById('viewer');
+                viewer.innerHTML = '';
+                viewer.appendChild(renderer.domElement);
+                
+                // Create a colorful spinning cube
+                const geometry = new THREE.BoxGeometry(2, 2, 2);
+                const material = new THREE.MeshLambertMaterial({ 
+                    color: 0x00ff00,
+                    wireframe: false
+                });
+                const cube = new THREE.Mesh(geometry, material);
+                scene.add(cube);
+                
+                // Add lighting
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+                directionalLight.position.set(1, 1, 1);
+                scene.add(directionalLight);
+                
+                // Animation loop
+                function animate() {
+                    requestAnimationFrame(animate);
+                    cube.rotation.x += 0.01;
+                    cube.rotation.y += 0.01;
+                    renderer.render(scene, camera);
+                }
+                animate();
+                
+                status.textContent = '✅ Three.js scene created! You should see a spinning green cube above.';
+                status.className = 'status success';
+                updateDebug('Step 4 passed: Three.js scene rendering successfully');
+                
+                // Store globals for next test
+                window.testScene = scene;
+                window.testRenderer = renderer;
+                window.testCamera = camera;
+                
+            } catch (error) {
+                status.textContent = '❌ Three.js scene error: ' + error.message;
+                status.className = 'status error';
+                updateDebug('Step 4 failed: ' + error.message);
+            }
+        }
+
+        // Step 5: Test GLB loading capability
+        function testStep5() {
+            const status = document.getElementById('step5-status');
+            
+            if (typeof THREE === 'undefined') {
+                status.textContent = '❌ Three.js not loaded. Run Step 3 first.';
+                status.className = 'status error';
+                return;
+            }
+
+            status.textContent = '⏳ Testing GLB loader availability...';
+            
+            // Try to load GLTFLoader
+            const script = document.createElement('script');
+            script.onload = function() {
+                if (typeof THREE.GLTFLoader !== 'undefined') {
+                    status.textContent = '✅ GLTFLoader available! Ready to load GLB models.';
+                    status.className = 'status success';
+                    updateDebug('Step 5 passed: GLTFLoader is available');
+                } else {
+                    status.textContent = '❌ GLTFLoader loaded but not accessible';
+                    status.className = 'status error';
+                    updateDebug('Step 5 failed: GLTFLoader not accessible');
+                }
+            };
+            script.onerror = function() {
+                status.textContent = '❌ Failed to load GLTFLoader';
+                status.className = 'status error';
+                updateDebug('Step 5 failed: GLTFLoader loading failed');
+            };
+            script.src = 'https://unpkg.com/three@0.154.0/examples/js/loaders/GLTFLoader.js';
+            document.head.appendChild(script);
+        }
+
+        function updateDebug(message) {
+            const debug = document.getElementById('debug-info');
+            const timestamp = new Date().toLocaleTimeString();
+            debug.innerHTML += `<div>${timestamp}: ${message}</div>`;
+            console.log(message);
+        }
+
+        // Auto-run first test when page loads
+        window.addEventListener('load', function() {
+            updateDebug('Page loaded successfully');
+            testStep1();
+        });
+    </script>
+
+</body>
+</html>

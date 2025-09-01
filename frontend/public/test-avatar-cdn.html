@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avatar CDN Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .log {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+        }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .info { color: #007bff; }
+        .warning { color: #ffc107; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        #canvas { 
+            width: 100%; 
+            height: 400px; 
+            border: 1px solid #dee2e6; 
+            border-radius: 5px;
+            margin: 10px 0;
+            display: block;
+        }
+        .morph-list {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+            columns: 2;
+        }
+        .morph-item {
+            padding: 2px 5px;
+            border-left: 3px solid #007bff;
+            margin: 2px 0;
+            break-inside: avoid;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎭 Party Avatar CDN Test</h1>
+        <p>Using CDN-based Three.js to load and analyze the GLB file.</p>
+        
+        <button id="loadBtn" onclick="loadAvatar()">Load Avatar</button>
+        <button onclick="clearLog()">Clear Log</button>
+        <button id="animateBtn" onclick="animateMorphs()" disabled>Animate Morphs</button>
+        
+        <canvas id="canvas"></canvas>
+        
+        <div id="log" class="log">Initializing Three.js from CDN...\n</div>
+        
+        <h3>Morph Targets Found:</h3>
+        <div id="morphList" class="morph-list">No morphs loaded yet</div>
+    </div>
+    
+    <!-- Load Three.js from CDN -->
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+        }
+    }
+    </script>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        
+        // Make available globally
+        window.THREE = THREE;
+        window.GLTFLoader = GLTFLoader;
+        window.OrbitControls = OrbitControls;
+        
+        let scene, camera, renderer, controls;
+        let mixer, clock;
+        let morphMeshes = [];
+        let animationIntervals = [];
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            logDiv.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+        
+        window.log = log;
+        
+        window.clearLog = function() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        function initThree() {
+            const canvas = document.getElementById('canvas');
+            
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f0f0);
+            
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(
+                45,
+                canvas.clientWidth / canvas.clientHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(0, 1.5, 3);
+            
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: canvas,
+                antialias: true 
+            });
+            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            
+            // Controls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 1, 0);
+            controls.update();
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight.position.set(5, 10, 5);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.camera.near = 0.1;
+            directionalLight.shadow.camera.far = 50;
+            directionalLight.shadow.camera.left = -10;
+            directionalLight.shadow.camera.right = 10;
+            directionalLight.shadow.camera.top = 10;
+            directionalLight.shadow.camera.bottom = -10;
+            scene.add(directionalLight);
+            
+            // Add a ground plane
+            const groundGeometry = new THREE.PlaneGeometry(20, 20);
+            const groundMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xcccccc,
+                roughness: 0.8,
+                metalness: 0.2
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            
+            // Clock for animations
+            clock = new THREE.Clock();
+            
+            log('✅ Three.js scene initialized', 'success');
+        }
+        
+        window.loadAvatar = async function() {
+            try {
+                log('🔄 Loading party-f-0013.glb...', 'info');
+                
+                if (!scene) {
+                    initThree();
+                }
+                
+                const loader = new GLTFLoader();
+                
+                const gltf = await new Promise((resolve, reject) => {
+                    loader.load(
+                        '/assets/party-f-0013.glb',
+                        (gltf) => {
+                            log('✅ GLB file loaded successfully', 'success');
+                            resolve(gltf);
+                        },
+                        (progress) => {
+                            if (progress.total > 0) {
+                                const percent = Math.round((progress.loaded / progress.total) * 100);
+                                const loadedMB = (progress.loaded / 1024 / 1024).toFixed(1);
+                                const totalMB = (progress.total / 1024 / 1024).toFixed(1);
+                                log(`📥 Loading: ${percent}% (${loadedMB}MB / ${totalMB}MB)`, 'info');
+                            }
+                        },
+                        (error) => {
+                            log(`❌ Loading error: ${error}`, 'error');
+                            reject(error);
+                        }
+                    );
+                });
+                
+                // Clear previous model and animations
+                while(scene.children.length > 3) { // Keep lights and ground
+                    scene.remove(scene.children[3]);
+                }
+                morphMeshes = [];
+                animationIntervals.forEach(clearInterval);
+                animationIntervals = [];
+                
+                // Add model to scene
+                gltf.scene.traverse((child) => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+                scene.add(gltf.scene);
+                
+                // Analyze the model
+                log('📊 Analyzing model structure...', 'info');
+                let totalMorphs = 0;
+                let meshCount = 0;
+                const morphList = document.getElementById('morphList');
+                morphList.innerHTML = '';
+                
+                // Collect all morph target names
+                const allMorphNames = new Set();
+                
+                gltf.scene.traverse((child) => {
+                    if (child.isMesh) {
+                        meshCount++;
+                        log(`🔍 Found mesh: ${child.name || 'unnamed'}`, 'info');
+                        
+                        if (child.morphTargetDictionary) {
+                            const morphNames = Object.keys(child.morphTargetDictionary);
+                            totalMorphs += morphNames.length;
+                            morphMeshes.push(child);
+                            
+                            log(`🎭 Mesh "${child.name}": ${morphNames.length} morph targets`, 'success');
+                            
+                            // Collect all morph names
+                            morphNames.forEach(name => allMorphNames.add(name));
+                            
+                            // Log viseme-related morphs
+                            const visemeMorphs = morphNames.filter(name => 
+                                name.toLowerCase().includes('viseme') ||
+                                name.toLowerCase().includes('mouth') ||
+                                name.toLowerCase().includes('lip') ||
+                                name.toLowerCase().includes('jaw') ||
+                                name.toLowerCase().includes('tongue') ||
+                                name.toLowerCase().includes('aa') ||
+                                name.toLowerCase().includes('ee') ||
+                                name.toLowerCase().includes('ih') ||
+                                name.toLowerCase().includes('oh') ||
+                                name.toLowerCase().includes('ou')
+                            );
+                            
+                            if (visemeMorphs.length > 0) {
+                                log(`🎯 Found ${visemeMorphs.length} speech-related morphs in ${child.name}:`, 'success');
+                                visemeMorphs.slice(0, 10).forEach(name => {
+                                    log(`   • ${name}`, 'info');
+                                });
+                                if (visemeMorphs.length > 10) {
+                                    log(`   ... and ${visemeMorphs.length - 10} more`, 'info');
+                                }
+                            }
+                        }
+                        
+                        // Check geometry details
+                        if (child.geometry) {
+                            const vertexCount = child.geometry.attributes.position.count;
+                            log(`   Vertices: ${vertexCount.toLocaleString()}`, 'info');
+                            if (child.geometry.morphAttributes.position) {
+                                log(`   Morph targets in geometry: ${child.geometry.morphAttributes.position.length}`, 'info');
+                            }
+                        }
+                    }
+                });
+                
+                // Display all unique morph targets
+                const sortedMorphNames = Array.from(allMorphNames).sort();
+                sortedMorphNames.forEach(name => {
+                    const div = document.createElement('div');
+                    div.className = 'morph-item';
+                    div.textContent = name;
+                    morphList.appendChild(div);
+                });
+                
+                log(`✅ Model loaded: ${meshCount} meshes, ${totalMorphs} total morph targets`, 'success');
+                log(`📝 Unique morph targets: ${allMorphNames.size}`, 'info');
+                
+                if (totalMorphs > 0) {
+                    document.getElementById('animateBtn').disabled = false;
+                    log('💡 Click "Animate Morphs" to test morph target animation', 'info');
+                }
+                
+                // Check for animations
+                if (gltf.animations && gltf.animations.length > 0) {
+                    log(`🎬 Found ${gltf.animations.length} animations:`, 'success');
+                    gltf.animations.forEach(clip => {
+                        log(`   • ${clip.name} (${clip.duration.toFixed(2)}s)`, 'info');
+                    });
+                    
+                    mixer = new THREE.AnimationMixer(gltf.scene);
+                    if (gltf.animations[0]) {
+                        const action = mixer.clipAction(gltf.animations[0]);
+                        action.play();
+                        log('▶️ Playing first animation', 'success');
+                    }
+                }
+                
+                // Start render loop
+                animate();
+                
+                // Adjust camera to fit model
+                const box = new THREE.Box3().setFromObject(gltf.scene);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const fov = camera.fov * (Math.PI / 180);
+                let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+                cameraZ *= 1.5; // Add some padding
+                
+                camera.position.set(center.x, center.y + size.y * 0.3, center.z + cameraZ);
+                controls.target.copy(center);
+                controls.update();
+                
+            } catch (error) {
+                log(`❌ Failed to load avatar: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        window.animateMorphs = function() {
+            if (morphMeshes.length === 0) {
+                log('❌ No morph targets to animate', 'error');
+                return;
+            }
+            
+            // Clear existing animations
+            animationIntervals.forEach(clearInterval);
+            animationIntervals = [];
+            
+            log('🎬 Starting morph target animation test...', 'info');
+            
+            morphMeshes.forEach(mesh => {
+                if (mesh.morphTargetDictionary && mesh.morphTargetInfluences) {
+                    const morphNames = Object.keys(mesh.morphTargetDictionary);
+                    
+                    // Find speech-related morphs to animate
+                    const speechMorphs = morphNames.filter(name => 
+                        name.toLowerCase().includes('mouth') || 
+                        name.toLowerCase().includes('lip') ||
+                        name.toLowerCase().includes('viseme') ||
+                        name.toLowerCase().includes('jaw') ||
+                        name.toLowerCase().includes('aa') ||
+                        name.toLowerCase().includes('ee')
+                    );
+                    
+                    const morphsToAnimate = speechMorphs.length > 0 ? speechMorphs.slice(0, 5) : morphNames.slice(0, 5);
+                    
+                    morphsToAnimate.forEach((name, index) => {
+                        const morphIndex = mesh.morphTargetDictionary[name];
+                        
+                        // Create sine wave animation with different phases
+                        const interval = setInterval(() => {
+                            const time = Date.now() * 0.001;
+                            mesh.morphTargetInfluences[morphIndex] = 
+                                Math.sin(time * 2 + index * Math.PI * 0.4) * 0.5 + 0.5;
+                        }, 16);
+                        
+                        animationIntervals.push(interval);
+                        log(`   🎬 Animating: ${name}`, 'success');
+                    });
+                }
+            });
+            
+            // Stop animation after 10 seconds
+            setTimeout(() => {
+                animationIntervals.forEach(clearInterval);
+                animationIntervals = [];
+                
+                // Reset all morph influences
+                morphMeshes.forEach(mesh => {
+                    if (mesh.morphTargetInfluences) {
+                        mesh.morphTargetInfluences.fill(0);
+                    }
+                });
+                
+                log('⏹️ Animation stopped', 'info');
+            }, 10000);
+            
+            log('⏱️ Animation will run for 10 seconds', 'info');
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            controls.update();
+            
+            if (mixer) {
+                mixer.update(clock.getDelta());
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Initialize on load
+        window.addEventListener('load', () => {
+            log('✅ Page loaded', 'success');
+            log('✅ Three.js modules ready', 'success');
+            log('✅ GLTFLoader ready', 'success');
+            log('📦 Three.js version: ' + THREE.REVISION, 'info');
+            log('🎯 Ready to load avatar - click "Load Avatar" button', 'info');
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                const canvas = document.getElementById('canvas');
+                camera.aspect = canvas.clientWidth / canvas.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            }
+        });
+    </script>
+</body>
+</html>

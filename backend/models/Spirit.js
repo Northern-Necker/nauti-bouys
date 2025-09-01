@@ -45,14 +45,16 @@ const spiritSchema = new mongoose.Schema({
     min: [0, 'ABV cannot be negative'],
     max: [100, 'ABV cannot exceed 100%']
   },
-  price: {
-    type: Number,
-    required: [true, 'Price is required'],
-    min: [0, 'Price cannot be negative']
+  shelf_tier: {
+    type: String,
+    enum: ['lower', 'top', 'ultra'],
+    required: [true, 'Shelf tier is required'],
+    default: 'lower'
   },
-  pricePerOz: {
-    type: Number,
-    min: [0, 'Price per oz cannot be negative']
+  mixing_appropriate: {
+    type: Boolean,
+    required: [true, 'Mixing appropriateness is required'],
+    default: true
   },
   description: {
     type: String,
@@ -102,14 +104,6 @@ const spiritSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  isPremium: {
-    type: Boolean,
-    default: false
-  },
-  isTopShelf: {
-    type: Boolean,
-    default: false
-  },
   ratings: [{
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -153,21 +147,7 @@ const spiritSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Calculate price per oz
 spiritSchema.pre('save', function(next) {
-  if (this.price && this.bottleSize) {
-    const sizeInOz = {
-      '50ml': 1.69,
-      '200ml': 6.76,
-      '375ml': 12.68,
-      '500ml': 16.91,
-      '750ml': 25.36,
-      '1L': 33.81,
-      '1.75L': 59.17
-    };
-    this.pricePerOz = Math.round((this.price / sizeInOz[this.bottleSize]) * 100) / 100;
-  }
-  
   // Calculate average rating
   if (this.ratings.length > 0) {
     const sum = this.ratings.reduce((acc, rating) => acc + rating.rating, 0);
@@ -181,7 +161,7 @@ spiritSchema.pre('save', function(next) {
 spiritSchema.index({ name: 'text', brand: 'text', type: 'text', description: 'text' });
 spiritSchema.index({ type: 1, isAvailable: 1 });
 spiritSchema.index({ averageRating: -1 });
-spiritSchema.index({ price: 1 });
-spiritSchema.index({ isPremium: 1, isTopShelf: 1 });
+spiritSchema.index({ shelf_tier: 1 });
+spiritSchema.index({ mixing_appropriate: 1 });
 
 module.exports = mongoose.model('Spirit', spiritSchema);

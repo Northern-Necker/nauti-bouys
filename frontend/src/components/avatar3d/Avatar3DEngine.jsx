@@ -106,7 +106,7 @@ const Avatar3DEngine = ({
       <div className="avatar-3d-canvas">
         <Canvas
           ref={canvasRef}
-          camera={{ position: [0, 0, 5], fov: 50 }}
+          camera={{ position: [0, 0, 1.5], fov: 60 }}
           style={{ width: '100%', height: '600px' }}
         >
           <ambientLight intensity={0.5} />
@@ -250,3 +250,51 @@ const Avatar3DEngine = ({
         }
 
         .avatar-3d-error {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 600px;
+          background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+          border-radius: 12px;
+          padding: 40px;
+        }
+        
+        .error-message {
+          background: white;
+          padding: 30px;
+          border-radius: 12px;
+          text-align: center;
+          max-width: 400px;
+        }
+        
+        .error-message h3 {
+          color: #dc2626;
+          margin-bottom: 16px;
+          font-size: 24px;
+        }
+        
+        .error-message p {
+          color: #6b7280;
+          margin-bottom: 20px;
+        }
+        
+        .error-message button {
+          background: #3b82f6;
+          color: white;
+          border: none;
+          padding: 10px 24px;
+          border-radius: 8px;
+          font-size: 16px;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        
+        .error-message button:hover {
+          background: #2563eb;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+export default Avatar3DEngine;

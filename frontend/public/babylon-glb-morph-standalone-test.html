@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Babylon.js GLB Morph Test - Standalone</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            /* CRITICAL FIX: Completely disable page zoom/touch interactions */
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            overflow: hidden; /* Prevent scrolling that might interfere */
+        }
+        
+        html {
+            /* CRITICAL FIX: Disable zoom at HTML level */
+            touch-action: none;
+            user-scalable: no;
+            -webkit-user-scalable: no;
+            -moz-user-scalable: no;
+            -ms-user-scalable: no;
+        }
+        #renderCanvas {
+            width: 800px;
+            height: 600px;
+            border: 2px solid #333;
+            margin: 20px 0;
+            /* CRITICAL FIX: Isolate touch controls to canvas only */
+            touch-action: none;
+            -ms-touch-action: none;
+            /* Prevent context menu on long press */
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            background: #007acc;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #005a99;
+        }
+        .status {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error {
+            background: #4a1a1a;
+        }
+        .success {
+            background: #1a4a1a;
+        }
+        .morphs-section {
+            margin: 20px 0;
+        }
+        .morph-item {
+            display: inline-block;
+            margin: 5px;
+            padding: 5px 10px;
+            background: #333;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Babylon.js GLB Morph Target Test - Standalone</h1>
+    <p>Direct test outside React/browser automation to verify Babylon.js GLB morph functionality</p>
+
+    <div id="status" class="status">
+        <strong>Status:</strong> <span id="statusText">Initializing...</span>
+    </div>
+
+    <canvas id="renderCanvas"></canvas>
+
+    <div class="controls">
+        <h3>🎯 Critical Visemes Test (DD, SS, E)</h3>
+        <button onclick="testViseme('DD')">Test DD Viseme</button>
+        <button onclick="testViseme('SS')">Test SS Viseme</button>
+        <button onclick="testViseme('E')">Test E Viseme</button>
+        <button onclick="resetMorphs()">Reset All</button>
+    </div>
+
+    <div class="controls">
+        <h3>🔧 Debug Actions</h3>
+        <button onclick="logMeshInfo()">Log Mesh Info</button>
+        <button onclick="logAllMorphs()">Log All Morphs</button>
+        <button onclick="testRandomMorph()">Test Random Morph</button>
+    </div>
+
+    <div class="morphs-section">
+        <h3>📊 Available Morph Targets</h3>
+        <div id="morphsList">Loading...</div>
+    </div>
+
+    <div id="logs" class="status">
+        <strong>Logs:</strong>
+        <div id="logContent"></div>
+    </div>
+
+    <script>
+        let engine;
+        let scene;
+        let model;
+        let morphTargets = [];
+        let meshes = [];
+
+        // 🎯 FIXED GLB VISEME MAPPINGS - Using actual GLB morph target names
+        // This was the ROOT CAUSE of the viseme failures in both THREE.js and Babylon.js!
+        const GLB_VISEME_MAPPINGS = {
+            'sil': ['V_None'],  // Silence - neutral mouth
+            'PP': ['V_Explosive'], // P, B sounds - lips together
+            'FF': ['V_Dental_Lip'], // F, V sounds - lip to teeth  
+            'TH': ['V_Dental_Lip', 'V_Open'], // TH sounds - tongue to teeth
+            'DD': ['V_Dental_Lip', 'V_Open'], // D, T sounds - tongue to roof
+            'kk': ['V_Tight-O'], // K, G sounds - back tongue
+            'CH': ['V_Wide'], // CH, SH sounds - wide mouth
+            'SS': ['V_Tight-O', 'V_Wide'], // S, Z sounds - tight formation
+            'nn': ['V_Explosive'], // N, M sounds - nasal
+            'RR': ['V_Open', 'V_Wide'], // R sounds - open and wide
+            'aa': ['V_Open'], // Ah sounds - open mouth
+            'E': ['V_Wide'], // E sounds - wide mouth stretch
+            'ih': ['V_Open'], // I sounds - slightly open
+            'oh': ['V_Tight-O'], // O sounds - rounded lips
+            'ou': ['V_Tight-O'] // OO sounds - tight rounded lips
+        };
+
+        function log(message, isError = false) {
+            console.log(message);
+            const logContent = document.getElementById('logContent');
+            const logEntry = document.createElement('div');
+            logEntry.style.margin = '5px 0';
+            logEntry.style.padding = '5px';
+            logEntry.style.borderRadius = '3px';
+            if (isError) {
+                logEntry.style.background = '#4a1a1a';
+                logEntry.style.color = '#ff9999';
+            } else {
+                logEntry.style.background = '#1a4a1a';
+                logEntry.style.color = '#99ff99';
+            }
+            logEntry.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            logContent.appendChild(logEntry);
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+
+        function updateStatus(text, isError = false) {
+            const status = document.getElementById('status');
+            const statusText = document.getElementById('statusText');
+            statusText.textContent = text;
+            
+            status.className = 'status ' + (isError ? 'error' : 'success');
+        }
+
+        async function initializeBabylonjs() {
+            try {
+                log('🚀 Starting Babylon.js initialization...');
+                
+                // Create engine
+                const canvas = document.getElementById('renderCanvas');
+                engine = new BABYLON.Engine(canvas, true);
+                log('✅ Engine created successfully');
+
+                // Create scene
+                scene = new BABYLON.Scene(engine);
+                scene.clearColor = new BABYLON.Color3(0.2, 0.2, 0.3);
+                log('✅ Scene created successfully');
+
+                // Setup camera with RESEARCH-BASED FIXES for zoom/visibility issues
+                const camera = new BABYLON.ArcRotateCamera(
+                    "camera",
+                    Math.PI / 2,
+                    Math.PI / 2,
+                    5,
+                    new BABYLON.Vector3(0, 0, 0),
+                    scene
+                );
+                
+                // CRITICAL FIX: Adjust near/far planes to prevent mesh disappearance when zooming
+                // Research shows this is the primary cause of missing meshes when zoomed in
+                camera.minZ = 0.01;  // Much closer near plane (default 0.1 causes clipping)
+                camera.maxZ = 1000;  // Extended far plane for large models
+                
+                // CRITICAL FIX: Enhanced camera bounds for close inspection
+                camera.lowerRadiusLimit = 0.1;   // Allow very close zoom without clipping
+                camera.upperRadiusLimit = 100;   // Reasonable max distance
+                
+                // CRITICAL FIX: Smooth camera controls optimized for character inspection
+                camera.wheelDeltaPercentage = 0.01;  // Smoother zoom
+                camera.angularSensibilityX = 1000;   // Less sensitive rotation
+                camera.angularSensibilityY = 1000;
+                
+                // CRITICAL FIX: Research-based camera control for Surface Pro - prevent page zoom, allow 3D zoom
+                // From GitHub issue #5734: false prevents page scrolling when over canvas while allowing camera zoom
+                camera.attachControl(canvas, false); // FALSE prevents page scroll, allows 3D zoom
+                
+                // CRITICAL FIX: Configure touch/pinch behavior specifically for Surface Pro
+                camera.inputs.attached.pointers.buttons = [0, 1, 2]; // Left, middle, right mouse
+                camera.inputs.attached.pointers.angularSensibility = 1000; // Less sensitive rotation
+                camera.inputs.attached.pointers.pinchPrecision = 12; // Higher sensitivity for Surface Pro pinch zoom (default 12)
+                camera.inputs.attached.pointers.pinchDeltaPercentage = 0.008; // More responsive pinch (default 0.01)
+                camera.inputs.attached.pointers.multiTouchPanning = true; // Enable multi-touch
+                camera.inputs.attached.pointers.multiTouchPanAndZoom = false; // Separate pan/zoom
+                
+                log('✅ Camera setup complete with Surface Pro touch optimization');
+
+                // Setup lighting
+                const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+                light.intensity = 0.8;
+                log('✅ Lighting setup complete');
+
+                // Start render loop
+                engine.runRenderLoop(() => {
+                    scene.render();
+                });
+                log('✅ Render loop started');
+
+                // Load GLB model
+                await loadGLBModel();
+
+                updateStatus('Babylon.js initialized successfully! Ready for morph testing.', false);
+
+            } catch (error) {
+                const errorMsg = `Failed to initialize Babylon.js: ${error.message || error.toString()}`;
+                log(errorMsg, true);
+                updateStatus(errorMsg, true);
+            }
+        }
+
+        async function loadGLBModel() {
+            try {
+                log('📥 Loading GLB model...');
+                
+                const glbUrl = './assets/party-f-0013-fixed.glb';
+                
+                const result = await BABYLON.SceneLoader.ImportMeshAsync("", "", glbUrl, scene);
+                log(`✅ GLB loaded successfully: ${result.meshes.length} meshes`);
+
+                // Process meshes and morph targets
+                meshes = result.meshes.filter(mesh => 
+                    mesh.morphTargetManager && 
+                    mesh.morphTargetManager.numTargets > 0
+                );
+
+                if (meshes.length === 0) {
+                    throw new Error('No meshes with morph targets found in GLB');
+                }
+
+                log(`🎯 Found ${meshes.length} meshes with morph targets`);
+
+                // CRITICAL FIX: Apply frustum culling disabled to ALL meshes to prevent disappearing
+                // Research shows this is essential for preventing mesh visibility issues during zoom
+                result.meshes.forEach(mesh => {
+                    // Disable frustum culling - prevents meshes from disappearing when partially off-screen
+                    mesh.alwaysSelectAsActiveMesh = true;
+                    
+                    // Additional visibility safeguards
+                    mesh.doNotSyncBoundingInfo = true;  // Prevent bounding box issues
+                    mesh.freezeWorldMatrix();           // Optimize performance while ensuring visibility
+                    
+                    log(`🔧 Applied frustum culling fix to mesh: ${mesh.name}`);
+                });
+
+                // Extract all morph targets
+                morphTargets = [];
+                meshes.forEach(mesh => {
+                    const manager = mesh.morphTargetManager;
+                    log(`📊 Mesh "${mesh.name}": ${manager.numTargets} morph targets`);
+                    
+                    for (let i = 0; i < manager.numTargets; i++) {
+                        const target = manager.getTarget(i);
+                        morphTargets.push({
+                            name: target.name,
+                            mesh: mesh,
+                            manager: manager,
+                            index: i,
+                            target: target
+                        });
+                    }
+                });
+
+                log(`✅ Total morph targets discovered: ${morphTargets.length}`);
+                updateMorphsList();
+
+                // ENHANCED MODEL VISIBILITY FIXES
+                await fixModelVisibility(result);
+
+            } catch (error) {
+                const errorMsg = `Failed to load GLB model: ${error.message || error.toString()}`;
+                log(errorMsg, true);
+                throw new Error(errorMsg);
+            }
+        }
+
+        async function fixModelVisibility(result) {
+            try {
+                log('🔧 Applying comprehensive model visibility fixes...');
+                
+                // 1. Advanced mesh visibility debugging and fixes
+                let visibleMeshCount = 0;
+                let totalBounds = null;
+                let criticalMeshes = [];
+                
+                result.meshes.forEach((mesh, index) => {
+                    // CRITICAL FIX: Comprehensive mesh visibility fixes based on research
+                    // Force visibility and enablement
+                    mesh.isVisible = true;
+                    mesh.setEnabled(true);
+                    
+                    // Force visibility property to full opacity
+                    if (mesh.visibility !== undefined) {
+                        mesh.visibility = 1.0; // Full opacity
+                    }
+                    
+                    // CRITICAL FIX: Material issues causing invisible meshes
+                    if (mesh.material) {
+                        const material = mesh.material;
+                        
+                        // Fix backface culling issues (common cause of invisible meshes)
+                        material.backFaceCulling = false; // Show both sides
+                        
+                        // Fix transparency/alpha issues
+                        if (material.alpha !== undefined) {
+                            if (material.alpha < 1.0) {
+                                log(`⚠️ Mesh ${mesh.name} material has alpha ${material.alpha}, setting to 1.0`);
+                                material.alpha = 1.0;
+                            }
+                        }
+                        
+                        // Fix wireframe mode
+                        if (material.wireframe !== undefined) {
+                            material.wireframe = false;
+                        }
+                        
+                        // Fix transparency mode for PBR materials
+                        if (material.getClassName() === 'PBRMaterial') {
+                            material.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_OPAQUE;
+                        }
+                        
+                        // Fix material alphaMode for GLTF materials
+                        if (material.alphaMode !== undefined) {
+                            material.alphaMode = BABYLON.Engine.ALPHA_COMBINE;
+                        }
+                        
+                        // Force material refresh
+                        material.markDirty();
+                        material.forceCompilation(scene);
+                        
+                        log(`🔧 Fixed material for mesh: ${mesh.name} | Type: ${material.getClassName()} | BackfaceCulling: ${material.backFaceCulling}`);
+                        
+                    } else {
+                        // Create material for meshes without materials
+                        log(`⚠️ Mesh ${mesh.name} has no material! Creating default material`);
+                        const defaultMaterial = new BABYLON.StandardMaterial(`default_${mesh.name}`, scene);
+                        defaultMaterial.diffuseColor = new BABYLON.Color3(0.8, 0.7, 0.6); // Skin-like color
+                        defaultMaterial.backFaceCulling = false;
+                        defaultMaterial.alpha = 1.0;
+                        mesh.material = defaultMaterial;
+                    }
+                    
+                    // CRITICAL FIX: Zero scaling issues
+                    if (mesh.scaling) {
+                        if (mesh.scaling.x === 0 || mesh.scaling.y === 0 || mesh.scaling.z === 0) {
+                            log(`🔧 Fixing zero scaling on mesh: ${mesh.name}`);
+                            mesh.scaling = new BABYLON.Vector3(1, 1, 1);
+                        }
+                    }
+                    
+                    // CRITICAL FIX: Position issues that can cause meshes to be out of view
+                    if (mesh.position && (
+                        Math.abs(mesh.position.x) > 1000 || 
+                        Math.abs(mesh.position.y) > 1000 || 
+                        Math.abs(mesh.position.z) > 1000
+                    )) {
+                        log(`🔧 Mesh ${mesh.name} has extreme position, resetting`);
+                        mesh.position = new BABYLON.Vector3(0, 0, 0);
+                    }
+                    
+                    // Force geometry and bounding info refresh
+                    try {
+                        mesh.refreshBoundingInfo();
+                        mesh.computeWorldMatrix(true);
+                        
+                        // Force render state refresh
+                        if (mesh._meshMap) {
+                            mesh._meshMap.clear();
+                        }
+                        
+                    } catch (refreshError) {
+                        log(`⚠️ Could not refresh mesh geometry for ${mesh.name}: ${refreshError.message}`);
+                    }
+                    
+                    // Mark critical meshes
+                    if (mesh.name === 'CC_Game_Body') {
+                        log(`🎯 Found critical mesh: ${mesh.name} - applying special fixes`);
+                        criticalMeshes.push(mesh);
+                    }
+                    
+                    // Log detailed mesh properties
+                    const materialInfo = mesh.material ? 
+                        `Material: ${mesh.material.name || 'unnamed'} (${mesh.material.getClassName()})` : 
+                        'NO MATERIAL';
+                    
+                    const geometryInfo = mesh.getVerticesData ? 
+                        `Vertices: ${mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind) ? 'YES' : 'NO'}` : 
+                        'No geometry data';
+                    
+                    log(`Mesh ${index}: ${mesh.name} | Visible: ${mesh.isVisible} | Enabled: ${mesh.isEnabled()} | ${materialInfo} | ${geometryInfo}`);
+                    
+                    // Calculate bounding info
+                    if (mesh.getBoundingInfo && mesh.getVerticesData && mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind)) {
+                        try {
+                            const bounds = mesh.getBoundingInfo();
+                            if (!totalBounds) {
+                                totalBounds = bounds;
+                            } else {
+                                // Combine bounding boxes
+                                const box1 = totalBounds.boundingBox;
+                                const box2 = bounds.boundingBox;
+                                
+                                const minX = Math.min(box1.minimumWorld.x, box2.minimumWorld.x);
+                                const minY = Math.min(box1.minimumWorld.y, box2.minimumWorld.y);
+                                const minZ = Math.min(box1.minimumWorld.z, box2.minimumWorld.z);
+                                const maxX = Math.max(box1.maximumWorld.x, box2.maximumWorld.x);
+                                const maxY = Math.max(box1.maximumWorld.y, box2.maximumWorld.y);
+                                const maxZ = Math.max(box1.maximumWorld.z, box2.maximumWorld.z);
+                                
+                                const min = new BABYLON.Vector3(minX, minY, minZ);
+                                const max = new BABYLON.Vector3(maxX, maxY, maxZ);
+                                
+                                totalBounds = new BABYLON.BoundingInfo(min, max);
+                            }
+                            visibleMeshCount++;
+                        } catch (boundsError) {
+                            log(`⚠️ Could not calculate bounds for ${mesh.name}: ${boundsError.message}`);
+                        }
+                    }
+                });
+                
+                log(`📊 Total meshes with geometry: ${visibleMeshCount} | Critical meshes found: ${criticalMeshes.length}`);
+                
+                // 2. Enhanced camera positioning - FIX FOR FACE/HEAD VIEW
+                if (totalBounds && scene.cameras[0]) {
+                    const camera = scene.cameras[0];
+                    const boundingBox = totalBounds.boundingBox;
+                    const center = boundingBox.center;
+                    const extendSize = boundingBox.extendSize;
+                    
+                    log(`📍 Model bounds - Center: ${center.toString()} | Size: ${extendSize.toString()}`);
+                    
+                    // CRITICAL FIX: Adjust target to focus on HEAD/FACE area with proper bounds
+                    // Based on research - proper target setting is crucial for preventing clipping
+                    const headTarget = new BABYLON.Vector3(
+                        center.x,
+                        center.y + extendSize.y * 0.6, // Adjusted for better torso inclusion
+                        center.z
+                    );
+                    
+                    // ENHANCED: Calculate camera distance with safety margins to show full character
+                    const maxSize = Math.max(extendSize.x, extendSize.y, extendSize.z);
+                    const distance = Math.max(maxSize * 1.5, 1.8); // Closer but safe distance
+                    
+                    log(`📷 Head target: ${headTarget.toString()} | Camera distance: ${distance}`);
+                    
+                    // RESEARCH-BASED: Position camera with proper angles for character inspection
+                    camera.setTarget(headTarget);
+                    camera.radius = distance;
+                    camera.alpha = Math.PI / 3;   // 60 degrees - better for full body view
+                    camera.beta = Math.PI / 2.5;  // Slightly higher angle to show torso
+                    
+                    // CRITICAL FIX: Update camera bounds based on actual model size
+                    camera.lowerRadiusLimit = Math.max(maxSize * 0.3, 0.2);  // Dynamic near limit
+                    camera.upperRadiusLimit = Math.max(maxSize * 5, 10);     // Dynamic far limit
+                    
+                    log(`📷 Camera positioned for FULL CHARACTER view with dynamic bounds`);
+                } else {
+                    log(`⚠️ No valid bounds found, using character-focused default position`);
+                    // ENHANCED: Fallback camera positioning with research-based settings
+                    if (scene.cameras[0]) {
+                        const camera = scene.cameras[0];
+                        const fallbackTarget = new BABYLON.Vector3(0, 1.0, 0); // Center torso area
+                        camera.setTarget(fallbackTarget);
+                        camera.radius = 2.8;               // Increased distance to show full character
+                        camera.alpha = Math.PI / 3;        // Better angle for full body
+                        camera.beta = Math.PI / 2.3;       // Show torso and head
+                        
+                        // Apply same bounds fixes
+                        camera.lowerRadiusLimit = 0.2;
+                        camera.upperRadiusLimit = 15;
+                        
+                        log(`📷 Applied fallback positioning with full character view`);
+                    }
+                }
+                
+                // 3. Enhanced lighting setup
+                scene.lights.forEach(light => light.dispose()); // Remove existing lights
+                
+                // Main hemispheric light
+                const hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 1, 0), scene);
+                hemiLight.intensity = 0.6;
+                hemiLight.groundColor = new BABYLON.Color3(0.2, 0.2, 0.3);
+                
+                // Key directional light (from front-left)
+                const keyLight = new BABYLON.DirectionalLight("keyLight", new BABYLON.Vector3(-0.5, -1, -0.5), scene);
+                keyLight.intensity = 0.8;
+                keyLight.diffuse = new BABYLON.Color3(1, 0.95, 0.8);
+                
+                // Fill light (from right)
+                const fillLight = new BABYLON.DirectionalLight("fillLight", new BABYLON.Vector3(1, -0.5, 0), scene);
+                fillLight.intensity = 0.3;
+                fillLight.diffuse = new BABYLON.Color3(0.8, 0.9, 1);
+                
+                log(`💡 Three-point lighting setup complete`);
+                
+                // 4. Force comprehensive scene refresh
+                scene.render();
+                
+                // Additional render pass to ensure materials are loaded
+                setTimeout(() => {
+                    scene.render();
+                    log(`🎨 Additional render pass completed`);
+                }, 100);
+                
+                log('✅ Comprehensive model visibility fixes applied successfully');
+                
+            } catch (error) {
+                log(`❌ Error in visibility fixes: ${error.message}`, true);
+            }
+        }
+
+        function updateMorphsList() {
+            const morphsList = document.getElementById('morphsList');
+            if (morphTargets.length === 0) {
+                morphsList.innerHTML = '<span style="color: #ff9999;">No morph targets found</span>';
+                return;
+            }
+
+            morphsList.innerHTML = morphTargets.map(morph => 
+                `<div class="morph-item">${morph.mesh.name}: ${morph.name} (${morph.index})</div>`
+            ).join('');
+        }
+
+        function findMorphsByName(targetNames) {
+            const foundMorphs = [];
+            
+            targetNames.forEach(targetName => {
+                const matches = morphTargets.filter(morph => 
+                    morph.name.toLowerCase().includes(targetName.toLowerCase()) ||
+                    targetName.toLowerCase().includes(morph.name.toLowerCase())
+                );
+                
+                if (matches.length > 0) {
+                    foundMorphs.push(...matches);
+                    log(`🎯 Found ${matches.length} morphs for "${targetName}": ${matches.map(m => m.name).join(', ')}`);
+                } else {
+                    log(`⚠️ No morph found for "${targetName}"`, true);
+                }
+            });
+            
+            return foundMorphs;
+        }
+
+        function testViseme(visemeType) {
+            try {
+                log(`\n🧪 Testing ${visemeType} viseme...`);
+                
+                // Reset all morphs first
+                resetMorphs(false);
+                
+                // Get target morph names for this viseme
+                const targetNames = GLB_VISEME_MAPPINGS[visemeType] || [];
+                if (targetNames.length === 0) {
+                    log(`❌ No mapping found for viseme: ${visemeType}`, true);
+                    return;
+                }
+
+                log(`🎯 Viseme ${visemeType} targets: ${targetNames.join(', ')}`);
+
+                // Find and apply morphs
+                const morphsToApply = findMorphsByName(targetNames);
+                
+                if (morphsToApply.length === 0) {
+                    log(`❌ No morphs found for ${visemeType} viseme!`, true);
+                    return;
+                }
+
+                // Apply morphs with influence
+                let appliedCount = 0;
+                morphsToApply.forEach(morph => {
+                    const influence = 0.8; // Strong influence for testing
+                    morph.target.influence = influence;
+                    log(`✅ Applied ${morph.name} with influence ${influence}`);
+                    appliedCount++;
+                });
+
+                log(`🎉 ${visemeType} viseme test complete! Applied ${appliedCount} morphs.`);
+                updateStatus(`${visemeType} viseme applied - Check visual result!`, false);
+
+            } catch (error) {
+                const errorMsg = `Failed to test ${visemeType} viseme: ${error.message || error.toString()}`;
+                log(errorMsg, true);
+                updateStatus(errorMsg, true);
+            }
+        }
+
+        function resetMorphs(showLog = true) {
+            try {
+                if (showLog) log('🔄 Resetting all morphs...');
+                
+                morphTargets.forEach(morph => {
+                    morph.target.influence = 0;
+                });
+                
+                if (showLog) {
+                    log('✅ All morphs reset to 0');
+                    updateStatus('All morphs reset', false);
+                }
+            } catch (error) {
+                const errorMsg = `Failed to reset morphs: ${error.message || error.toString()}`;
+                log(errorMsg, true);
+                updateStatus(errorMsg, true);
+            }
+        }
+
+        function logMeshInfo() {
+            try {
+                log('\n📊 MESH INFORMATION:');
+                meshes.forEach(mesh => {
+                    const manager = mesh.morphTargetManager;
+                    log(`Mesh: ${mesh.name} | Morphs: ${manager.numTargets} | Visible: ${mesh.isVisible}`);
+                });
+            } catch (error) {
+                log(`Error logging mesh info: ${error.message || error.toString()}`, true);
+            }
+        }
+
+        function logAllMorphs() {
+            try {
+                log('\n📋 ALL MORPH TARGETS:');
+                morphTargets.forEach((morph, index) => {
+                    const influence = morph.manager.getTarget(morph.index).influence;
+                    log(`${index + 1}. ${morph.mesh.name}.${morph.name} | Index: ${morph.index} | Influence: ${influence.toFixed(3)}`);
+                });
+            } catch (error) {
+                log(`Error logging morphs: ${error.message || error.toString()}`, true);
+            }
+        }
+
+        function testRandomMorph() {
+            try {
+                if (morphTargets.length === 0) {
+                    log('No morph targets available for testing', true);
+                    return;
+                }
+
+                resetMorphs(false);
+                
+                const randomMorph = morphTargets[Math.floor(Math.random() * morphTargets.length)];
+                const influence = 0.8;
+                
+                randomMorph.target.influence = influence;
+                
+                log(`🎲 Random test: Applied ${randomMorph.mesh.name}.${randomMorph.name} with influence ${influence}`);
+                updateStatus(`Random morph: ${randomMorph.name}`, false);
+                
+            } catch (error) {
+                const errorMsg = `Failed to test random morph: ${error.message || error.toString()}`;
+                log(errorMsg, true);
+                updateStatus(errorMsg, true);
+            }
+        }
+
+        // RESEARCH-BASED FIX: Allow Babylon.js canvas touch events while preventing page-level zoom
+        // Based on GitHub issue #5734 and Babylon.js documentation
+        
+        // Only prevent page-level zoom gestures, not canvas interactions
+        document.addEventListener('touchstart', function(e) {
+            // Allow touch events on the canvas for 3D controls
+            if (e.target.id === 'renderCanvas' || e.target.closest('#renderCanvas')) {
+                return; // Let Babylon.js handle canvas touch events
+            }
+            // Prevent touch on other page elements to avoid page zoom
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Prevent page-level pinch zoom while allowing canvas pinch zoom
+        document.addEventListener('gesturestart', function(e) {
+            // Allow gestures on the canvas for 3D camera controls
+            if (e.target.id === 'renderCanvas' || e.target.closest('#renderCanvas')) {
+                return; // Let Babylon.js handle canvas gestures
+            }
+            // Prevent page-level gestures
+            e.preventDefault();
+        }, { passive: false });
+
+        // Prevent Ctrl+wheel page zoom while allowing normal scroll and canvas zoom
+        document.addEventListener('wheel', function(e) {
+            // Only prevent Ctrl+wheel for page zoom, not canvas interactions
+            if (e.ctrlKey && e.target.id !== 'renderCanvas') {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Minimal context menu prevention
+        document.addEventListener('contextmenu', function(e) {
+            // Only prevent context menu on canvas to avoid interference with 3D controls
+            if (e.target.id === 'renderCanvas') {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (engine) {
+                engine.resize();
+            }
+        });
+
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            initializeBabylonjs();
+        });
+
+        // Handle page unload
+        window.addEventListener('beforeunload', () => {
+            if (engine) {
+                engine.dispose();
+            }
+        });
+    </script>
+</body>
+</html>

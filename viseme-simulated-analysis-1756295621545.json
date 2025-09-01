@@ -1,0 +1,210 @@
+{
+  "timestamp": "2025-08-27T11:53:41.543Z",
+  "mode": "simulated",
+  "totalVisemes": 29,
+  "analysis": {
+    "sil": {
+      "visualChange": false,
+      "tongueActive": false,
+      "mouthOpenness": "low",
+      "confidence": 0.1,
+      "simulated": true
+    },
+    "aa": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "high",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "ae": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "medium",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "ah": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "high",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "ao": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "low",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "aw": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "high",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "ay": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "low",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "b_m_p": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "low",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "ch_j_sh_zh": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "low",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "d_s_t": {
+      "visualChange": true,
+      "tongueActive": true,
+      "mouthOpenness": "low",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "eh": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "medium",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "er": {
+      "visualChange": true,
+      "tongueActive": true,
+      "mouthOpenness": "low",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "f_v": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "low",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "g_k": {
+      "visualChange": true,
+      "tongueActive": true,
+      "mouthOpenness": "low",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "hh": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "high",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "ih": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "medium",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "iy": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "medium",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "l": {
+      "visualChange": true,
+      "tongueActive": true,
+      "mouthOpenness": "low",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "n": {
+      "visualChange": true,
+      "tongueActive": true,
+      "mouthOpenness": "low",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "ng": {
+      "visualChange": true,
+      "tongueActive": true,
+      "mouthOpenness": "low",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "ow": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "medium",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "oy": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "medium",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "r": {
+      "visualChange": true,
+      "tongueActive": true,
+      "mouthOpenness": "low",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "th": {
+      "visualChange": true,
+      "tongueActive": true,
+      "mouthOpenness": "medium",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "uh": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "low",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "uw": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "low",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "w": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "low",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "y": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "low",
+      "confidence": 0.9,
+      "simulated": true
+    },
+    "z": {
+      "visualChange": true,
+      "tongueActive": false,
+      "mouthOpenness": "medium",
+      "confidence": 0.9,
+      "simulated": true
+    }
+  }
+}

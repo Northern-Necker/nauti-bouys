@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaPipe Debug Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        .success { border-left: 4px solid #28a745; background: #f8fff8; }
+        .error { border-left: 4px solid #dc3545; background: #fff8f8; }
+        .warning { border-left: 4px solid #ffc107; background: #fffef8; }
+        .info { border-left: 4px solid #17a2b8; background: #f8feff; }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: Monaco, Consolas, monospace;
+            font-size: 13px;
+        }
+        
+        .log {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: Monaco, Consolas, monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        
+        .log-entry {
+            margin: 3px 0;
+            padding: 2px 0;
+        }
+        
+        .log-success { color: #9ae6b4; }
+        .log-error { color: #feb2b2; }
+        .log-warning { color: #faf089; }
+        .log-info { color: #90cdf4; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 MediaPipe Initialization Debug</h1>
+        <p>This tool helps diagnose MediaPipe loading issues by testing each step individually.</p>
+        
+        <div class="test-card info">
+            <h3>📋 Test Status</h3>
+            <div id="testStatus">Click "Start Diagnostic" to begin...</div>
+        </div>
+        
+        <div style="text-align: center; margin: 20px 0;">
+            <button onclick="runDiagnostic()">🚀 Start Diagnostic</button>
+            <button onclick="testCDNUrls()" disabled id="cdnBtn">🌐 Test CDN URLs</button>
+            <button onclick="testImports()" disabled id="importBtn">📦 Test Imports</button>
+            <button onclick="testInitialization()" disabled id="initBtn">⚡ Test Initialization</button>
+            <button onclick="clearLog()">🧹 Clear Log</button>
+        </div>
+        
+        <div class="log" id="debugLog">
+            <div class="log-entry log-info">🔍 MediaPipe Debug Tool Ready</div>
+            <div class="log-entry log-info">Click "Start Diagnostic" to check MediaPipe loading step by step</div>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script type="module">
+        let debugResults = {};
+        
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('debugLog');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.innerHTML = `<span style="opacity: 0.7;">${new Date().toLocaleTimeString()}</span> ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('testStatus');
+            statusDiv.innerHTML = `<span class="${type}">${message}</span>`;
+        }
+        
+        function addResult(title, success, details, recommendation = '') {
+            const resultsDiv = document.getElementById('results');
+            const resultCard = document.createElement('div');
+            resultCard.className = `test-card ${success ? 'success' : 'error'}`;
+            
+            resultCard.innerHTML = `
+                <h3>${success ? '✅' : '❌'} ${title}</h3>
+                <div>${details}</div>
+                ${recommendation ? `<div style="margin-top: 10px; font-style: italic; color: #666;">${recommendation}</div>` : ''}
+            `;
+            
+            resultsDiv.appendChild(resultCard);
+        }
+        
+        // Test 1: CDN URL Accessibility
+        async function testCDNUrls() {
+            log('🌐 Testing MediaPipe CDN URLs...', 'info');
+            updateStatus('Testing CDN accessibility...', 'warning');
+            
+            const cdnUrls = [
+                'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.6/wasm',
+                'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.5/wasm', 
+                'https://unpkg.com/@mediapipe/tasks-vision@0.10.6/wasm',
+                'https://unpkg.com/@mediapipe/tasks-vision@0.10.5/wasm'
+            ];
+            
+            let successCount = 0;
+            const results = [];
+            
+            for (const url of cdnUrls) {
+                try {
+                    const response = await fetch(url + '/vision_wasm_internal.js');
+                    if (response.ok) {
+                        log(`✅ CDN accessible: ${url}`, 'success');
+                        results.push(`✅ ${url}`);
+                        successCount++;
+                    } else {
+                        log(`❌ CDN returned ${response.status}: ${url}`, 'error');
+                        results.push(`❌ ${url} (HTTP ${response.status})`);
+                    }
+                } catch (error) {
+                    log(`❌ CDN failed: ${url} - ${error.message}`, 'error');
+                    results.push(`❌ ${url} (${error.message})`);
+                }
+            }
+            
+            debugResults.cdnTest = { success: successCount > 0, count: successCount, total: cdnUrls.length };
+            
+            addResult(
+                'CDN URL Accessibility', 
+                successCount > 0,
+                `${successCount}/${cdnUrls.length} CDN sources accessible:<br>${results.join('<br>')}`,
+                successCount === 0 ? 'Check internet connection and firewall settings.' : ''
+            );
+            
+            document.getElementById('importBtn').disabled = false;
+            return successCount > 0;
+        }
+        
+        // Test 2: Module Import Test
+        async function testImports() {
+            log('📦 Testing MediaPipe module imports...', 'info');
+            updateStatus('Testing module imports...', 'warning');
+            
+            try {
+                // Test different import methods
+                const importTests = [
+                    {
+                        name: 'ES6 Dynamic Import',
+                        test: async () => {
+                            const module = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.6');
+                            return module.FilesetResolver && module.FaceLandmarker;
+                        }
+                    },
+                    {
+                        name: 'Script Tag Method',
+                        test: async () => {
+                            return new Promise((resolve) => {
+                                const script = document.createElement('script');
+                                script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.6';
+                                script.onload = () => resolve(typeof window.vision !== 'undefined');
+                                script.onerror = () => resolve(false);
+                                document.head.appendChild(script);
+                                setTimeout(() => resolve(false), 5000);
+                            });
+                        }
+                    }
+                ];
+                
+                let successfulMethod = null;
+                
+                for (const test of importTests) {
+                    try {
+                        log(`Testing ${test.name}...`, 'info');
+                        const result = await test.test();
+                        if (result) {
+                            log(`✅ ${test.name} successful`, 'success');
+                            successfulMethod = test.name;
+                            break;
+                        } else {
+                            log(`❌ ${test.name} failed`, 'error');
+                        }
+                    } catch (error) {
+                        log(`❌ ${test.name} error: ${error.message}`, 'error');
+                    }
+                }
+                
+                debugResults.importTest = { success: successfulMethod !== null, method: successfulMethod };
+                
+                addResult(
+                    'Module Import Test',
+                    successfulMethod !== null,
+                    successfulMethod ? `Successfully imported using: ${successfulMethod}` : 'All import methods failed',
+                    !successfulMethod ? 'MediaPipe modules may not be compatible with this browser or network.' : ''
+                );
+                
+                document.getElementById('initBtn').disabled = false;
+                return successfulMethod !== null;
+                
+            } catch (error) {
+                log(`❌ Import test failed: ${error.message}`, 'error');
+                addResult('Module Import Test', false, `Import failed: ${error.message}`, 'Try a different browser or check network connectivity.');
+                return false;
+            }
+        }
+        
+        // Test 3: Full Initialization Test
+        async function testInitialization() {
+            log('⚡ Testing full MediaPipe initialization...', 'info');
+            updateStatus('Testing initialization...', 'warning');
+            
+            try {
+                // Use the actual MediaPipe Manager
+                if (window.MediaPipeManager) {
+                    const manager = new window.MediaPipeManager();
+                    const success = await manager.initialize();
+                    
+                    debugResults.initTest = { success };
+                    
+                    if (success) {
+                        log('✅ MediaPipe Manager initialized successfully', 'success');
+                        addResult(
+                            'MediaPipe Initialization',
+                            true,
+                            'MediaPipe Face Landmarker initialized and ready for use',
+                            'The system is working correctly!'
+                        );
+                    } else {
+                        log('❌ MediaPipe Manager initialization failed', 'error');
+                        addResult(
+                            'MediaPipe Initialization',
+                            false,
+                            'MediaPipe Manager failed to initialize',
+                            'Check the browser console for detailed error messages.'
+                        );
+                    }
+                    
+                    manager.dispose();
+                    return success;
+                } else {
+                    throw new Error('MediaPipeManager not available');
+                }
+            } catch (error) {
+                log(`❌ Initialization test failed: ${error.message}`, 'error');
+                debugResults.initTest = { success: false, error: error.message };
+                
+                addResult(
+                    'MediaPipe Initialization',
+                    false,
+                    `Initialization failed: ${error.message}`,
+                    'This indicates a fundamental compatibility issue. Try a different browser.'
+                );
+                
+                return false;
+            }
+        }
+        
+        // Run full diagnostic
+        async function runDiagnostic() {
+            log('🚀 Starting comprehensive MediaPipe diagnostic...', 'info');
+            updateStatus('Running diagnostic tests...', 'warning');
+            
+            document.getElementById('results').innerHTML = '';
+            debugResults = {};
+            
+            // Enable step buttons
+            document.getElementById('cdnBtn').disabled = false;
+            
+            try {
+                // Run tests in sequence
+                const cdnSuccess = await testCDNUrls();
+                if (cdnSuccess) {
+                    const importSuccess = await testImports();
+                    if (importSuccess) {
+                        await testInitialization();
+                    }
+                }
+                
+                // Generate summary
+                generateSummary();
+                
+            } catch (error) {
+                log(`❌ Diagnostic failed: ${error.message}`, 'error');
+                updateStatus('Diagnostic failed', 'error');
+            }
+        }
+        
+        function generateSummary() {
+            const cdnOk = debugResults.cdnTest?.success || false;
+            const importOk = debugResults.importTest?.success || false;
+            const initOk = debugResults.initTest?.success || false;
+            
+            if (cdnOk && importOk && initOk) {
+                updateStatus('✅ All tests passed - MediaPipe is working', 'success');
+                log('🎉 Diagnostic complete - MediaPipe is fully functional', 'success');
+            } else if (!cdnOk) {
+                updateStatus('❌ CDN connectivity issues detected', 'error');
+                log('🚨 Network/CDN issues preventing MediaPipe loading', 'error');
+            } else if (!importOk) {
+                updateStatus('❌ Module import issues detected', 'error'); 
+                log('🚨 Browser compatibility or module loading issues', 'error');
+            } else {
+                updateStatus('❌ Initialization failed', 'error');
+                log('🚨 MediaPipe initialization failed - check browser compatibility', 'error');
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('debugLog').innerHTML = '';
+            document.getElementById('results').innerHTML = '';
+            updateStatus('Log cleared - ready for new tests', 'info');
+        }
+        
+        // Make functions global
+        window.runDiagnostic = runDiagnostic;
+        window.testCDNUrls = testCDNUrls;
+        window.testImports = testImports;
+        window.testInitialization = testInitialization;
+        window.clearLog = clearLog;
+        
+        log('🔬 Debug tool loaded - click "Start Diagnostic" to begin', 'success');
+    </script>
+
+    <!-- Try to load MediaPipe Manager for testing -->
+    <script type="module">
+        try {
+            const { default: MediaPipeManager } = await import('./src/utils/MediaPipeManager.js');
+            window.MediaPipeManager = MediaPipeManager;
+            console.log('✅ MediaPipeManager loaded for testing');
+        } catch (error) {
+            console.log('⚠️ Could not load MediaPipeManager for testing:', error.message);
+        }
+    </script>
+</body>
+</html>

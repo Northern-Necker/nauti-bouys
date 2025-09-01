@@ -8,11 +8,12 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const beverageRoutes = require('./routes/beverages');
+const spiritsRoutes = require('./routes/spirits');
+const ownerNotificationRoutes = require('./routes/ownerNotifications');
 const inventoryRoutes = require('./routes/inventory');
 const reservationRoutes = require('./routes/reservations');
 const iaRoutes = require('./routes/ia');
-const didAgentRoutes = require('./routes/d-id-agent');
-const didStreamingRoutes = require('./routes/did-streaming');
+// D-ID routes removed - using enhanced avatar system
 
 const app = express();
 
@@ -82,11 +83,12 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/nauti-bou
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/beverages', beverageRoutes);
+app.use('/api/spirits', spiritsRoutes);
+app.use('/api/owner-notifications', ownerNotificationRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/reservations', reservationRoutes);
 app.use('/api/ia', iaRoutes);
-app.use('/api/d-id-agent', didAgentRoutes);
-app.use('/api/did-streaming', didStreamingRoutes);
+// D-ID routes removed - using enhanced avatar system
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

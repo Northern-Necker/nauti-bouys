@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Babylon.js GLB Morph Test</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <style>
+        body { margin: 0; background: #000; color: white; font-family: Arial; overflow: hidden; }
+        .container { display: flex; height: 100vh; }
+        .viewer { flex: 1; }
+        .controls { width: 300px; padding: 20px; background: #222; overflow-y: auto; }
+        .btn { display: block; width: 100%; margin: 3px 0; padding: 10px; background: #444; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background: #666; }
+        .btn.active { background: #00ff00; color: #000; }
+        .status { padding: 12px; background: #333; margin: 12px 0; border-radius: 4px; }
+        .section { margin: 15px 0; }
+        .section h3 { color: #fff; margin: 8px 0; }
+        canvas { width: 100%; height: 100%; display: block; }
+        .morph-info { font-size: 11px; color: #aaa; max-height: 120px; overflow-y: auto; background: #111; padding: 8px; border-radius: 4px; }
+        .intensity-control { margin: 12px 0; }
+        .intensity-slider { width: 100%; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="viewer">
+            <canvas id="babylon-canvas"></canvas>
+        </div>
+        <div class="controls">
+            <div class="status" id="status">Babylon.js GLB Morph Tester Ready</div>
+            
+            <button class="btn" onclick="loadBabylonGLB()" style="background: #007bff;">🔄 Load GLB Model</button>
+            <button class="btn" onclick="runBabylonAutoTest()" style="background: #28a745;">🚀 Auto Test All</button>
+            
+            <div class="intensity-control">
+                <label>Intensity: <span id="babylon-intensity-value">0.8</span></label>
+                <input type="range" class="intensity-slider" id="babylon-intensity" min="0" max="1" step="0.1" value="0.8" oninput="updateBabylonIntensity(this.value)">
+            </div>
+            
+            <div class="section">
+                <h3>🎭 Babylon.js Visemes</h3>
+                <div id="babylon-viseme-controls"></div>
+            </div>
+            
+            <div class="section">
+                <h3>📊 Morph Targets</h3>
+                <div class="morph-info" id="babylon-morph-info">Load GLB to see morphs</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let babylonEngine, babylonScene, babylonAvatar, babylonMorphTargets = [];
+        let babylonCurrentIntensity = 0.8;
+
+        // Same calibrated morphs as Three.js version
+        const BABYLON_CALIBRATED_MORPHS = {
+            'sil': {},
+            'aa': { 'Mouth_Open': 0.85, 'Jaw_Open': 0.75, 'Mouth_Stretch_Left': 0.2, 'Mouth_Stretch_Right': 0.2 },
+            'ae': { 'Mouth_Stretch_Left': 0.8, 'Mouth_Stretch_Right': 0.8, 'Mouth_Open': 0.4, 'Jaw_Open': 0.3 },
+            'ah': { 'Mouth_Open': 0.9, 'Jaw_Open': 0.8 },
+            'ao': { 'Mouth_Funnel': 0.85, 'Mouth_Pucker_Lower': 0.7, 'Mouth_Pucker_Upper': 0.6, 'Mouth_Open': 0.3 },
+            'aw': { 'Mouth_Open': 0.8, 'Jaw_Open': 0.7, 'Mouth_Stretch_Left': 0.5, 'Mouth_Stretch_Right': 0.5 },
+            'ay': { 'Mouth_Smile_Left': 0.6, 'Mouth_Smile_Right': 0.6, 'Mouth_Stretch_Left': 0.3, 'Mouth_Stretch_Right': 0.3 },
+            'b_m_p': { 'Mouth_Close': 0.95, 'Mouth_Press_Left': 0.8, 'Mouth_Press_Right': 0.8 },
+            'ch_j_sh_zh': { 'Mouth_Funnel': 0.7, 'Mouth_Pucker_Lower': 0.6, 'Mouth_Pucker_Upper': 0.5, 'Mouth_Open': 0.2 },
+            'd_s_t': { 'Tongue_Tip_Up': 0.9, 'Mouth_Open': 0.35, 'Jaw_Open': 0.2 },
+            'eh': { 'Mouth_Open': 0.5, 'Jaw_Open': 0.3, 'Mouth_Stretch_Left': 0.4, 'Mouth_Stretch_Right': 0.4 },
+            'er': { 'Tongue_Curl': 0.85, 'Mouth_Funnel': 0.4, 'Mouth_Open': 0.3 },
+            'f_v': { 'Mouth_Lower_Down_Left': 0.7, 'Mouth_Lower_Down_Right': 0.7 },
+            'g_k': { 'Tongue_Back': 0.8, 'Mouth_Open': 0.4, 'Jaw_Open': 0.2 },
+            'hh': { 'Mouth_Open': 0.6, 'Jaw_Open': 0.4 },
+            'ih': { 'Mouth_Open': 0.3, 'Mouth_Stretch_Left': 0.3, 'Mouth_Stretch_Right': 0.3, 'Jaw_Open': 0.15 },
+            'iy': { 'Mouth_Smile_Left': 0.8, 'Mouth_Smile_Right': 0.8, 'Mouth_Stretch_Left': 0.4, 'Mouth_Stretch_Right': 0.4 },
+            'l': { 'Tongue_Tip_Up': 0.95, 'Mouth_Open': 0.4, 'Jaw_Open': 0.25 },
+            'n': { 'Tongue_Tip_Up': 0.9, 'Mouth_Close': 0.3, 'Mouth_Open': 0.2 },
+            'ng': { 'Tongue_Back': 0.9, 'Mouth_Close': 0.5 },
+            'ow': { 'Mouth_Funnel': 0.9, 'Mouth_Pucker_Lower': 0.8, 'Mouth_Pucker_Upper': 0.7, 'Mouth_Open': 0.4 },
+            'oy': { 'Mouth_Funnel': 0.6, 'Mouth_Pucker_Lower': 0.5, 'Mouth_Smile_Left': 0.4, 'Mouth_Smile_Right': 0.4 },
+            'r': { 'Tongue_Curl': 0.95, 'Mouth_Funnel': 0.5, 'Mouth_Open': 0.3, 'Mouth_Pucker_Lower': 0.3 },
+            'th': { 'Tongue_Out': 0.9, 'Mouth_Open': 0.5, 'Jaw_Open': 0.3 },
+            'uh': { 'Mouth_Pucker_Lower': 0.7, 'Mouth_Pucker_Upper': 0.6, 'Mouth_Open': 0.3, 'Mouth_Funnel': 0.4 },
+            'uw': { 'Mouth_Pucker_Lower': 0.95, 'Mouth_Pucker_Upper': 0.9, 'Mouth_Funnel': 0.8, 'Mouth_Open': 0.3 },
+            'w': { 'Mouth_Pucker_Lower': 0.85, 'Mouth_Pucker_Upper': 0.8, 'Mouth_Funnel': 0.7 },
+            'y': { 'Mouth_Smile_Left': 0.5, 'Mouth_Smile_Right': 0.5, 'Mouth_Stretch_Left': 0.2, 'Mouth_Stretch_Right': 0.2 },
+            'z': { 'Mouth_Open': 0.25, 'Mouth_Stretch_Left': 0.4, 'Mouth_Stretch_Right': 0.4 }
+        };
+
+        const BABYLON_VISEME_DESCRIPTIONS = {
+            'sil': 'Silence/Neutral',
+            'aa': 'Father - wide open',
+            'ae': 'Cat - stretched wide',
+            'ah': 'Hot - very open',
+            'ao': 'Thought - rounded',
+            'aw': 'Loud - wide open',
+            'ay': 'Hide - smile',
+            'b_m_p': 'Lips together',
+            'ch_j_sh_zh': 'Church - rounded',
+            'd_s_t': 'Tongue to teeth',
+            'eh': 'Pet - mid-open',
+            'er': 'Bird - R sound',
+            'f_v': 'Teeth on lip',
+            'g_k': 'Back tongue',
+            'hh': 'Breathy H',
+            'ih': 'Bit - small',
+            'iy': 'Beat - smile',
+            'l': 'Tongue up L',
+            'n': 'Tongue up N',
+            'ng': 'Back tongue NG',
+            'ow': 'Boat - round',
+            'oy': 'Boy - round smile',
+            'r': 'Red - tongue curl',
+            'th': 'Tongue out',
+            'uh': 'Put - small round',
+            'uw': 'Boot - tight round',
+            'w': 'Way - protrusion',
+            'y': 'Yes - slight smile',
+            'z': 'Zoo - teeth'
+        };
+
+        function initBabylon() {
+            const canvas = document.getElementById('babylon-canvas');
+            babylonEngine = new BABYLON.Engine(canvas, true);
+
+            babylonScene = new BABYLON.Scene(babylonEngine);
+            babylonScene.clearColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+
+            // Camera
+            const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 2, 3, BABYLON.Vector3.Zero(), babylonScene);
+            camera.setTarget(BABYLON.Vector3.Zero());
+            camera.attachControls(canvas, true);
+
+            // Lighting
+            const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), babylonScene);
+            light.intensity = 0.7;
+
+            const dirLight = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-1, -1, -1), babylonScene);
+            dirLight.intensity = 0.5;
+
+            createBabylonVisemeControls();
+
+            babylonEngine.runRenderLoop(() => {
+                babylonScene.render();
+            });
+
+            window.addEventListener("resize", () => {
+                babylonEngine.resize();
+            });
+
+            updateBabylonStatus('Ready! Click "Load GLB Model" to begin', '#28a745');
+        }
+
+        function createBabylonVisemeControls() {
+            const container = document.getElementById('babylon-viseme-controls');
+            Object.entries(BABYLON_CALIBRATED_MORPHS).forEach(([viseme, morphs]) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn';
+                btn.textContent = `${viseme.toUpperCase()} - ${BABYLON_VISEME_DESCRIPTIONS[viseme]}`;
+                btn.onclick = () => setBabylonViseme(viseme, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function updateBabylonStatus(message, color = '#333') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.background = color;
+        }
+
+        function loadBabylonGLB() {
+            updateBabylonStatus('🔄 Loading GLB with Babylon.js...', '#ff9800');
+
+            const glbPaths = [
+                './frontend/dist/assets/SavannahAvatar.glb',
+                './frontend/public/assets/SavannahAvatar.glb',
+                './SavannahAvatar.glb',
+                'https://models.readyplayer.me/638b9e90f3c32c854aa05d1a.glb'
+            ];
+
+            let pathIndex = 0;
+
+            function tryLoadBabylonPath() {
+                if (pathIndex >= glbPaths.length) {
+                    updateBabylonStatus('❌ Could not load GLB model', '#dc3545');
+                    return;
+                }
+
+                const currentPath = glbPaths[pathIndex];
+                updateBabylonStatus(`📥 Trying: ${currentPath}`, '#17a2b8');
+
+                BABYLON.SceneLoader.ImportMesh("", "", currentPath, babylonScene, 
+                    (meshes, particleSystems, skeletons) => {
+                        updateBabylonStatus('✅ GLB loaded successfully!', '#28a745');
+                        setupBabylonAvatar(meshes);
+                    },
+                    (progress) => {
+                        if (progress.total > 0) {
+                            const percent = Math.round((progress.loaded / progress.total) * 100);
+                            updateBabylonStatus(`📥 Loading... ${percent}%`, '#17a2b8');
+                        }
+                    },
+                    (scene, message, exception) => {
+                        console.warn(`Failed to load ${currentPath}:`, message);
+                        pathIndex++;
+                        setTimeout(tryLoadBabylonPath, 500);
+                    }
+                );
+            }
+
+            tryLoadBabylonPath();
+        }
+
+        function setupBabylonAvatar(meshes) {
+            // Clear existing avatar
+            if (babylonAvatar) {
+                babylonAvatar.dispose();
+            }
+
+            babylonAvatar = meshes[0];
+            babylonMorphTargets = [];
+            let totalMorphs = 0;
+
+            meshes.forEach(mesh => {
+                if (mesh.morphTargetManager) {
+                    const manager = mesh.morphTargetManager;
+                    console.log(`Found Babylon mesh with morphs: ${mesh.name}, targets: ${manager.numTargets}`);
+
+                    for (let i = 0; i < manager.numTargets; i++) {
+                        const target = manager.getTarget(i);
+                        babylonMorphTargets.push({
+                            name: target.name,
+                            mesh: mesh,
+                            meshName: mesh.name,
+                            target: target,
+                            index: i,
+                            manager: manager,
+                            currentValue: 0
+                        });
+                        totalMorphs++;
+                    }
+                }
+            });
+
+            updateBabylonStatus(`✅ Ready! Found ${totalMorphs} Babylon morph targets`, '#28a745');
+            displayBabylonMorphInfo();
+        }
+
+        function displayBabylonMorphInfo() {
+            const container = document.getElementById('babylon-morph-info');
+            if (babylonMorphTargets.length === 0) {
+                container.textContent = 'No Babylon morph targets found';
+                return;
+            }
+
+            const morphsByMesh = {};
+            babylonMorphTargets.forEach(morph => {
+                if (!morphsByMesh[morph.meshName]) {
+                    morphsByMesh[morph.meshName] = [];
+                }
+                morphsByMesh[morph.meshName].push(morph.name);
+            });
+
+            let html = `<strong>Total: ${babylonMorphTargets.length}</strong><br><br>`;
+            Object.entries(morphsByMesh).forEach(([meshName, morphs]) => {
+                html += `<strong>${meshName}:</strong><br>`;
+                morphs.slice(0, 4).forEach(name => {
+                    html += `  • ${name}<br>`;
+                });
+                if (morphs.length > 4) {
+                    html += `  ... +${morphs.length - 4} more<br>`;
+                }
+                html += '<br>';
+            });
+
+            container.innerHTML = html;
+        }
+
+        function setBabylonViseme(viseme, button) {
+            if (!babylonAvatar || babylonMorphTargets.length === 0) {
+                updateBabylonStatus('❌ No GLB model loaded', '#dc3545');
+                return;
+            }
+
+            // Clear active states
+            document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+
+            // Reset all morphs
+            resetBabylonMorphs();
+
+            // Apply morphs for this viseme
+            const morphsToApply = BABYLON_CALIBRATED_MORPHS[viseme] || {};
+            let appliedCount = 0;
+
+            Object.entries(morphsToApply).forEach(([morphName, baseValue]) => {
+                const targetMorphs = babylonMorphTargets.filter(m => {
+                    const name = m.name.toLowerCase();
+                    const target = morphName.toLowerCase();
+                    return name.includes(target) || target.includes(name) || 
+                           name.replace(/_/g, '').includes(target.replace(/_/g, '')) ||
+                           target.replace(/_/g, '').includes(name.replace(/_/g, ''));
+                });
+
+                targetMorphs.forEach(morph => {
+                    const finalValue = baseValue * babylonCurrentIntensity;
+                    
+                    // Apply to Babylon.js morph target
+                    morph.target.influence = finalValue;
+                    morph.currentValue = finalValue;
+                    appliedCount++;
+
+                    if (finalValue > 0.1) {
+                        console.log(`Applied Babylon morph ${morph.name} on ${morph.meshName}: ${finalValue.toFixed(3)}`);
+                    }
+                });
+            });
+
+            updateBabylonStatus(`🎭 ${viseme.toUpperCase()}: ${appliedCount} Babylon morphs applied`, '#17a2b8');
+        }
+
+        function resetBabylonMorphs() {
+            babylonMorphTargets.forEach(morph => {
+                morph.target.influence = 0;
+                morph.currentValue = 0;
+            });
+        }
+
+        function updateBabylonIntensity(value) {
+            babylonCurrentIntensity = parseFloat(value);
+            document.getElementById('babylon-intensity-value').textContent = value;
+
+            // Re-apply current viseme if any is active
+            const activeBtn = document.querySelector('.btn.active');
+            if (activeBtn) {
+                const viseme = activeBtn.textContent.split(' ')[0].toLowerCase();
+                setBabylonViseme(viseme, activeBtn);
+            }
+        }
+
+        async function runBabylonAutoTest() {
+            if (!babylonAvatar || babylonMorphTargets.length === 0) {
+                updateBabylonStatus('❌ Load GLB model first', '#dc3545');
+                return;
+            }
+
+            updateBabylonStatus('🚀 Running Babylon auto test...', '#ff9800');
+
+            const visemes = Object.keys(BABYLON_CALIBRATED_MORPHS);
+            const buttons = document.querySelectorAll('#babylon-viseme-controls .btn');
+
+            for (let i = 0; i < visemes.length; i++) {
+                const viseme = visemes[i];
+                const button = buttons[i];
+
+                updateBabylonStatus(`Testing ${i + 1}/${visemes.length}: ${viseme.toUpperCase()}`, '#17a2b8');
+                setBabylonViseme(viseme, button);
+
+                await new Promise(resolve => setTimeout(resolve, 800));
+            }
+
+            updateBabylonStatus('✅ Babylon auto test completed!', '#28a745');
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            initBabylon();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Simple MediaPipe Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover { background: #0056b3; }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            max-height: 400px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simple MediaPipe Test</h1>
+    <p>Testing MediaPipe with the official recommended approach.</p>
+    
+    <div id="status" class="status warning">Ready to test...</div>
+    
+    <button onclick="testMediaPipe()">Test MediaPipe</button>
+    <button onclick="clearLog()">Clear Log</button>
+    
+    <pre id="log">Click "Test MediaPipe" to start...\n</pre>
+
+    <!-- Load MediaPipe the official way -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+    <script>
+        const logDiv = document.getElementById('log');
+        const statusDiv = document.getElementById('status');
+        
+        function log(message) {
+            console.log(message);
+            logDiv.textContent += new Date().toLocaleTimeString() + ' - ' + message + '\n';
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function setStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+        
+        function testMediaPipe() {
+            log('🚀 Testing MediaPipe with official loading method...');
+            
+            try {
+                // Check if MediaPipe objects are available
+                if (typeof FaceMesh !== 'undefined') {
+                    log('✅ FaceMesh class found');
+                    
+                    // Try to create FaceMesh instance
+                    const faceMesh = new FaceMesh({
+                        locateFile: (file) => {
+                            return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+                        }
+                    });
+                    
+                    if (faceMesh) {
+                        log('✅ FaceMesh instance created successfully!');
+                        setStatus('✅ MediaPipe is working!', 'success');
+                        
+                        // Configure face mesh
+                        faceMesh.setOptions({
+                            maxNumFaces: 1,
+                            refineLandmarks: true,
+                            minDetectionConfidence: 0.5,
+                            minTrackingConfidence: 0.5
+                        });
+                        
+                        faceMesh.onResults((results) => {
+                            log(`📊 Face detection results received: ${results.multiFaceLandmarks?.length || 0} faces`);
+                        });
+                        
+                        log('✅ FaceMesh configured successfully');
+                        log('🎉 MediaPipe is now ready for face detection!');
+                        
+                        // Close the instance to clean up
+                        faceMesh.close();
+                        log('🧹 FaceMesh instance disposed');
+                        
+                    } else {
+                        throw new Error('Failed to create FaceMesh instance');
+                    }
+                    
+                } else {
+                    throw new Error('FaceMesh class not found - MediaPipe not loaded properly');
+                }
+                
+            } catch (error) {
+                log(`❌ MediaPipe test failed: ${error.message}`);
+                setStatus(`❌ Test failed: ${error.message}`, 'error');
+                
+                // Additional diagnostics
+                log('🔍 Diagnostic information:');
+                log(`- FaceMesh available: ${typeof FaceMesh !== 'undefined'}`);
+                log(`- Camera utils: ${typeof Camera !== 'undefined'}`);
+                log(`- Drawing utils: ${typeof drawConnectors !== 'undefined'}`);
+            }
+        }
+        
+        function clearLog() {
+            logDiv.textContent = 'Log cleared...\n';
+            setStatus('Ready for new test...', 'warning');
+        }
+        
+        // Wait for scripts to load
+        window.addEventListener('load', () => {
+            log('🔬 Simple MediaPipe test environment ready');
+            log('Using official MediaPipe script loading approach');
+        });
+    </script>
+</body>
+</html>

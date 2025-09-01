@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaPipe Integration Test - Quick Diagnostic</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-step {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #dee2e6;
+            background: #f8f9fa;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .test-step.running {
+            border-color: #007bff;
+            background: #e3f2fd;
+        }
+        
+        .test-step.success {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        
+        .test-step.error {
+            border-color: #dc3545;
+            background: #f8d7da;
+        }
+        
+        .test-step.warning {
+            border-color: #ffc107;
+            background: #fff3cd;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .progress {
+            width: 100%;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #28a745);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        
+        .result-summary {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .error-details {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        .success-details {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="header">
+            <h1>MediaPipe Integration Test</h1>
+            <p>Quick diagnostic for MediaPipe Face Landmarker v2 loading issues</p>
+        </div>
+        
+        <div class="progress">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <p id="progressText">Ready to start diagnostic...</p>
+        
+        <button class="btn" id="startBtn" onclick="startDiagnostic()">Start Diagnostic</button>
+        <button class="btn" onclick="location.reload()">Reset</button>
+        
+        <div id="testSteps">
+            <!-- Test steps will be populated dynamically -->
+        </div>
+        
+        <div id="resultSummary" class="result-summary" style="display: none;">
+            <!-- Results will be shown here -->
+        </div>
+    </div>
+
+    <script>
+        const testSteps = [
+            {
+                id: 'system-check',
+                title: 'System Environment Check',
+                description: 'Checking browser capabilities and environment'
+            },
+            {
+                id: 'network-check',
+                title: 'Network Connectivity Test',
+                description: 'Testing access to MediaPipe CDN and resources'
+            },
+            {
+                id: 'webgl-check',
+                title: 'WebGL/GPU Acceleration Test',
+                description: 'Verifying graphics capabilities'
+            },
+            {
+                id: 'wasm-check',
+                title: 'WebAssembly Support Test',
+                description: 'Checking WASM capabilities and SIMD support'
+            },
+            {
+                id: 'mediapipe-import',
+                title: 'MediaPipe Import Test',
+                description: 'Attempting to load MediaPipe library'
+            },
+            {
+                id: 'model-download',
+                title: 'Model File Access Test',
+                description: 'Testing model file accessibility'
+            },
+            {
+                id: 'initialization',
+                title: 'Face Landmarker Initialization',
+                description: 'Creating Face Landmarker instance'
+            }
+        ];
+        
+        let currentStep = 0;
+        let testResults = [];
+        let hasErrors = false;
+        
+        function initializeSteps() {
+            const container = document.getElementById('testSteps');
+            container.innerHTML = testSteps.map(step => `
+                <div id="step-${step.id}" class="test-step">
+                    <h3>${step.title}</h3>
+                    <p>${step.description}</p>
+                    <div id="result-${step.id}"></div>
+                </div>
+            `).join('');
+        }
+        
+        function updateProgress(percentage, text) {
+            document.getElementById('progressBar').style.width = `${percentage}%`;
+            document.getElementById('progressText').textContent = text;
+        }
+        
+        function updateStep(stepId, status, message, details = null) {
+            const stepElement = document.getElementById(`step-${stepId}`);
+            const resultElement = document.getElementById(`result-${stepId}`);
+            
+            stepElement.className = `test-step ${status}`;
+            
+            let resultHtml = `<strong>Status:</strong> ${message}`;
+            if (details) {
+                if (status === 'error') {
+                    resultHtml += `<div class="error-details">${details}</div>`;
+                } else if (status === 'success') {
+                    resultHtml += `<div class="success-details">${details}</div>`;
+                } else {
+                    resultHtml += `<pre>${details}</pre>`;
+                }
+            }
+            
+            resultElement.innerHTML = resultHtml;
+            
+            testResults.push({
+                step: stepId,
+                status,
+                message,
+                details,
+                timestamp: new Date().toISOString()
+            });
+            
+            if (status === 'error') {
+                hasErrors = true;
+            }
+        }
+        
+        async function startDiagnostic() {
+            document.getElementById('startBtn').disabled = true;
+            hasErrors = false;
+            testResults = [];
+            currentStep = 0;
+            
+            initializeSteps();
+            updateProgress(0, 'Starting diagnostic...');
+            
+            try {
+                await runSystemCheck();
+                await runNetworkCheck();
+                await runWebGLCheck();
+                await runWASMCheck();
+                await runMediaPipeImport();
+                await runModelDownload();
+                await runInitialization();
+                
+                showResults();
+                updateProgress(100, 'Diagnostic completed');
+                
+            } catch (error) {
+                console.error('Diagnostic failed:', error);
+                updateProgress(100, 'Diagnostic failed with critical error');
+            } finally {
+                document.getElementById('startBtn').disabled = false;
+            }
+        }
+        
+        async function runSystemCheck() {
+            updateStep('system-check', 'running', 'Checking system environment...');
+            updateProgress(10, 'Checking system environment...');
+            
+            try {
+                const info = {
+                    userAgent: navigator.userAgent,
+                    platform: navigator.platform,
+                    language: navigator.language,
+                    cookieEnabled: navigator.cookieEnabled,
+                    onLine: navigator.onLine,
+                    hardwareConcurrency: navigator.hardwareConcurrency,
+                    deviceMemory: navigator.deviceMemory || 'unknown',
+                    connection: navigator.connection ? {
+                        effectiveType: navigator.connection.effectiveType,
+                        downlink: navigator.connection.downlink,
+                        rtt: navigator.connection.rtt
+                    } : 'unknown'
+                };
+                
+                updateStep('system-check', 'success', 'System environment OK', JSON.stringify(info, null, 2));
+                
+            } catch (error) {
+                updateStep('system-check', 'error', 'System check failed', error.message);
+            }
+        }
+        
+        async function runNetworkCheck() {
+            updateStep('network-check', 'running', 'Testing network connectivity...');
+            updateProgress(25, 'Testing network connectivity...');
+            
+            try {
+                const testUrls = [
+                    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.15/package.json',
+                    'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task'
+                ];
+                
+                const results = [];
+                for (const url of testUrls) {
+                    try {
+                        const response = await fetch(url, { method: 'HEAD' });
+                        results.push({
+                            url,
+                            status: response.status,
+                            ok: response.ok,
+                            headers: {
+                                contentType: response.headers.get('content-type'),
+                                contentLength: response.headers.get('content-length')
+                            }
+                        });
+                    } catch (error) {
+                        results.push({
+                            url,
+                            error: error.message
+                        });
+                    }
+                }
+                
+                const failures = results.filter(r => !r.ok && !r.error);
+                const errors = results.filter(r => r.error);
+                
+                if (errors.length > 0) {
+                    updateStep('network-check', 'error', `Network errors: ${errors.length}/${testUrls.length}`, JSON.stringify(results, null, 2));
+                } else if (failures.length > 0) {
+                    updateStep('network-check', 'warning', `Some resources inaccessible: ${failures.length}/${testUrls.length}`, JSON.stringify(results, null, 2));
+                } else {
+                    updateStep('network-check', 'success', 'Network connectivity OK', JSON.stringify(results, null, 2));
+                }
+                
+            } catch (error) {
+                updateStep('network-check', 'error', 'Network check failed', error.message);
+            }
+        }
+        
+        async function runWebGLCheck() {
+            updateStep('webgl-check', 'running', 'Testing WebGL capabilities...');
+            updateProgress(40, 'Testing WebGL capabilities...');
+            
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+                
+                if (!gl) {
+                    updateStep('webgl-check', 'error', 'WebGL not supported', 'WebGL context creation failed');
+                    return;
+                }
+                
+                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                const info = {
+                    version: gl.getParameter(gl.VERSION),
+                    vendor: gl.getParameter(gl.VENDOR),
+                    renderer: gl.getParameter(gl.RENDERER),
+                    unmaskedVendor: debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : 'unknown',
+                    unmaskedRenderer: debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'unknown',
+                    maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+                    extensions: gl.getSupportedExtensions().slice(0, 10) // Show first 10 extensions
+                };
+                
+                updateStep('webgl-check', 'success', 'WebGL supported', JSON.stringify(info, null, 2));
+                
+            } catch (error) {
+                updateStep('webgl-check', 'error', 'WebGL check failed', error.message);
+            }
+        }
+        
+        async function runWASMCheck() {
+            updateStep('wasm-check', 'running', 'Testing WebAssembly support...');
+            updateProgress(55, 'Testing WebAssembly support...');
+            
+            try {
+                if (typeof WebAssembly === 'undefined') {
+                    updateStep('wasm-check', 'error', 'WebAssembly not supported', 'WebAssembly object not found');
+                    return;
+                }
+                
+                // Test SIMD support
+                let simdSupported = false;
+                try {
+                    simdSupported = WebAssembly.validate(new Uint8Array([
+                        0, 97, 115, 109, 1, 0, 0, 0, 1, 4, 1, 96, 0, 0, 3, 2, 1, 0, 10, 8, 1, 6, 0, 65, 0, 253, 15, 26, 11
+                    ]));
+                } catch (e) {
+                    // SIMD not supported
+                }
+                
+                // Test threads support
+                const threadsSupported = 'SharedArrayBuffer' in window && 'Atomics' in window;
+                
+                const info = {
+                    wasmSupported: true,
+                    simdSupported,
+                    threadsSupported,
+                    crossOriginIsolated: window.crossOriginIsolated,
+                    secureContext: window.isSecureContext
+                };
+                
+                let status = 'success';
+                let message = 'WebAssembly fully supported';
+                
+                if (!simdSupported) {
+                    status = 'warning';
+                    message = 'WebAssembly supported, SIMD not available';
+                }
+                
+                if (!threadsSupported) {
+                    status = 'warning';
+                    message = 'WebAssembly supported, threading limitations';
+                }
+                
+                updateStep('wasm-check', status, message, JSON.stringify(info, null, 2));
+                
+            } catch (error) {
+                updateStep('wasm-check', 'error', 'WASM check failed', error.message);
+            }
+        }
+        
+        async function runMediaPipeImport() {
+            updateStep('mediapipe-import', 'running', 'Attempting to load MediaPipe...');
+            updateProgress(70, 'Loading MediaPipe library...');
+            
+            try {
+                // Try ES6 import first
+                let mediapipeLoaded = false;
+                let importMethod = 'unknown';
+                let importError = null;
+                
+                try {
+                    const { FilesetResolver, FaceLandmarker } = await import('@mediapipe/tasks-vision');
+                    mediapipeLoaded = true;
+                    importMethod = 'ES6 import';
+                    window.MediaPipeVision = { FilesetResolver, FaceLandmarker };
+                } catch (error) {
+                    importError = error.message;
+                    
+                    // Try CDN loading
+                    try {
+                        await loadMediaPipeFromCDN();
+                        mediapipeLoaded = true;
+                        importMethod = 'CDN script';
+                    } catch (cdnError) {
+                        importError = `ES6: ${error.message}, CDN: ${cdnError.message}`;
+                    }
+                }
+                
+                if (mediapipeLoaded) {
+                    updateStep('mediapipe-import', 'success', `MediaPipe loaded via ${importMethod}`, 'Library loaded successfully');
+                } else {
+                    updateStep('mediapipe-import', 'error', 'Failed to load MediaPipe', importError);
+                }
+                
+            } catch (error) {
+                updateStep('mediapipe-import', 'error', 'MediaPipe import failed', error.message);
+            }
+        }
+        
+        async function loadMediaPipeFromCDN() {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.15/tasks-vision.js';
+                script.onload = () => resolve();
+                script.onerror = () => reject(new Error('CDN script loading failed'));
+                document.head.appendChild(script);
+                
+                setTimeout(() => reject(new Error('CDN loading timeout')), 30000);
+            });
+        }
+        
+        async function runModelDownload() {
+            updateStep('model-download', 'running', 'Testing model file access...');
+            updateProgress(85, 'Testing model file access...');
+            
+            try {
+                const modelUrl = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+                
+                const response = await fetch(modelUrl, { method: 'HEAD' });
+                
+                const info = {
+                    url: modelUrl,
+                    status: response.status,
+                    ok: response.ok,
+                    contentType: response.headers.get('content-type'),
+                    contentLength: response.headers.get('content-length'),
+                    lastModified: response.headers.get('last-modified')
+                };
+                
+                if (response.ok) {
+                    updateStep('model-download', 'success', 'Model file accessible', JSON.stringify(info, null, 2));
+                } else {
+                    updateStep('model-download', 'error', `Model file not accessible (${response.status})`, JSON.stringify(info, null, 2));
+                }
+                
+            } catch (error) {
+                updateStep('model-download', 'error', 'Model download test failed', error.message);
+            }
+        }
+        
+        async function runInitialization() {
+            updateStep('initialization', 'running', 'Attempting Face Landmarker initialization...');
+            updateProgress(95, 'Testing Face Landmarker initialization...');
+            
+            try {
+                if (!window.MediaPipeVision) {
+                    updateStep('initialization', 'error', 'MediaPipe not available', 'Cannot initialize without MediaPipe library');
+                    return;
+                }
+                
+                const { FilesetResolver, FaceLandmarker } = window.MediaPipeVision;
+                
+                // Try to create FilesetResolver
+                const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.15/wasm');
+                
+                // Try to create FaceLandmarker
+                const faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+                        delegate: 'CPU'
+                    },
+                    runningMode: 'VIDEO',
+                    numFaces: 1
+                });
+                
+                updateStep('initialization', 'success', 'Face Landmarker initialized successfully', 'MediaPipe is ready to use');
+                
+            } catch (error) {
+                updateStep('initialization', 'error', 'Initialization failed', error.message);
+            }
+        }
+        
+        function showResults() {
+            const summary = document.getElementById('resultSummary');
+            const successCount = testResults.filter(r => r.status === 'success').length;
+            const warningCount = testResults.filter(r => r.status === 'warning').length;
+            const errorCount = testResults.filter(r => r.status === 'error').length;
+            
+            let recommendations = [];
+            
+            if (errorCount === 0) {
+                recommendations.push('✅ All tests passed! MediaPipe should work correctly in your environment.');
+            } else {
+                recommendations.push('❌ Issues detected. Review the errors above for specific solutions.');
+                
+                // Add specific recommendations based on failed tests
+                testResults.forEach(result => {
+                    if (result.status === 'error') {
+                        switch (result.step) {
+                            case 'network-check':
+                                recommendations.push('🔧 Network Issue: Check firewall settings and network connectivity');
+                                break;
+                            case 'webgl-check':
+                                recommendations.push('🔧 WebGL Issue: Update graphics drivers or enable hardware acceleration');
+                                break;
+                            case 'wasm-check':
+                                recommendations.push('🔧 WASM Issue: Use a modern browser with WebAssembly support');
+                                break;
+                            case 'mediapipe-import':
+                                recommendations.push('🔧 Import Issue: Install @mediapipe/tasks-vision package or check CDN access');
+                                break;
+                            case 'model-download':
+                                recommendations.push('🔧 Model Issue: Check network access to Google Cloud Storage');
+                                break;
+                            case 'initialization':
+                                recommendations.push('🔧 Init Issue: Verify all previous tests pass first');
+                                break;
+                        }
+                    }
+                });
+            }
+            
+            summary.innerHTML = `
+                <h3>Diagnostic Summary</h3>
+                <p><strong>Tests Completed:</strong> ${testResults.length}</p>
+                <p><strong>Successful:</strong> ${successCount}</p>
+                <p><strong>Warnings:</strong> ${warningCount}</p>
+                <p><strong>Errors:</strong> ${errorCount}</p>
+                
+                <h4>Recommendations:</h4>
+                <ul>
+                    ${recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                </ul>
+                
+                <button class="btn" onclick="downloadReport()">Download Full Report</button>
+            `;
+            
+            summary.style.display = 'block';
+        }
+        
+        function downloadReport() {
+            const report = {
+                timestamp: new Date().toISOString(),
+                browser: navigator.userAgent,
+                url: location.href,
+                testResults: testResults,
+                summary: {
+                    total: testResults.length,
+                    success: testResults.filter(r => r.status === 'success').length,
+                    warnings: testResults.filter(r => r.status === 'warning').length,
+                    errors: testResults.filter(r => r.status === 'error').length
+                }
+            };
+            
+            const dataStr = JSON.stringify(report, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', `mediapipe-diagnostic-${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.json`);
+            linkElement.click();
+        }
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeSteps();
+        });
+    </script>
+</body>
+</html>

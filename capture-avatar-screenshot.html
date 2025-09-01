@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avatar Screenshot Capture</title>
+    <style>
+        body { 
+            margin: 0; 
+            font-family: Arial; 
+            background: #222; 
+            color: white; 
+        }
+        #container { 
+            width: 800px; 
+            height: 600px; 
+            margin: 20px auto; 
+            border: 2px solid #444; 
+        }
+        #controls { 
+            text-align: center; 
+            margin: 20px; 
+        }
+        button { 
+            padding: 10px 20px; 
+            margin: 0 10px; 
+            background: #0066cc; 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+            border-radius: 4px; 
+        }
+        #info { 
+            position: fixed; 
+            top: 10px; 
+            right: 10px; 
+            background: rgba(0,0,0,0.8); 
+            padding: 15px; 
+            border-radius: 8px; 
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h3>Avatar Screenshot Tool</h3>
+        <div id="status">Loading...</div>
+        <div id="scale-info">Scale: N/A</div>
+        <div id="size-info">Size: N/A</div>
+    </div>
+
+    <div id="container">
+        <canvas id="canvas" width="800" height="600"></canvas>
+    </div>
+
+    <div id="controls">
+        <button onclick="adjustScale(0.8)">Scale Down</button>
+        <button onclick="adjustScale(1.25)">Scale Up</button>
+        <button onclick="resetView()">Reset View</button>
+        <button onclick="captureScreenshot()">📷 Capture</button>
+        <button onclick="testMorphs()">Test Visemes</button>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.157.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        let scene, camera, renderer, controls, avatar, currentScale = 0.15;
+        let morphTargets = {};
+
+        function init() {
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x333333);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(50, 800/600, 0.1, 1000);
+            camera.position.set(0, 1.5, 3);
+
+            // Renderer
+            const canvas = document.getElementById('canvas');
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            renderer.setSize(800, 600);
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 5, 5);
+            scene.add(dirLight);
+
+            // Grid
+            const grid = new THREE.GridHelper(5, 10);
+            scene.add(grid);
+
+            // Controls
+            controls = new OrbitControls(camera, canvas);
+            controls.target.set(0, 1, 0);
+            controls.enableDamping = true;
+
+            // Load avatar
+            loadAvatar();
+
+            // Render loop
+            animate();
+        }
+
+        function loadAvatar() {
+            document.getElementById('status').textContent = 'Loading avatar...';
+            
+            const loader = new GLTFLoader();
+            loader.load(
+                '/frontend/public/assets/SavannahAvatar.glb',
+                (gltf) => {
+                    avatar = gltf.scene;
+                    
+                    // Analyze model
+                    const box = new THREE.Box3().setFromObject(avatar);
+                    const size = box.getSize(new THREE.Vector3());
+                    const center = box.getCenter(new THREE.Vector3());
+                    
+                    // Apply scale
+                    avatar.scale.setScalar(currentScale);
+                    avatar.position.set(-center.x * currentScale, -center.y * currentScale, -center.z * currentScale);
+                    
+                    // Find morph targets
+                    avatar.traverse((child) => {
+                        if (child.isMesh) {
+                            child.frustumCulled = false;
+                            if (child.material) {
+                                child.material.side = THREE.DoubleSide;
+                            }
+                            
+                            if (child.morphTargetDictionary) {
+                                Object.keys(child.morphTargetDictionary).forEach(key => {
+                                    morphTargets[key] = { mesh: child, index: child.morphTargetDictionary[key] };
+                                });
+                            }
+                        }
+                    });
+                    
+                    scene.add(avatar);
+                    
+                    // Update info
+                    document.getElementById('status').textContent = 'Avatar loaded';
+                    document.getElementById('scale-info').textContent = `Scale: ${currentScale}`;
+                    document.getElementById('size-info').textContent = 
+                        `Original Size: ${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
+                    
+                    console.log('Avatar loaded:', { size, scale: currentScale, morphTargets: Object.keys(morphTargets) });
+                },
+                (progress) => {
+                    const percent = ((progress.loaded / progress.total) * 100).toFixed(0);
+                    document.getElementById('status').textContent = `Loading: ${percent}%`;
+                },
+                (error) => {
+                    console.error('Load error:', error);
+                    document.getElementById('status').textContent = 'Load failed - check console';
+                }
+            );
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.adjustScale = function(factor) {
+            if (avatar) {
+                currentScale *= factor;
+                avatar.scale.setScalar(currentScale);
+                document.getElementById('scale-info').textContent = `Scale: ${currentScale.toFixed(3)}`;
+                console.log('Scale adjusted to:', currentScale);
+            }
+        }
+
+        window.resetView = function() {
+            camera.position.set(0, 1.5, 3);
+            controls.target.set(0, 1, 0);
+            controls.update();
+        }
+
+        window.captureScreenshot = function() {
+            renderer.render(scene, camera);
+            const link = document.createElement('a');
+            link.download = `avatar-screenshot-scale-${currentScale.toFixed(3)}.png`;
+            link.href = renderer.domElement.toDataURL();
+            link.click();
+            console.log('Screenshot captured at scale:', currentScale);
+        }
+
+        window.testMorphs = function() {
+            if (Object.keys(morphTargets).length === 0) {
+                console.log('No morph targets found');
+                return;
+            }
+            
+            // Animate through morph targets
+            let index = 0;
+            const morphKeys = Object.keys(morphTargets);
+            
+            const interval = setInterval(() => {
+                // Reset all
+                Object.values(morphTargets).forEach(({ mesh, index }) => {
+                    if (mesh.morphTargetInfluences) {
+                        mesh.morphTargetInfluences[index] = 0;
+                    }
+                });
+                
+                // Set current morph
+                const currentMorph = morphTargets[morphKeys[index]];
+                if (currentMorph.mesh.morphTargetInfluences) {
+                    currentMorph.mesh.morphTargetInfluences[currentMorph.index] = 0.8;
+                }
+                
+                console.log(`Testing morph: ${morphKeys[index]}`);
+                
+                index++;
+                if (index >= morphKeys.length) {
+                    clearInterval(interval);
+                    // Reset all
+                    Object.values(morphTargets).forEach(({ mesh, index }) => {
+                        if (mesh.morphTargetInfluences) {
+                            mesh.morphTargetInfluences[index] = 0;
+                        }
+                    });
+                    console.log('Morph test complete');
+                }
+            }, 1000);
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>

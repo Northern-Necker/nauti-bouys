@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ActorCore Morphs Analysis</title>
+</head>
+<body>
+    <h1>ActorCore GLB Morphs Analysis</h1>
+    <div id="output">Loading...</div>
+
+    <script type="module">
+        import { GLTFLoader } from 'https://unpkg.com/three@0.161.0/examples/jsm/loaders/GLTFLoader.js';
+
+        const loader = new GLTFLoader();
+
+        async function getAllMorphs() {
+            try {
+                console.log('🔍 Loading GLB file to get ALL available morphs...');
+                
+                const gltf = await loader.loadAsync('/assets/party-f-0013-fixed.glb');
+                const scene = gltf.scene;
+                
+                const bodyMorphs = [];
+                const tongueMorphs = [];
+                let output = '<h2>Complete Morph Analysis</h2>';
+                
+                scene.traverse((obj) => {
+                    if (obj.isSkinnedMesh && obj.morphTargetDictionary) {
+                        const morphNames = Object.keys(obj.morphTargetDictionary);
+                        
+                        if (obj.name.includes('CC_Game_Body')) {
+                            console.log(`\n📦 CC_Game_Body - ALL ${morphNames.length} morphs:`);
+                            output += `<h3>📦 CC_Game_Body - ${morphNames.length} morphs:</h3><ul>`;
+                            morphNames.sort().forEach(name => {
+                                console.log(`  - ${name}`);
+                                bodyMorphs.push(name);
+                                output += `<li>${name}</li>`;
+                            });
+                            output += '</ul>';
+                        } else if (obj.name.includes('CC_Game_Tongue')) {
+                            console.log(`\n📦 CC_Game_Tongue - ALL ${morphNames.length} morphs:`);
+                            output += `<h3>📦 CC_Game_Tongue - ${morphNames.length} morphs:</h3><ul>`;
+                            morphNames.sort().forEach(name => {
+                                console.log(`  - ${name}`);
+                                tongueMorphs.push(name);
+                                output += `<li>${name}</li>`;
+                            });
+                            output += '</ul>';
+                        }
+                    }
+                });
+                
+                console.log('\n============================================================');
+                console.log('📊 COMPLETE MORPH INVENTORY:');
+                console.log('============================================================');
+                console.log(`✅ Body morphs: ${bodyMorphs.length}`);
+                console.log(`✅ Tongue morphs: ${tongueMorphs.length}`);
+                
+                output += '<h3>📊 Summary:</h3>';
+                output += `<p>✅ Body morphs: ${bodyMorphs.length}</p>`;
+                output += `<p>✅ Tongue morphs: ${tongueMorphs.length}</p>`;
+                
+                // Check for specific morphs we're trying to use
+                console.log('\n🔍 Checking specific morphs used in viseme combinations:');
+                const morphsToCheck = ['V_Pucker', 'V_Tight-O', 'V_Oh', 'V_Stretched', 'V_Ah', 'V_Tongue_up'];
+                
+                output += '<h3>🔍 Morphs Status Check:</h3><ul>';
+                morphsToCheck.forEach(morph => {
+                    const inBody = bodyMorphs.includes(morph);
+                    const inTongue = tongueMorphs.includes(morph);
+                    const status = `${morph}: ${inBody ? '✅ Body' : '❌ Body'} | ${inTongue ? '✅ Tongue' : '❌ Tongue'}`;
+                    console.log(`  ${status}`);
+                    output += `<li style="color: ${(inBody || inTongue) ? 'green' : 'red'}">${status}</li>`;
+                });
+                output += '</ul>';
+                
+                document.getElementById('output').innerHTML = output;
+                
+            } catch (error) {
+                console.error('❌ Error loading morphs:', error);
+                document.getElementById('output').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Run the analysis
+        getAllMorphs();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optimized Viseme Generation Test - MediaPipe Face Landmarker v2</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .video-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .viseme-display {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        video {
+            width: 100%;
+            height: 300px;
+            border-radius: 10px;
+            background: #000;
+            object-fit: cover;
+        }
+
+        .canvas-container {
+            position: relative;
+            margin-top: 15px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 300px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        select {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .viseme-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .current-viseme {
+            font-size: 3em;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .confidence-score {
+            font-size: 1.2em;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .morph-targets {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .morph-target {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .morph-bar {
+            width: 60%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .morph-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            transition: width 0.3s ease;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .stats-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .stats-panel h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-value {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .alternatives {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .alternative {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .confidence-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 10px;
+        }
+
+        .confidence-high { background: #2ecc71; }
+        .confidence-medium { background: #f39c12; }
+        .confidence-low { background: #e74c3c; }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .feature-visualization {
+            margin-top: 20px;
+        }
+
+        .feature-chart {
+            width: 100%;
+            height: 200px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.1);
+            margin-top: 10px;
+        }
+
+        .processing-mode {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .mode-indicator {
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .mode-realtime {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .mode-batch {
+            background: #3498db;
+            color: white;
+        }
+
+        .performance-meter {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .fps-display {
+            font-size: 1.5em;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .latency-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .latency-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2ecc71, #f39c12, #e74c3c);
+            transition: width 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            button {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+
+        .landmark-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .settings-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .range-value {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .three-preview {
+            width: 100%;
+            height: 250px;
+            border-radius: 10px;
+            background: #000;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎭 Optimized Viseme Generation</h1>
+            <p>Advanced lip sync using MediaPipe Face Landmarker v2 with 468-point facial landmarks</p>
+        </div>
+
+        <div class="main-content">
+            <div class="video-section">
+                <h3>📹 Live Camera Feed</h3>
+                <video id="videoInput" autoplay muted></video>
+                <div class="canvas-container">
+                    <canvas id="landmarkCanvas"></canvas>
+                    <canvas id="landmarkOverlay" class="landmark-overlay"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <button id="startButton" class="btn-primary">Start Camera</button>
+                    <button id="stopButton" class="btn-secondary" disabled>Stop Camera</button>
+                    <button id="recordButton" class="btn-success" disabled>Start Recording</button>
+                    <select id="performanceMode">
+                        <option value="balanced">Balanced Mode</option>
+                        <option value="fast">Fast Mode</option>
+                        <option value="quality">Quality Mode</option>
+                    </select>
+                </div>
+
+                <div class="processing-mode">
+                    <span class="mode-indicator mode-realtime" id="modeIndicator">Real-time</span>
+                    <span>Processing Mode</span>
+                </div>
+            </div>
+
+            <div class="viseme-display">
+                <div class="viseme-info">
+                    <div class="current-viseme" id="currentViseme">sil</div>
+                    <div class="confidence-score" id="confidenceScore">
+                        Confidence: 0% 
+                        <span class="confidence-indicator confidence-low" id="confidenceIndicator"></span>
+                    </div>
+                    
+                    <div class="morph-targets" id="morphTargets">
+                        <h4>Three.js Morph Targets</h4>
+                        <!-- Morph targets will be populated dynamically -->
+                    </div>
+
+                    <div class="alternatives" id="alternatives">
+                        <h4>Alternative Phonemes</h4>
+                        <!-- Alternatives will be populated dynamically -->
+                    </div>
+                </div>
+
+                <div class="performance-meter">
+                    <div class="fps-display" id="fpsDisplay">0 FPS</div>
+                    <div class="latency-bar">
+                        <div class="latency-fill" id="latencyFill"></div>
+                    </div>
+                    <div style="text-align: center; margin-top: 5px; font-size: 0.9em;">
+                        <span id="latencyText">Latency: 0ms</span>
+                    </div>
+                </div>
+
+                <div class="three-preview" id="threePreview">
+                    <!-- Three.js preview will be rendered here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stats-panel">
+                <h3>📊 Geometric Features</h3>
+                <div id="geometricFeatures">
+                    <div class="metric">
+                        <span>Mouth Width:</span>
+                        <span class="metric-value" id="mouthWidth">0.000</span>
+                    </div>
+                    <div class="metric">
+                        <span>Mouth Height:</span>
+                        <span class="metric-value" id="mouthHeight">0.000</span>
+                    </div>
+                    <div class="metric">
+                        <span>Aspect Ratio:</span>
+                        <span class="metric-value" id="aspectRatio">0.000</span>
+                    </div>
+                    <div class="metric">
+                        <span>Jaw Opening:</span>
+                        <span class="metric-value" id="jawOpening">0.000</span>
+                    </div>
+                    <div class="metric">
+                        <span>Lip Separation:</span>
+                        <span class="metric-value" id="lipSeparation">0.000</span>
+                    </div>
+                    <div class="metric">
+                        <span>Roundness:</span>
+                        <span class="metric-value" id="roundness">0.000</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-panel">
+                <h3>⚡ Performance Metrics</h3>
+                <div id="performanceMetrics">
+                    <div class="metric">
+                        <span>Processing Time:</span>
+                        <span class="metric-value" id="processingTime">0ms</span>
+                    </div>
+                    <div class="metric">
+                        <span>Frame Rate:</span>
+                        <span class="metric-value" id="frameRate">0 FPS</span>
+                    </div>
+                    <div class="metric">
+                        <span>Avg Confidence:</span>
+                        <span class="metric-value" id="avgConfidence">0%</span>
+                    </div>
+                    <div class="metric">
+                        <span>Total Frames:</span>
+                        <span class="metric-value" id="totalFrames">0</span>
+                    </div>
+                    <div class="metric">
+                        <span>Dropped Frames:</span>
+                        <span class="metric-value" id="droppedFrames">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-panel">
+                <h3>🎯 Classification Stats</h3>
+                <div id="classificationStats">
+                    <div class="metric">
+                        <span>Most Frequent:</span>
+                        <span class="metric-value" id="mostFrequent">sil</span>
+                    </div>
+                    <div class="metric">
+                        <span>Vowel Count:</span>
+                        <span class="metric-value" id="vowelCount">0</span>
+                    </div>
+                    <div class="metric">
+                        <span>Consonant Count:</span>
+                        <span class="metric-value" id="consonantCount">0</span>
+                    </div>
+                    <div class="metric">
+                        <span>Silence Count:</span>
+                        <span class="metric-value" id="silenceCount">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-panel">
+            <h3>⚙️ Optimizer Settings</h3>
+            <div class="setting-group">
+                <label>Smoothing Factor:</label>
+                <input type="range" id="smoothingFactor" min="0" max="1" step="0.1" value="0.3">
+                <span class="range-value" id="smoothingValue">0.3</span>
+            </div>
+            <div class="setting-group">
+                <label>Confidence Threshold:</label>
+                <input type="range" id="confidenceThreshold" min="0" max="1" step="0.05" value="0.7">
+                <span class="range-value" id="confidenceValue">0.7</span>
+            </div>
+            <div class="setting-group">
+                <label>Interpolation Frames:</label>
+                <input type="range" id="interpolationFrames" min="1" max="10" step="1" value="5">
+                <span class="range-value" id="interpolationValue">5</span>
+            </div>
+            <div class="setting-group">
+                <label>Target FPS:</label>
+                <input type="range" id="targetFPS" min="15" max="60" step="5" value="30">
+                <span class="range-value" id="fpsValue">30</span>
+            </div>
+            <div class="controls">
+                <button id="resetSettings" class="btn-secondary">Reset to Defaults</button>
+                <button id="exportResults" class="btn-success">Export Results</button>
+                <button id="loadTestData" class="btn-primary">Load Test Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include MediaPipe -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@latest/build/three.min.js"></script>
+    <script type="module">
+        // Import our optimized viseme system
+        import VisemeOptimizer from '../src/utils/VisemeOptimizer.js';
+        
+        class OptimizedVisemeTest {
+            constructor() {
+                this.video = document.getElementById('videoInput');
+                this.canvas = document.getElementById('landmarkCanvas');
+                this.overlayCanvas = document.getElementById('landmarkOverlay');
+                this.ctx = this.canvas.getContext('2d');
+                this.overlayCtx = this.overlayCanvas.getContext('2d');
+                
+                this.faceLandmarker = null;
+                this.visemeOptimizer = null;
+                this.isProcessing = false;
+                this.isRecording = false;
+                
+                // Performance tracking
+                this.frameCount = 0;
+                this.lastTime = performance.now();
+                this.fps = 0;
+                this.confidenceHistory = [];
+                this.classificationCounts = {
+                    vowels: 0,
+                    consonants: 0,
+                    silence: 0
+                };
+                this.phonemeHistory = [];
+                
+                // Three.js setup
+                this.scene = null;
+                this.renderer = null;
+                this.camera = null;
+                this.morphMesh = null;
+                
+                this.initializeUI();
+                this.initializeMediaPipe();
+                this.initializeThreeJS();
+            }
+
+            async initializeMediaPipe() {
+                try {
+                    const { FaceLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
+                    
+                    const vision = await FilesetResolver.forVisionTasks(
+                        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+                    );
+                    
+                    this.faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+                        baseOptions: {
+                            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+                            delegate: "GPU"
+                        },
+                        numFaces: 1,
+                        runningMode: "VIDEO",
+                        outputFaceBlendshapes: true,
+                        outputFacialTransformationMatrixes: true
+                    });
+                    
+                    // Initialize our optimized viseme system
+                    this.visemeOptimizer = new VisemeOptimizer({
+                        smoothingFactor: 0.3,
+                        confidenceThreshold: 0.7,
+                        performanceMode: 'balanced',
+                        targetFPS: 30
+                    });
+                    
+                    this.updateStatus('MediaPipe and VisemeOptimizer initialized successfully');
+                    
+                } catch (error) {
+                    console.error('Failed to initialize MediaPipe:', error);
+                    this.showError('Failed to initialize MediaPipe: ' + error.message);
+                }
+            }
+
+            initializeThreeJS() {
+                const container = document.getElementById('threePreview');
+                
+                // Scene setup
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 0.1, 1000);
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                
+                this.renderer.setSize(container.offsetWidth, container.offsetHeight);
+                this.renderer.setClearColor(0x000000, 0.8);
+                container.appendChild(this.renderer.domElement);
+                
+                // Create a simple face geometry for morph target visualization
+                this.createMorphMesh();
+                
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                this.scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(0, 1, 1);
+                this.scene.add(directionalLight);
+                
+                this.camera.position.z = 5;
+                
+                // Start render loop
+                this.renderThreeJS();
+            }
+
+            createMorphMesh() {
+                // Create a simple mouth geometry that can be morphed
+                const geometry = new THREE.PlaneGeometry(2, 1, 10, 5);
+                const material = new THREE.MeshPhongMaterial({ 
+                    color: 0xff6b6b,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                
+                this.morphMesh = new THREE.Mesh(geometry, material);
+                this.scene.add(this.morphMesh);
+                
+                // Add wireframe overlay
+                const wireframe = new THREE.WireframeGeometry(geometry);
+                const line = new THREE.LineSegments(wireframe, new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.3, transparent: true }));
+                this.morphMesh.add(line);
+            }
+
+            renderThreeJS() {
+                requestAnimationFrame(() => this.renderThreeJS());
+                
+                if (this.morphMesh && this.renderer && this.scene && this.camera) {
+                    // Rotate the mesh slightly for better visualization
+                    this.morphMesh.rotation.y += 0.01;
+                    
+                    this.renderer.render(this.scene, this.camera);
+                }
+            }
+
+            initializeUI() {
+                // Button event listeners
+                document.getElementById('startButton').addEventListener('click', () => this.startCamera());
+                document.getElementById('stopButton').addEventListener('click', () => this.stopCamera());
+                document.getElementById('recordButton').addEventListener('click', () => this.toggleRecording());
+                document.getElementById('resetSettings').addEventListener('click', () => this.resetSettings());
+                document.getElementById('exportResults').addEventListener('click', () => this.exportResults());
+                document.getElementById('loadTestData').addEventListener('click', () => this.loadTestData());
+                
+                // Performance mode selector
+                document.getElementById('performanceMode').addEventListener('change', (e) => {
+                    if (this.visemeOptimizer) {
+                        this.visemeOptimizer.updateSettings({ performanceMode: e.target.value });
+                    }
+                });
+                
+                // Settings sliders
+                this.setupSlider('smoothingFactor', 'smoothingValue', (value) => {
+                    if (this.visemeOptimizer) {
+                        this.visemeOptimizer.updateSettings({ smoothingFactor: parseFloat(value) });
+                    }
+                });
+                
+                this.setupSlider('confidenceThreshold', 'confidenceValue', (value) => {
+                    if (this.visemeOptimizer) {
+                        this.visemeOptimizer.updateSettings({ confidenceThreshold: parseFloat(value) });
+                    }
+                });
+                
+                this.setupSlider('interpolationFrames', 'interpolationValue', (value) => {
+                    if (this.visemeOptimizer) {
+                        this.visemeOptimizer.updateSettings({ interpolationFrames: parseInt(value) });
+                    }
+                });
+                
+                this.setupSlider('targetFPS', 'fpsValue', (value) => {
+                    if (this.visemeOptimizer) {
+                        this.visemeOptimizer.updateSettings({ targetFPS: parseInt(value) });
+                    }
+                });
+            }
+
+            setupSlider(sliderId, valueId, callback) {
+                const slider = document.getElementById(sliderId);
+                const valueSpan = document.getElementById(valueId);
+                
+                slider.addEventListener('input', (e) => {
+                    const value = e.target.value;
+                    valueSpan.textContent = value;
+                    callback(value);
+                });
+            }
+
+            async startCamera() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { 
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 },
+                            frameRate: { ideal: 30 }
+                        }
+                    });
+                    
+                    this.video.srcObject = stream;
+                    this.video.addEventListener('loadeddata', () => {
+                        this.setupCanvas();
+                        this.startProcessing();
+                    });
+                    
+                    document.getElementById('startButton').disabled = true;
+                    document.getElementById('stopButton').disabled = false;
+                    document.getElementById('recordButton').disabled = false;
+                    
+                } catch (error) {
+                    console.error('Failed to start camera:', error);
+                    this.showError('Failed to access camera: ' + error.message);
+                }
+            }
+
+            stopCamera() {
+                if (this.video.srcObject) {
+                    const stream = this.video.srcObject;
+                    stream.getTracks().forEach(track => track.stop());
+                    this.video.srcObject = null;
+                }
+                
+                this.isProcessing = false;
+                
+                document.getElementById('startButton').disabled = false;
+                document.getElementById('stopButton').disabled = true;
+                document.getElementById('recordButton').disabled = true;
+            }
+
+            setupCanvas() {
+                const videoRect = this.video.getBoundingClientRect();
+                
+                this.canvas.width = this.video.videoWidth || 1280;
+                this.canvas.height = this.video.videoHeight || 720;
+                this.overlayCanvas.width = this.canvas.width;
+                this.overlayCanvas.height = this.canvas.height;
+                
+                // Set display size
+                const displayWidth = Math.min(videoRect.width, 640);
+                const displayHeight = (displayWidth * this.canvas.height) / this.canvas.width;
+                
+                this.canvas.style.width = `${displayWidth}px`;
+                this.canvas.style.height = `${displayHeight}px`;
+                this.overlayCanvas.style.width = `${displayWidth}px`;
+                this.overlayCanvas.style.height = `${displayHeight}px`;
+            }
+
+            async startProcessing() {
+                if (!this.faceLandmarker || !this.visemeOptimizer) {
+                    this.showError('Systems not initialized');
+                    return;
+                }
+                
+                this.isProcessing = true;
+                this.frameCount = 0;
+                this.lastTime = performance.now();
+                
+                const processFrame = async () => {
+                    if (!this.isProcessing) return;
+                    
+                    try {
+                        const now = performance.now();
+                        
+                        // Detect face landmarks
+                        const results = await this.faceLandmarker.detectForVideo(this.video, now);
+                        
+                        if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+                            const landmarks = results.faceLandmarks[0];
+                            
+                            // Process with our optimized viseme system
+                            const visemeResult = await this.visemeOptimizer.processLandmarks(landmarks);
+                            
+                            // Update visualizations
+                            this.drawLandmarks(landmarks);
+                            this.updateVisemeDisplay(visemeResult);
+                            this.updateMorphTargets(visemeResult.morphTargets);
+                            this.updatePerformanceMetrics(visemeResult);
+                            
+                            // Track statistics
+                            this.updateStatistics(visemeResult);
+                        }
+                        
+                        this.updateFPS();
+                        
+                    } catch (error) {
+                        console.error('Processing error:', error);
+                    }
+                    
+                    requestAnimationFrame(processFrame);
+                };
+                
+                processFrame();
+            }
+
+            drawLandmarks(landmarks) {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.overlayCtx.clearRect(0, 0, this.overlayCanvas.width, this.overlayCanvas.height);
+                
+                // Draw video frame
+                this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw mouth landmarks with enhanced visualization
+                this.overlayCtx.strokeStyle = '#00ff00';
+                this.overlayCtx.fillStyle = '#00ff0080';
+                this.overlayCtx.lineWidth = 2;
+                
+                // Mouth outer contour (MediaPipe indices for mouth)
+                const mouthIndices = [
+                    61, 84, 17, 314, 405, 320, 307, 375, 321, 308, 324, 318, 
+                    78, 95, 88, 178, 87, 14, 317, 402, 318, 324, 308, 415
+                ];
+                
+                // Draw mouth outline
+                this.overlayCtx.beginPath();
+                mouthIndices.forEach((index, i) => {
+                    if (landmarks[index]) {
+                        const x = landmarks[index].x * this.overlayCanvas.width;
+                        const y = landmarks[index].y * this.overlayCanvas.height;
+                        
+                        if (i === 0) {
+                            this.overlayCtx.moveTo(x, y);
+                        } else {
+                            this.overlayCtx.lineTo(x, y);
+                        }
+                    }
+                });
+                this.overlayCtx.closePath();
+                this.overlayCtx.stroke();
+                this.overlayCtx.fill();
+                
+                // Draw key landmark points
+                this.overlayCtx.fillStyle = '#ff0000';
+                const keyPoints = [61, 291, 13, 14]; // Left corner, right corner, top center, bottom center
+                keyPoints.forEach(index => {
+                    if (landmarks[index]) {
+                        const x = landmarks[index].x * this.overlayCanvas.width;
+                        const y = landmarks[index].y * this.overlayCanvas.height;
+                        this.overlayCtx.beginPath();
+                        this.overlayCtx.arc(x, y, 4, 0, 2 * Math.PI);
+                        this.overlayCtx.fill();
+                    }
+                });
+            }
+
+            updateVisemeDisplay(visemeResult) {
+                // Update current viseme
+                document.getElementById('currentViseme').textContent = visemeResult.viseme;
+                
+                // Update confidence
+                const confidence = Math.round(visemeResult.confidence * 100);
+                document.getElementById('confidenceScore').innerHTML = 
+                    `Confidence: ${confidence}% <span class="confidence-indicator ${this.getConfidenceClass(confidence)}" id="confidenceIndicator"></span>`;
+                
+                // Update geometric features
+                if (visemeResult.geometryFeatures) {
+                    const features = visemeResult.geometryFeatures;
+                    document.getElementById('mouthWidth').textContent = (features.mouthWidth || 0).toFixed(4);
+                    document.getElementById('mouthHeight').textContent = (features.mouthHeight || 0).toFixed(4);
+                    document.getElementById('aspectRatio').textContent = (features.aspectRatio || 0).toFixed(3);
+                    document.getElementById('jawOpening').textContent = (features.jawOpening || 0).toFixed(4);
+                    document.getElementById('lipSeparation').textContent = (features.lipSeparation || 0).toFixed(4);
+                    document.getElementById('roundness').textContent = (features.roundness || 0).toFixed(3);
+                }
+            }
+
+            updateMorphTargets(morphTargets) {
+                const container = document.getElementById('morphTargets');
+                const morphContainer = container.querySelector('div') || document.createElement('div');
+                morphContainer.innerHTML = '<h4>Three.js Morph Targets</h4>';
+                
+                for (const [target, weight] of Object.entries(morphTargets)) {
+                    const targetDiv = document.createElement('div');
+                    targetDiv.className = 'morph-target';
+                    
+                    const percentage = Math.round(weight * 100);
+                    targetDiv.innerHTML = `
+                        <span>${target}:</span>
+                        <div class="morph-bar">
+                            <div class="morph-fill" style="width: ${percentage}%"></div>
+                        </div>
+                        <span>${percentage}%</span>
+                    `;
+                    
+                    morphContainer.appendChild(targetDiv);
+                }
+                
+                if (!container.contains(morphContainer)) {
+                    container.appendChild(morphContainer);
+                }
+                
+                // Update Three.js visualization
+                this.applyMorphTargetsToMesh(morphTargets);
+            }
+
+            applyMorphTargetsToMesh(morphTargets) {
+                if (!this.morphMesh) return;
+                
+                // Apply morph target weights to the mesh geometry
+                // This is a simplified visualization - in a real application,
+                // you would map these to actual morph targets on a detailed face model
+                
+                const mouthOpen = morphTargets.mouthOpen || 0;
+                const mouthWide = morphTargets.mouthWide || 0;
+                const jawOpen = morphTargets.jawOpen || 0;
+                
+                // Scale and transform the mesh based on morph targets
+                this.morphMesh.scale.set(
+                    1 + (mouthWide * 0.5),
+                    1 + (mouthOpen * 0.3),
+                    1 + (jawOpen * 0.2)
+                );
+                
+                // Adjust material color based on phoneme activity
+                const totalActivity = Object.values(morphTargets).reduce((sum, weight) => sum + weight, 0);
+                const hue = totalActivity * 120; // Green to red gradient
+                this.morphMesh.material.color.setHSL(hue / 360, 0.8, 0.6);
+            }
+
+            async updateAlternatives(alternatives) {
+                const container = document.getElementById('alternatives');
+                const altContainer = container.querySelector('div') || document.createElement('div');
+                altContainer.innerHTML = '<h4>Alternative Phonemes</h4>';
+                
+                if (alternatives && alternatives.length > 0) {
+                    alternatives.forEach(alt => {
+                        const altDiv = document.createElement('div');
+                        altDiv.className = 'alternative';
+                        
+                        const confidence = Math.round(alt.confidence * 100);
+                        altDiv.innerHTML = `
+                            <span>${alt.phoneme}</span>
+                            <span>${confidence}%</span>
+                        `;
+                        
+                        altContainer.appendChild(altDiv);
+                    });
+                } else {
+                    // Get alternatives from the optimizer
+                    if (this.visemeOptimizer && this.visemeOptimizer.previousVisemes.length > 0) {
+                        const lastResult = this.visemeOptimizer.previousVisemes[this.visemeOptimizer.previousVisemes.length - 1];
+                        if (lastResult.alternatives) {
+                            lastResult.alternatives.forEach(alt => {
+                                const altDiv = document.createElement('div');
+                                altDiv.className = 'alternative';
+                                
+                                const confidence = Math.round(alt.confidence * 100);
+                                altDiv.innerHTML = `
+                                    <span>${alt.phoneme}</span>
+                                    <span>${confidence}%</span>
+                                `;
+                                
+                                altContainer.appendChild(altDiv);
+                            });
+                        }
+                    }
+                }
+                
+                if (!container.contains(altContainer)) {
+                    container.appendChild(altContainer);
+                }
+            }
+
+            updatePerformanceMetrics(visemeResult) {
+                // Processing time
+                document.getElementById('processingTime').textContent = `${Math.round(visemeResult.processingTime)}ms`;
+                
+                // Latency visualization
+                const latencyFill = document.getElementById('latencyFill');
+                const latencyText = document.getElementById('latencyText');
+                const latency = visemeResult.processingTime;
+                const maxLatency = 50; // 50ms max for good performance
+                
+                const latencyPercent = Math.min(100, (latency / maxLatency) * 100);
+                latencyFill.style.width = `${latencyPercent}%`;
+                latencyText.textContent = `Latency: ${Math.round(latency)}ms`;
+            }
+
+            updateStatistics(visemeResult) {
+                this.frameCount++;
+                this.confidenceHistory.push(visemeResult.confidence);
+                this.phonemeHistory.push(visemeResult.viseme);
+                
+                // Keep history manageable
+                if (this.confidenceHistory.length > 300) {
+                    this.confidenceHistory.shift();
+                    this.phonemeHistory.shift();
+                }
+                
+                // Update classification counts
+                const phonemeInfo = this.getPhonemeType(visemeResult.viseme);
+                if (phonemeInfo === 'vowel') {
+                    this.classificationCounts.vowels++;
+                } else if (phonemeInfo === 'consonant') {
+                    this.classificationCounts.consonants++;
+                } else {
+                    this.classificationCounts.silence++;
+                }
+                
+                // Update UI
+                document.getElementById('totalFrames').textContent = this.frameCount;
+                document.getElementById('vowelCount').textContent = this.classificationCounts.vowels;
+                document.getElementById('consonantCount').textContent = this.classificationCounts.consonants;
+                document.getElementById('silenceCount').textContent = this.classificationCounts.silence;
+                
+                // Average confidence
+                const avgConfidence = this.confidenceHistory.reduce((sum, c) => sum + c, 0) / this.confidenceHistory.length;
+                document.getElementById('avgConfidence').textContent = `${Math.round(avgConfidence * 100)}%`;
+                
+                // Most frequent phoneme
+                const phonemeCounts = {};
+                this.phonemeHistory.forEach(p => {
+                    phonemeCounts[p] = (phonemeCounts[p] || 0) + 1;
+                });
+                
+                const mostFrequent = Object.keys(phonemeCounts).reduce((a, b) => 
+                    phonemeCounts[a] > phonemeCounts[b] ? a : b
+                );
+                document.getElementById('mostFrequent').textContent = mostFrequent;
+            }
+
+            updateFPS() {
+                const now = performance.now();
+                const delta = now - this.lastTime;
+                
+                if (delta >= 1000) {
+                    this.fps = Math.round((this.frameCount * 1000) / delta);
+                    document.getElementById('fpsDisplay').textContent = `${this.fps} FPS`;
+                    document.getElementById('frameRate').textContent = `${this.fps} FPS`;
+                    
+                    this.frameCount = 0;
+                    this.lastTime = now;
+                }
+            }
+
+            getConfidenceClass(confidence) {
+                if (confidence >= 70) return 'confidence-high';
+                if (confidence >= 40) return 'confidence-medium';
+                return 'confidence-low';
+            }
+
+            getPhonemeType(phoneme) {
+                const vowels = ['AA', 'AE', 'AH', 'AO', 'AW', 'AY', 'EH', 'ER', 'EY', 'IH', 'IY', 'OW', 'OY', 'UH', 'UW'];
+                const consonants = ['B', 'CH', 'D', 'DH', 'F', 'G', 'HH', 'JH', 'K', 'L', 'M', 'N', 'NG', 'P', 'R', 'S', 'SH', 'T', 'TH', 'V', 'W', 'Y', 'Z', 'ZH'];
+                
+                if (vowels.includes(phoneme)) return 'vowel';
+                if (consonants.includes(phoneme)) return 'consonant';
+                return 'silence';
+            }
+
+            toggleRecording() {
+                this.isRecording = !this.isRecording;
+                const button = document.getElementById('recordButton');
+                
+                if (this.isRecording) {
+                    button.textContent = 'Stop Recording';
+                    button.className = 'btn-secondary';
+                    // Start recording implementation would go here
+                } else {
+                    button.textContent = 'Start Recording';
+                    button.className = 'btn-success';
+                    // Stop recording implementation would go here
+                }
+            }
+
+            resetSettings() {
+                document.getElementById('smoothingFactor').value = '0.3';
+                document.getElementById('confidenceThreshold').value = '0.7';
+                document.getElementById('interpolationFrames').value = '5';
+                document.getElementById('targetFPS').value = '30';
+                document.getElementById('performanceMode').value = 'balanced';
+                
+                // Update value displays
+                document.getElementById('smoothingValue').textContent = '0.3';
+                document.getElementById('confidenceValue').textContent = '0.7';
+                document.getElementById('interpolationValue').textContent = '5';
+                document.getElementById('fpsValue').textContent = '30';
+                
+                // Reset optimizer settings
+                if (this.visemeOptimizer) {
+                    this.visemeOptimizer.updateSettings({
+                        smoothingFactor: 0.3,
+                        confidenceThreshold: 0.7,
+                        interpolationFrames: 5,
+                        targetFPS: 30,
+                        performanceMode: 'balanced'
+                    });
+                }
+            }
+
+            exportResults() {
+                const results = {
+                    timestamp: new Date().toISOString(),
+                    totalFrames: this.frameCount,
+                    averageFPS: this.fps,
+                    confidenceHistory: this.confidenceHistory.slice(-100), // Last 100 frames
+                    phonemeHistory: this.phonemeHistory.slice(-100),
+                    classificationCounts: this.classificationCounts,
+                    optimizerSettings: this.visemeOptimizer ? this.visemeOptimizer.getOptimizationSettings() : null
+                };
+                
+                const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `viseme-test-results-${Date.now()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                URL.revokeObjectURL(url);
+            }
+
+            loadTestData() {
+                // Implementation for loading and testing with pre-recorded data
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            try {
+                                const testData = JSON.parse(e.target.result);
+                                this.runBatchTest(testData);
+                            } catch (error) {
+                                this.showError('Invalid test data file');
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                };
+                
+                input.click();
+            }
+
+            async runBatchTest(testData) {
+                if (!this.visemeOptimizer || !testData.landmarks) {
+                    this.showError('No test data or optimizer not ready');
+                    return;
+                }
+                
+                document.getElementById('modeIndicator').textContent = 'Batch Processing';
+                document.getElementById('modeIndicator').className = 'mode-indicator mode-batch';
+                
+                try {
+                    const results = await this.visemeOptimizer.processBatch(testData.landmarks);
+                    
+                    // Display batch results
+                    console.log('Batch processing results:', results);
+                    this.updateBatchResults(results);
+                    
+                } catch (error) {
+                    console.error('Batch processing error:', error);
+                    this.showError('Batch processing failed: ' + error.message);
+                } finally {
+                    document.getElementById('modeIndicator').textContent = 'Real-time';
+                    document.getElementById('modeIndicator').className = 'mode-indicator mode-realtime';
+                }
+            }
+
+            updateBatchResults(results) {
+                // Update UI with batch processing results
+                const avgConfidence = results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
+                const avgProcessingTime = results.reduce((sum, r) => sum + r.processingTime, 0) / results.length;
+                
+                document.getElementById('avgConfidence').textContent = `${Math.round(avgConfidence * 100)}%`;
+                document.getElementById('processingTime').textContent = `${Math.round(avgProcessingTime)}ms`;
+                
+                // Show batch summary
+                alert(`Batch processing completed!\n\nFrames processed: ${results.length}\nAverage confidence: ${Math.round(avgConfidence * 100)}%\nAverage processing time: ${Math.round(avgProcessingTime)}ms`);
+            }
+
+            updateStatus(message) {
+                console.log('Status:', message);
+                // You could add a status display element if needed
+            }
+
+            showError(message) {
+                console.error('Error:', message);
+                
+                // Create error display
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.textContent = message;
+                
+                document.querySelector('.container').insertBefore(errorDiv, document.querySelector('.header').nextSibling);
+                
+                // Remove error after 5 seconds
+                setTimeout(() => {
+                    if (errorDiv.parentNode) {
+                        errorDiv.parentNode.removeChild(errorDiv);
+                    }
+                }, 5000);
+            }
+        }
+
+        // Initialize the application when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = new OptimizedVisemeTest();
+            console.log('Optimized Viseme Generation Test initialized');
+        });
+
+        // Handle window resize for Three.js
+        window.addEventListener('resize', () => {
+            const container = document.getElementById('threePreview');
+            if (container && window.renderer && window.camera) {
+                const width = container.offsetWidth;
+                const height = container.offsetHeight;
+                
+                window.renderer.setSize(width, height);
+                window.camera.aspect = width / height;
+                window.camera.updateProjectionMatrix();
+            }
+        });
+    </script>
+</body>
+</html>

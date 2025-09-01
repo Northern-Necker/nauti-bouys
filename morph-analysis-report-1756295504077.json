@@ -1,0 +1,1336 @@
+{
+  "timestamp": "2025-08-27T11:51:44.077Z",
+  "summary": {
+    "totalVisemes": 29,
+    "expectedVisualChanges": 28,
+    "highConfidence": 28,
+    "availableMorphs": 33
+  },
+  "results": [
+    {
+      "viseme": "uw",
+      "description": "Boot - Tight lip rounding",
+      "morphCount": 4,
+      "availableMorphs": 4,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Pucker_Lower",
+          "value": 0.95,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.76
+        },
+        {
+          "name": "Mouth_Pucker_Upper",
+          "value": 0.9,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.7200000000000001
+        },
+        {
+          "name": "Mouth_Funnel",
+          "value": 0.8,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.7200000000000001
+        },
+        {
+          "name": "Mouth_Open",
+          "value": 0.3,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.3
+        }
+      ],
+      "totalVisualImpact": 2.5,
+      "expectedVisualChange": true,
+      "confidence": 0.9212499999999999,
+      "success": true
+    },
+    {
+      "viseme": "ow",
+      "description": "Boat - Strong rounding",
+      "morphCount": 4,
+      "availableMorphs": 4,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Funnel",
+          "value": 0.9,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.81
+        },
+        {
+          "name": "Mouth_Pucker_Lower",
+          "value": 0.8,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.6400000000000001
+        },
+        {
+          "name": "Mouth_Pucker_Upper",
+          "value": 0.7,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.5599999999999999
+        },
+        {
+          "name": "Mouth_Open",
+          "value": 0.4,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.4
+        }
+      ],
+      "totalVisualImpact": 2.41,
+      "expectedVisualChange": true,
+      "confidence": 0.9099999999999999,
+      "success": true
+    },
+    {
+      "viseme": "ao",
+      "description": "Thought - Rounded mouth",
+      "morphCount": 4,
+      "availableMorphs": 4,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Funnel",
+          "value": 0.85,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.765
+        },
+        {
+          "name": "Mouth_Pucker_Lower",
+          "value": 0.7,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.5599999999999999
+        },
+        {
+          "name": "Mouth_Pucker_Upper",
+          "value": 0.6,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.48
+        },
+        {
+          "name": "Mouth_Open",
+          "value": 0.3,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.3
+        }
+      ],
+      "totalVisualImpact": 2.105,
+      "expectedVisualChange": true,
+      "confidence": 0.8837499999999999,
+      "success": true
+    },
+    {
+      "viseme": "aw",
+      "description": "Loud - Wide open with stretch",
+      "morphCount": 4,
+      "availableMorphs": 4,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Open",
+          "value": 0.8,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.8
+        },
+        {
+          "name": "Jaw_Open",
+          "value": 0.7,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.5599999999999999
+        },
+        {
+          "name": "Mouth_Stretch_Left",
+          "value": 0.5,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.3
+        },
+        {
+          "name": "Mouth_Stretch_Right",
+          "value": 0.5,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.3
+        }
+      ],
+      "totalVisualImpact": 1.96,
+      "expectedVisualChange": true,
+      "confidence": 0.8875,
+      "success": true
+    },
+    {
+      "viseme": "w",
+      "description": "Way - Tight lip protrusion",
+      "morphCount": 3,
+      "availableMorphs": 3,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Pucker_Lower",
+          "value": 0.85,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.68
+        },
+        {
+          "name": "Mouth_Pucker_Upper",
+          "value": 0.8,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.6400000000000001
+        },
+        {
+          "name": "Mouth_Funnel",
+          "value": 0.7,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.63
+        }
+      ],
+      "totalVisualImpact": 1.9500000000000002,
+      "expectedVisualChange": true,
+      "confidence": 0.9349999999999999,
+      "success": true
+    },
+    {
+      "viseme": "b_m_p",
+      "description": "Lips pressed together",
+      "morphCount": 5,
+      "availableMorphs": 5,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Close",
+          "value": 0.95,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.6649999999999999
+        },
+        {
+          "name": "Mouth_Press_Left",
+          "value": 0.8,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.4
+        },
+        {
+          "name": "Mouth_Press_Right",
+          "value": 0.8,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.4
+        },
+        {
+          "name": "Mouth_Pucker_Lower",
+          "value": 0.2,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.16000000000000003
+        },
+        {
+          "name": "Mouth_Pucker_Upper",
+          "value": 0.2,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.16000000000000003
+        }
+      ],
+      "totalVisualImpact": 1.7850000000000001,
+      "expectedVisualChange": true,
+      "confidence": 0.877,
+      "success": true
+    },
+    {
+      "viseme": "ch_j_sh_zh",
+      "description": "Church - Rounded with slight protrusion",
+      "morphCount": 4,
+      "availableMorphs": 4,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Funnel",
+          "value": 0.7,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.63
+        },
+        {
+          "name": "Mouth_Pucker_Lower",
+          "value": 0.6,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.48
+        },
+        {
+          "name": "Mouth_Pucker_Upper",
+          "value": 0.5,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.4
+        },
+        {
+          "name": "Mouth_Open",
+          "value": 0.2,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.2
+        }
+      ],
+      "totalVisualImpact": 1.7099999999999997,
+      "expectedVisualChange": true,
+      "confidence": 0.8499999999999999,
+      "success": true
+    },
+    {
+      "viseme": "uh",
+      "description": "Put - Small round opening",
+      "morphCount": 4,
+      "availableMorphs": 4,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Pucker_Lower",
+          "value": 0.7,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.5599999999999999
+        },
+        {
+          "name": "Mouth_Pucker_Upper",
+          "value": 0.6,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.48
+        },
+        {
+          "name": "Mouth_Open",
+          "value": 0.3,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.3
+        },
+        {
+          "name": "Mouth_Funnel",
+          "value": 0.4,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.36000000000000004
+        }
+      ],
+      "totalVisualImpact": 1.7000000000000002,
+      "expectedVisualChange": true,
+      "confidence": 0.85,
+      "success": true
+    },
+    {
+      "viseme": "aa",
+      "description": "Father - Wide open mouth with jaw drop",
+      "morphCount": 4,
+      "availableMorphs": 4,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Open",
+          "value": 0.85,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.85
+        },
+        {
+          "name": "Jaw_Open",
+          "value": 0.75,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.6000000000000001
+        },
+        {
+          "name": "Mouth_Stretch_Left",
+          "value": 0.2,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.12
+        },
+        {
+          "name": "Mouth_Stretch_Right",
+          "value": 0.2,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.12
+        }
+      ],
+      "totalVisualImpact": 1.6900000000000004,
+      "expectedVisualChange": true,
+      "confidence": 0.85,
+      "success": true
+    },
+    {
+      "viseme": "th",
+      "description": "Tongue tip protruding",
+      "morphCount": 4,
+      "availableMorphs": 4,
+      "morphAnalysis": [
+        {
+          "name": "Tongue_Out",
+          "value": 0.9,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.81
+        },
+        {
+          "name": "Mouth_Open",
+          "value": 0.5,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.5
+        },
+        {
+          "name": "Jaw_Open",
+          "value": 0.3,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.24
+        },
+        {
+          "name": "Tongue_Tip_Down",
+          "value": 0.2,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.1
+        }
+      ],
+      "totalVisualImpact": 1.6500000000000001,
+      "expectedVisualChange": true,
+      "confidence": 0.8424999999999999,
+      "success": true
+    },
+    {
+      "viseme": "ah",
+      "description": "Hot - Very open mouth",
+      "morphCount": 3,
+      "availableMorphs": 3,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Open",
+          "value": 0.9,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.9
+        },
+        {
+          "name": "Jaw_Open",
+          "value": 0.8,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.6400000000000001
+        },
+        {
+          "name": "Mouth_Funnel",
+          "value": 0.1,
+          "available": true,
+          "intensity": "Minimal",
+          "visualImpact": 0.09000000000000001
+        }
+      ],
+      "totalVisualImpact": 1.6300000000000001,
+      "expectedVisualChange": true,
+      "confidence": 0.88,
+      "success": true
+    },
+    {
+      "viseme": "ae",
+      "description": "Cat - Wide stretched mouth",
+      "morphCount": 4,
+      "availableMorphs": 4,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Stretch_Left",
+          "value": 0.8,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.48
+        },
+        {
+          "name": "Mouth_Stretch_Right",
+          "value": 0.8,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.48
+        },
+        {
+          "name": "Mouth_Open",
+          "value": 0.4,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.4
+        },
+        {
+          "name": "Jaw_Open",
+          "value": 0.3,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.24
+        }
+      ],
+      "totalVisualImpact": 1.5999999999999999,
+      "expectedVisualChange": true,
+      "confidence": 0.8724999999999999,
+      "success": true
+    },
+    {
+      "viseme": "iy",
+      "description": "Beat - Wide smile",
+      "morphCount": 4,
+      "availableMorphs": 4,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Smile_Left",
+          "value": 0.8,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.5599999999999999
+        },
+        {
+          "name": "Mouth_Smile_Right",
+          "value": 0.8,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.5599999999999999
+        },
+        {
+          "name": "Mouth_Stretch_Left",
+          "value": 0.4,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.24
+        },
+        {
+          "name": "Mouth_Stretch_Right",
+          "value": 0.4,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.24
+        }
+      ],
+      "totalVisualImpact": 1.5999999999999999,
+      "expectedVisualChange": true,
+      "confidence": 0.8799999999999999,
+      "success": true
+    },
+    {
+      "viseme": "oy",
+      "description": "Boy - Round to smile transition",
+      "morphCount": 4,
+      "availableMorphs": 4,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Funnel",
+          "value": 0.6,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.54
+        },
+        {
+          "name": "Mouth_Pucker_Lower",
+          "value": 0.5,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.4
+        },
+        {
+          "name": "Mouth_Smile_Left",
+          "value": 0.4,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.27999999999999997
+        },
+        {
+          "name": "Mouth_Smile_Right",
+          "value": 0.4,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.27999999999999997
+        }
+      ],
+      "totalVisualImpact": 1.5,
+      "expectedVisualChange": true,
+      "confidence": 0.8424999999999999,
+      "success": true
+    },
+    {
+      "viseme": "r",
+      "description": "Red - Strong tongue curl",
+      "morphCount": 4,
+      "availableMorphs": 4,
+      "morphAnalysis": [
+        {
+          "name": "Tongue_Curl",
+          "value": 0.95,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.475
+        },
+        {
+          "name": "Mouth_Funnel",
+          "value": 0.5,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.45
+        },
+        {
+          "name": "Mouth_Open",
+          "value": 0.3,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.3
+        },
+        {
+          "name": "Mouth_Pucker_Lower",
+          "value": 0.3,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.24
+        }
+      ],
+      "totalVisualImpact": 1.465,
+      "expectedVisualChange": true,
+      "confidence": 0.8537499999999999,
+      "success": true
+    },
+    {
+      "viseme": "eh",
+      "description": "Pet - Mid-open mouth",
+      "morphCount": 4,
+      "availableMorphs": 4,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Open",
+          "value": 0.5,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.5
+        },
+        {
+          "name": "Jaw_Open",
+          "value": 0.3,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.24
+        },
+        {
+          "name": "Mouth_Stretch_Left",
+          "value": 0.4,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.24
+        },
+        {
+          "name": "Mouth_Stretch_Right",
+          "value": 0.4,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.24
+        }
+      ],
+      "totalVisualImpact": 1.22,
+      "expectedVisualChange": true,
+      "confidence": 0.82,
+      "success": true
+    },
+    {
+      "viseme": "ay",
+      "description": "Hide - Smile transition",
+      "morphCount": 4,
+      "availableMorphs": 4,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Smile_Left",
+          "value": 0.6,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.42
+        },
+        {
+          "name": "Mouth_Smile_Right",
+          "value": 0.6,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.42
+        },
+        {
+          "name": "Mouth_Stretch_Left",
+          "value": 0.3,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.18
+        },
+        {
+          "name": "Mouth_Stretch_Right",
+          "value": 0.3,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.18
+        }
+      ],
+      "totalVisualImpact": 1.2,
+      "expectedVisualChange": true,
+      "confidence": 0.835,
+      "success": true
+    },
+    {
+      "viseme": "l",
+      "description": "Tongue tip up for L",
+      "morphCount": 3,
+      "availableMorphs": 3,
+      "morphAnalysis": [
+        {
+          "name": "Tongue_Tip_Up",
+          "value": 0.95,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.57
+        },
+        {
+          "name": "Mouth_Open",
+          "value": 0.4,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.4
+        },
+        {
+          "name": "Jaw_Open",
+          "value": 0.25,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.2
+        }
+      ],
+      "totalVisualImpact": 1.17,
+      "expectedVisualChange": true,
+      "confidence": 0.86,
+      "success": true
+    },
+    {
+      "viseme": "er",
+      "description": "Bird - R sound with tongue curl",
+      "morphCount": 3,
+      "availableMorphs": 3,
+      "morphAnalysis": [
+        {
+          "name": "Tongue_Curl",
+          "value": 0.85,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.425
+        },
+        {
+          "name": "Mouth_Funnel",
+          "value": 0.4,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.36000000000000004
+        },
+        {
+          "name": "Mouth_Open",
+          "value": 0.3,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.3
+        }
+      ],
+      "totalVisualImpact": 1.085,
+      "expectedVisualChange": true,
+      "confidence": 0.855,
+      "success": true
+    },
+    {
+      "viseme": "d_s_t",
+      "description": "Tongue tip to teeth ridge",
+      "morphCount": 3,
+      "availableMorphs": 3,
+      "morphAnalysis": [
+        {
+          "name": "Tongue_Tip_Up",
+          "value": 0.9,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.54
+        },
+        {
+          "name": "Mouth_Open",
+          "value": 0.35,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.35
+        },
+        {
+          "name": "Jaw_Open",
+          "value": 0.2,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.16000000000000003
+        }
+      ],
+      "totalVisualImpact": 1.05,
+      "expectedVisualChange": true,
+      "confidence": 0.845,
+      "success": true
+    },
+    {
+      "viseme": "f_v",
+      "description": "Teeth touching lower lip",
+      "morphCount": 4,
+      "availableMorphs": 4,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Lower_Down_Left",
+          "value": 0.7,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.35
+        },
+        {
+          "name": "Mouth_Lower_Down_Right",
+          "value": 0.7,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.35
+        },
+        {
+          "name": "Mouth_Upper_Up_Left",
+          "value": 0.3,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.15
+        },
+        {
+          "name": "Mouth_Upper_Up_Right",
+          "value": 0.3,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.15
+        }
+      ],
+      "totalVisualImpact": 1,
+      "expectedVisualChange": true,
+      "confidence": 0.85,
+      "success": true
+    },
+    {
+      "viseme": "g_k",
+      "description": "Back of tongue raised",
+      "morphCount": 3,
+      "availableMorphs": 3,
+      "morphAnalysis": [
+        {
+          "name": "Tongue_Back",
+          "value": 0.8,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.4
+        },
+        {
+          "name": "Mouth_Open",
+          "value": 0.4,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.4
+        },
+        {
+          "name": "Jaw_Open",
+          "value": 0.2,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.16000000000000003
+        }
+      ],
+      "totalVisualImpact": 0.9600000000000001,
+      "expectedVisualChange": true,
+      "confidence": 0.84,
+      "success": true
+    },
+    {
+      "viseme": "n",
+      "description": "Tongue tip up, mouth more closed",
+      "morphCount": 3,
+      "availableMorphs": 3,
+      "morphAnalysis": [
+        {
+          "name": "Tongue_Tip_Up",
+          "value": 0.9,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.54
+        },
+        {
+          "name": "Mouth_Close",
+          "value": 0.3,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.21
+        },
+        {
+          "name": "Mouth_Open",
+          "value": 0.2,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.2
+        }
+      ],
+      "totalVisualImpact": 0.95,
+      "expectedVisualChange": true,
+      "confidence": 0.84,
+      "success": true
+    },
+    {
+      "viseme": "y",
+      "description": "Yes - Slight smile position",
+      "morphCount": 4,
+      "availableMorphs": 4,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Smile_Left",
+          "value": 0.5,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.35
+        },
+        {
+          "name": "Mouth_Smile_Right",
+          "value": 0.5,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.35
+        },
+        {
+          "name": "Mouth_Stretch_Left",
+          "value": 0.2,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.12
+        },
+        {
+          "name": "Mouth_Stretch_Right",
+          "value": 0.2,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.12
+        }
+      ],
+      "totalVisualImpact": 0.94,
+      "expectedVisualChange": true,
+      "confidence": 0.8049999999999999,
+      "success": true
+    },
+    {
+      "viseme": "z",
+      "description": "Zoo - Teeth showing",
+      "morphCount": 5,
+      "availableMorphs": 5,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Open",
+          "value": 0.25,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.25
+        },
+        {
+          "name": "Mouth_Stretch_Left",
+          "value": 0.4,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.24
+        },
+        {
+          "name": "Mouth_Stretch_Right",
+          "value": 0.4,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.24
+        },
+        {
+          "name": "Mouth_Upper_Up_Left",
+          "value": 0.2,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.1
+        },
+        {
+          "name": "Mouth_Upper_Up_Right",
+          "value": 0.2,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.1
+        }
+      ],
+      "totalVisualImpact": 0.9299999999999999,
+      "expectedVisualChange": true,
+      "confidence": 0.7869999999999999,
+      "success": true
+    },
+    {
+      "viseme": "hh",
+      "description": "Breathy H sound",
+      "morphCount": 2,
+      "availableMorphs": 2,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Open",
+          "value": 0.6,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.6
+        },
+        {
+          "name": "Jaw_Open",
+          "value": 0.4,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.32000000000000006
+        }
+      ],
+      "totalVisualImpact": 0.92,
+      "expectedVisualChange": true,
+      "confidence": 0.85,
+      "success": true
+    },
+    {
+      "viseme": "ng",
+      "description": "Back tongue up, mouth closed",
+      "morphCount": 3,
+      "availableMorphs": 3,
+      "morphAnalysis": [
+        {
+          "name": "Tongue_Back",
+          "value": 0.9,
+          "available": true,
+          "intensity": "High",
+          "visualImpact": 0.45
+        },
+        {
+          "name": "Mouth_Close",
+          "value": 0.5,
+          "available": true,
+          "intensity": "Medium",
+          "visualImpact": 0.35
+        },
+        {
+          "name": "Mouth_Open",
+          "value": 0.1,
+          "available": true,
+          "intensity": "Minimal",
+          "visualImpact": 0.1
+        }
+      ],
+      "totalVisualImpact": 0.9,
+      "expectedVisualChange": true,
+      "confidence": 0.85,
+      "success": true
+    },
+    {
+      "viseme": "ih",
+      "description": "Bit - Small mouth opening",
+      "morphCount": 4,
+      "availableMorphs": 4,
+      "morphAnalysis": [
+        {
+          "name": "Mouth_Open",
+          "value": 0.3,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.3
+        },
+        {
+          "name": "Mouth_Stretch_Left",
+          "value": 0.3,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.18
+        },
+        {
+          "name": "Mouth_Stretch_Right",
+          "value": 0.3,
+          "available": true,
+          "intensity": "Low",
+          "visualImpact": 0.18
+        },
+        {
+          "name": "Jaw_Open",
+          "value": 0.15,
+          "available": true,
+          "intensity": "Minimal",
+          "visualImpact": 0.12
+        }
+      ],
+      "totalVisualImpact": 0.7799999999999999,
+      "expectedVisualChange": true,
+      "confidence": 0.7787499999999999,
+      "success": true
+    },
+    {
+      "viseme": "sil",
+      "description": "Silence/Neutral - All morphs at rest",
+      "morphCount": 0,
+      "availableMorphs": 0,
+      "morphAnalysis": [],
+      "totalVisualImpact": 0,
+      "expectedVisualChange": false,
+      "confidence": 0,
+      "success": true
+    }
+  ],
+  "optimizedMorphMappings": {
+    "sil": {
+      "description": "Silence/Neutral - All morphs at rest",
+      "morphs": {}
+    },
+    "aa": {
+      "description": "Father - Wide open mouth with jaw drop",
+      "morphs": {
+        "Mouth_Open": 0.85,
+        "Jaw_Open": 0.75,
+        "Mouth_Stretch_Left": 0.2,
+        "Mouth_Stretch_Right": 0.2
+      }
+    },
+    "ae": {
+      "description": "Cat - Wide stretched mouth",
+      "morphs": {
+        "Mouth_Stretch_Left": 0.8,
+        "Mouth_Stretch_Right": 0.8,
+        "Mouth_Open": 0.4,
+        "Jaw_Open": 0.3
+      }
+    },
+    "ah": {
+      "description": "Hot - Very open mouth",
+      "morphs": {
+        "Mouth_Open": 0.9,
+        "Jaw_Open": 0.8,
+        "Mouth_Funnel": 0.1
+      }
+    },
+    "ao": {
+      "description": "Thought - Rounded mouth",
+      "morphs": {
+        "Mouth_Funnel": 0.85,
+        "Mouth_Pucker_Lower": 0.7,
+        "Mouth_Pucker_Upper": 0.6,
+        "Mouth_Open": 0.3
+      }
+    },
+    "aw": {
+      "description": "Loud - Wide open with stretch",
+      "morphs": {
+        "Mouth_Open": 0.8,
+        "Jaw_Open": 0.7,
+        "Mouth_Stretch_Left": 0.5,
+        "Mouth_Stretch_Right": 0.5
+      }
+    },
+    "ay": {
+      "description": "Hide - Smile transition",
+      "morphs": {
+        "Mouth_Smile_Left": 0.6,
+        "Mouth_Smile_Right": 0.6,
+        "Mouth_Stretch_Left": 0.3,
+        "Mouth_Stretch_Right": 0.3
+      }
+    },
+    "b_m_p": {
+      "description": "Lips pressed together",
+      "morphs": {
+        "Mouth_Close": 0.95,
+        "Mouth_Press_Left": 0.8,
+        "Mouth_Press_Right": 0.8,
+        "Mouth_Pucker_Lower": 0.2,
+        "Mouth_Pucker_Upper": 0.2
+      }
+    },
+    "ch_j_sh_zh": {
+      "description": "Church - Rounded with slight protrusion",
+      "morphs": {
+        "Mouth_Funnel": 0.7,
+        "Mouth_Pucker_Lower": 0.6,
+        "Mouth_Pucker_Upper": 0.5,
+        "Mouth_Open": 0.2
+      }
+    },
+    "d_s_t": {
+      "description": "Tongue tip to teeth ridge",
+      "morphs": {
+        "Tongue_Tip_Up": 0.9,
+        "Mouth_Open": 0.35,
+        "Jaw_Open": 0.2
+      }
+    },
+    "eh": {
+      "description": "Pet - Mid-open mouth",
+      "morphs": {
+        "Mouth_Open": 0.5,
+        "Jaw_Open": 0.3,
+        "Mouth_Stretch_Left": 0.4,
+        "Mouth_Stretch_Right": 0.4
+      }
+    },
+    "er": {
+      "description": "Bird - R sound with tongue curl",
+      "morphs": {
+        "Tongue_Curl": 0.85,
+        "Mouth_Funnel": 0.4,
+        "Mouth_Open": 0.3
+      }
+    },
+    "f_v": {
+      "description": "Teeth touching lower lip",
+      "morphs": {
+        "Mouth_Lower_Down_Left": 0.7,
+        "Mouth_Lower_Down_Right": 0.7,
+        "Mouth_Upper_Up_Left": 0.3,
+        "Mouth_Upper_Up_Right": 0.3
+      }
+    },
+    "g_k": {
+      "description": "Back of tongue raised",
+      "morphs": {
+        "Tongue_Back": 0.8,
+        "Mouth_Open": 0.4,
+        "Jaw_Open": 0.2
+      }
+    },
+    "hh": {
+      "description": "Breathy H sound",
+      "morphs": {
+        "Mouth_Open": 0.6,
+        "Jaw_Open": 0.4
+      }
+    },
+    "ih": {
+      "description": "Bit - Small mouth opening",
+      "morphs": {
+        "Mouth_Open": 0.3,
+        "Mouth_Stretch_Left": 0.3,
+        "Mouth_Stretch_Right": 0.3,
+        "Jaw_Open": 0.15
+      }
+    },
+    "iy": {
+      "description": "Beat - Wide smile",
+      "morphs": {
+        "Mouth_Smile_Left": 0.8,
+        "Mouth_Smile_Right": 0.8,
+        "Mouth_Stretch_Left": 0.4,
+        "Mouth_Stretch_Right": 0.4
+      }
+    },
+    "l": {
+      "description": "Tongue tip up for L",
+      "morphs": {
+        "Tongue_Tip_Up": 0.95,
+        "Mouth_Open": 0.4,
+        "Jaw_Open": 0.25
+      }
+    },
+    "n": {
+      "description": "Tongue tip up, mouth more closed",
+      "morphs": {
+        "Tongue_Tip_Up": 0.9,
+        "Mouth_Close": 0.3,
+        "Mouth_Open": 0.2
+      }
+    },
+    "ng": {
+      "description": "Back tongue up, mouth closed",
+      "morphs": {
+        "Tongue_Back": 0.9,
+        "Mouth_Close": 0.5,
+        "Mouth_Open": 0.1
+      }
+    },
+    "ow": {
+      "description": "Boat - Strong rounding",
+      "morphs": {
+        "Mouth_Funnel": 0.9,
+        "Mouth_Pucker_Lower": 0.8,
+        "Mouth_Pucker_Upper": 0.7,
+        "Mouth_Open": 0.4
+      }
+    },
+    "oy": {
+      "description": "Boy - Round to smile transition",
+      "morphs": {
+        "Mouth_Funnel": 0.6,
+        "Mouth_Pucker_Lower": 0.5,
+        "Mouth_Smile_Left": 0.4,
+        "Mouth_Smile_Right": 0.4
+      }
+    },
+    "r": {
+      "description": "Red - Strong tongue curl",
+      "morphs": {
+        "Tongue_Curl": 0.95,
+        "Mouth_Funnel": 0.5,
+        "Mouth_Open": 0.3,
+        "Mouth_Pucker_Lower": 0.3
+      }
+    },
+    "th": {
+      "description": "Tongue tip protruding",
+      "morphs": {
+        "Tongue_Out": 0.9,
+        "Mouth_Open": 0.5,
+        "Jaw_Open": 0.3,
+        "Tongue_Tip_Down": 0.2
+      }
+    },
+    "uh": {
+      "description": "Put - Small round opening",
+      "morphs": {
+        "Mouth_Pucker_Lower": 0.7,
+        "Mouth_Pucker_Upper": 0.6,
+        "Mouth_Open": 0.3,
+        "Mouth_Funnel": 0.4
+      }
+    },
+    "uw": {
+      "description": "Boot - Tight lip rounding",
+      "morphs": {
+        "Mouth_Pucker_Lower": 0.95,
+        "Mouth_Pucker_Upper": 0.9,
+        "Mouth_Funnel": 0.8,
+        "Mouth_Open": 0.3
+      }
+    },
+    "w": {
+      "description": "Way - Tight lip protrusion",
+      "morphs": {
+        "Mouth_Pucker_Lower": 0.85,
+        "Mouth_Pucker_Upper": 0.8,
+        "Mouth_Funnel": 0.7
+      }
+    },
+    "y": {
+      "description": "Yes - Slight smile position",
+      "morphs": {
+        "Mouth_Smile_Left": 0.5,
+        "Mouth_Smile_Right": 0.5,
+        "Mouth_Stretch_Left": 0.2,
+        "Mouth_Stretch_Right": 0.2
+      }
+    },
+    "z": {
+      "description": "Zoo - Teeth showing",
+      "morphs": {
+        "Mouth_Open": 0.25,
+        "Mouth_Stretch_Left": 0.4,
+        "Mouth_Stretch_Right": 0.4,
+        "Mouth_Upper_Up_Left": 0.2,
+        "Mouth_Upper_Up_Right": 0.2
+      }
+    }
+  }
+}

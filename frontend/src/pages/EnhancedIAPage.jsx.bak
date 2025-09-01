@@ -1,0 +1,1659 @@
+import React, { useState, useRef, useEffect, Suspense } from 'react'
+import { Send, Mic, MicOff, RotateCcw, Heart, Brain, Star, TrendingUp, MessageSquare, Volume2, VolumeX } from 'lucide-react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { OrbitControls, useGLTF } from '@react-three/drei'
+import * as THREE from 'three'
+import { IntegratedLipSyncEngine } from '../utils/enhancedLipSync'
+import { synthesizeSpeech, getAvailableVoices } from '../utils/speechProcessing'
+import conversationService from '../services/api/conversationService'
+import { beverageService } from '../services/api/beverageService'
+import AdvancedEmotionalIntelligence from '../utils/advancedEmotionalIntelligence'
+import ConversationContextService from '../services/conversationContextService'
+import spiritsService from '../services/spiritsService'
+import shelfLogic from '../utils/shelfLogic'
+import NotificationSystem from '../components/notifications/NotificationSystem'
+
+// Enhanced Emotional Savannah Avatar Component
+function EnhancedSavannahAvatar({ 
+  isPlaying, 
+  currentViseme, 
+  currentEmotion, 
+  emotionIntensity,
+  breathingEnabled = true,
+  idleEnabled = true,
+  isListening = false,
+  isMuted = false,
+  ...props 
+}) {
+  const { scene } = useGLTF('/assets/SavannahAvatar.glb');
+  const avatarRef = useRef();
+  const { clock } = useThree();
+  const lipSyncEngine = useRef(new IntegratedLipSyncEngine());
+  
+  // Animation state
+  const [blink, setBlink] = useState(false);
+  const currentBlendFrame = useRef(0);
+  const previousViseme = useRef(null);
+  const nextViseme = useRef(null);
+  
+  // Emotional state visualization
+  const [emotionalGlow, setEmotionalGlow] = useState('neutral');
+
+  // Automatic blinking with realistic patterns
+  useEffect(() => {
+    let blinkTimeout;
+    const nextBlink = () => {
+      const blinkInterval = THREE.MathUtils.randInt(2000, 6000);
+      blinkTimeout = setTimeout(() => {
+        setBlink(true);
+        setTimeout(() => {
+          setBlink(false);
+          nextBlink();
+        }, THREE.MathUtils.randInt(150, 250));
+      }, blinkInterval);
+    };
+    nextBlink();
+    return () => clearTimeout(blinkTimeout);
+  }, []);
+
+  // Update emotional glow based on current emotion
+  useEffect(() => {
+    setEmotionalGlow(currentEmotion || 'neutral');
+  }, [currentEmotion]);
+
+  // Real-time frame processing with enhanced features
+  useFrame((state) => {
+    if (!avatarRef.current) return;
+    
+    const frameStartTime = performance.now();
+    const frameSkipNumber = 8; // Optimized frame rate
+    
+    if (Math.floor(state.clock.elapsedTime * 100) - currentBlendFrame.current > frameSkipNumber) {
+      currentBlendFrame.current = Math.floor(state.clock.elapsedTime * 100);
+      
+      // Process enhanced lip sync frame
+      const frameData = lipSyncEngine.current.processFrame(
+        currentViseme,
+        previousViseme.current,
+        nextViseme.current,
+        state.clock.elapsedTime * 1000,
+        0.5 // interpolation factor
+      );
+
+      // Apply enhanced morph targets
+      avatarRef.current.traverse((child) => {
+        if (child.isMesh && child.morphTargetDictionary && child.morphTargetInfluences) {
+          
+          // Apply lip sync morph targets
+          if (frameData.morphTargets) {
+            Object.entries(frameData.morphTargets).forEach(([morphName, value]) => {
+              const index = child.morphTargetDictionary[morphName];
+              if (index !== undefined) {
+                child.morphTargetInfluences[index] = THREE.MathUtils.lerp(
+                  child.morphTargetInfluences[index] || 0,
+                  value,
+                  0.3
+                );
+              }
+            });
+          }
+
+          // Apply blinking
+          const eyeBlinkL = child.morphTargetDictionary['Eye_Blink_L'] || child.morphTargetDictionary['eyesClosed'];
+          const eyeBlinkR = child.morphTargetDictionary['Eye_Blink_R'] || child.morphTargetDictionary['eyesClosed'];
+          
+          if (eyeBlinkL !== undefined) {
+            child.morphTargetInfluences[eyeBlinkL] = THREE.MathUtils.lerp(
+              child.morphTargetInfluences[eyeBlinkL] || 0,
+              (blink || frameData.idle?.eyeBlink > 0) ? 1 : 0,
+              0.4
+            );
+          }
+          if (eyeBlinkR !== undefined) {
+            child.morphTargetInfluences[eyeBlinkR] = THREE.MathUtils.lerp(
+              child.morphTargetInfluences[eyeBlinkR] || 0,
+              (blink || frameData.idle?.eyeBlink > 0) ? 1 : 0,
+              0.4
+            );
+          }
+
+          // Apply emotional expressions
+          if (currentEmotion && emotionIntensity > 0) {
+            const emotionalBlendShapes = lipSyncEngine.current.emotionalLipSync.generateEmotionalBlendShapes(currentEmotion, emotionIntensity);
+            Object.entries(emotionalBlendShapes).forEach(([morphName, value]) => {
+              const index = child.morphTargetDictionary[morphName];
+              if (index !== undefined) {
+                child.morphTargetInfluences[index] = THREE.MathUtils.lerp(
+                  child.morphTargetInfluences[index] || 0,
+                  value,
+                  0.2
+                );
+              }
+            });
+          }
+
+          // Apply breathing animation if enabled
+          if (breathingEnabled && frameData.breathing) {
+            // Apply subtle breathing effects to available morph targets
+            const chestInfluence = frameData.breathing.chestRise * 0.1;
+            const nostrilInfluence = frameData.breathing.nostrilFlare;
+            
+            // Apply to any available breathing-related morph targets
+            Object.keys(child.morphTargetDictionary).forEach(morphName => {
+              if (morphName.toLowerCase().includes('nostril') || morphName.toLowerCase().includes('nose')) {
+                const index = child.morphTargetDictionary[morphName];
+                if (index !== undefined) {
+                  child.morphTargetInfluences[index] = THREE.MathUtils.lerp(
+                    child.morphTargetInfluences[index] || 0,
+                    nostrilInfluence,
+                    0.1
+                  );
+                }
+              }
+            });
+          }
+
+          // Apply idle movements if enabled
+          if (idleEnabled && frameData.idle) {
+            // Subtle head sway through body positioning (minimal effect)
+            if (frameData.idle.headSway && avatarRef.current) {
+              avatarRef.current.rotation.y = frameData.idle.headSway * 0.02;
+            }
+          }
+        }
+      });
+
+      // Visual feedback for listening state
+      if (isListening) {
+        avatarRef.current.scale.setScalar(1.0 + Math.sin(state.clock.elapsedTime * 4) * 0.02);
+      } else {
+        avatarRef.current.scale.setScalar(1.0);
+      }
+    }
+  });
+
+  return (
+    <group ref={avatarRef} {...props} dispose={null}>
+      <group name="Scene">
+        <group scale={1.0} position={[0, 0, 0]}>
+          <primitive object={scene} />
+        </group>
+        
+        {/* Emotional state lighting */}
+        <pointLight 
+          position={[0, 2, 2]} 
+          intensity={emotionIntensity * 0.5}
+          color={
+            emotionalGlow === 'happy' ? '#ffeb3b' :
+            emotionalGlow === 'sad' ? '#2196f3' :
+            emotionalGlow === 'excited' ? '#ff9800' :
+            emotionalGlow === 'surprised' ? '#9c27b0' :
+            emotionalGlow === 'calm' ? '#4caf50' :
+            '#ffffff'
+          }
+        />
+        
+        {/* Listening indicator ring */}
+        {isListening && (
+          <mesh position={[0, 1.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.8, 1.0, 32]} />
+            <meshBasicMaterial 
+              color="#00ff00" 
+              transparent 
+              opacity={0.3}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        )}
+        
+        {/* Speaking indicator */}
+        {isPlaying && (
+          <mesh position={[0, 1.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.9, 1.1, 32]} />
+            <meshBasicMaterial 
+              color="#0066ff" 
+              transparent 
+              opacity={0.4}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        )}
+      </group>
+    </group>
+  );
+}
+
+const EnhancedIAPage = () => {
+  // State management
+  const [messages, setMessages] = useState([])
+  const [inputMessage, setInputMessage] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [sessionActive, setSessionActive] = useState(false)
+  const [patronProfile, setPatronProfile] = useState(null)
+  const [currentEmotion, setCurrentEmotion] = useState('neutral')
+  const [emotionIntensity, setEmotionIntensity] = useState(0)
+  const [recommendations, setRecommendations] = useState([])
+  const [conversationInsights, setConversationInsights] = useState(null)
+  
+  // Shelf system state
+  const [userAuthorization, setUserAuthorization] = useState(null)
+  const [availableSpirits, setAvailableSpirits] = useState([])
+  const [pendingUltraRequest, setPendingUltraRequest] = useState(null)
+  const [shelfContext, setShelfContext] = useState(null)
+  
+  // Advanced emotional intelligence state
+  const [emotionalAnalysis, setEmotionalAnalysis] = useState(null)
+  const [conversationStyle, setConversationStyle] = useState(null)
+  const [proactiveSuggestions, setProactiveSuggestions] = useState(null)
+  const [patronPersonality, setPatronPersonality] = useState(null)
+  const [contextualMemory, setContextualMemory] = useState([])
+  
+  // Enhanced TTS and lip sync state
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentViseme, setCurrentViseme] = useState({ 0: 1.0 })
+  const [isListening, setIsListening] = useState(false)
+  const [isMuted, setIsMuted] = useState(false)
+  const [breathingEnabled, setBreathingEnabled] = useState(true)
+  const [idleEnabled, setIdleEnabled] = useState(true)
+  const [selectedVoice, setSelectedVoice] = useState(null)
+  const [speechSettings, setSpeechSettings] = useState({
+    rate: 1.0,
+    pitch: 1.0,
+    volume: 0.8
+  })
+  
+  const messagesEndRef = useRef(null)
+  const sessionIdRef = useRef(null)
+  const lipSyncEngine = useRef(new IntegratedLipSyncEngine())
+  const currentSpeechRef = useRef(null)
+  const speechRecognition = useRef(null)
+  const emotionalEngine = useRef(new AdvancedEmotionalIntelligence())
+  const contextService = useRef(new ConversationContextService())
+
+  // Initialize session on component mount
+  useEffect(() => {
+    initializeSession()
+    initializeSpeech()
+    initializeShelfSystem()
+    return () => {
+      cleanup()
+    }
+  }, [])
+
+  // Initialize shelf system
+  const initializeShelfSystem = async () => {
+    try {
+      if (patronProfile?.id) {
+        const [authorization, spirits] = await Promise.all([
+          spiritsService.getUserAuthorization(patronProfile.id),
+          spiritsService.getAvailableSpirits(patronProfile.id)
+        ])
+        
+        setUserAuthorization(authorization)
+        setAvailableSpirits(spirits)
+        
+        // Build shelf context for conversation
+        const context = shelfLogic.formatShelfContextForIA(spirits, authorization)
+        setShelfContext(context)
+      }
+    } catch (error) {
+      console.error('Error initializing shelf system:', error)
+    }
+  }
+
+  // Update shelf system when patron profile changes
+  useEffect(() => {
+    if (patronProfile?.id) {
+      initializeShelfSystem()
+    }
+  }, [patronProfile?.id])
+
+  // Initialize speech recognition and TTS
+  const initializeSpeech = () => {
+    // Initialize speech recognition
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition
+      speechRecognition.current = new SpeechRecognition()
+      
+      speechRecognition.current.continuous = false
+      speechRecognition.current.interimResults = true
+      speechRecognition.current.lang = 'en-US'
+
+      speechRecognition.current.onresult = (event) => {
+        const transcript = event.results[0][0].transcript
+        if (event.results[0].isFinal) {
+          handleVoiceInput(transcript)
+        }
+      }
+
+      speechRecognition.current.onerror = (event) => {
+        console.error('Speech recognition error:', event.error)
+        setIsListening(false)
+      }
+
+      speechRecognition.current.onend = () => {
+        setIsListening(false)
+      }
+    }
+
+    // Initialize voice selection
+    const loadVoices = () => {
+      const voices = getAvailableVoices()
+      if (voices.length > 0 && !selectedVoice) {
+        const englishVoice = voices.find(v => v.lang.startsWith('en')) || voices[0]
+        setSelectedVoice(englishVoice)
+      }
+    }
+
+    loadVoices()
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.onvoiceschanged = loadVoices
+    }
+  }
+
+  // Auto-scroll to bottom when messages update
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  const initializeSession = async () => {
+    try {
+      const result = await conversationService.startSession()
+      if (result.success) {
+        setSessionActive(true)
+        setPatronProfile(result.patronProfile)
+        sessionIdRef.current = result.sessionId
+        
+        // Add welcome message with shelf awareness
+        const welcomeMessage = shelfContext?.hasUltraAccess 
+          ? "Welcome back to Nauti Bouys! I'm Savannah, your AI bartender with full access to our treasure vault. I can craft recommendations from all our shelf tiers, including our exclusive ultra shelf collection. How are you feeling today, and what adventure shall we embark upon?"
+          : "Ahoy and welcome to Nauti Bouys! I'm Savannah, your AI bartender ready to guide you through our maritime spirits collection. From our well shelf to our prized top shelf, I'll find the perfect drink to match your mood and story. What brings you to our harbor today?"
+        
+        setMessages([{
+          id: 1,
+          type: 'assistant',
+          content: welcomeMessage,
+          timestamp: new Date(),
+          emotion: 'friendly',
+          confidence: 1.0,
+          shelfContext: shelfContext
+        }])
+      }
+    } catch (error) {
+      console.error('Session initialization failed:', error)
+    }
+  }
+
+  const handleEmotionDetected = (emotionData) => {
+    setCurrentEmotion(emotionData.primary || emotionData.emotion || 'neutral')
+    setEmotionIntensity(emotionData.intensity || emotionData.confidence || 0)
+    
+    // Update conversation service with emotion
+    if (conversationService) {
+      conversationService.updateEmotionalState(emotionData)
+    }
+  }
+
+  // Advanced emotional analysis of patron input
+  const analyzePatronInput = async (message, voiceMetrics = null) => {
+    try {
+      // Perform advanced emotional analysis
+      const analysis = emotionalEngine.current.analyzeMood(message, voiceMetrics)
+      setEmotionalAnalysis(analysis)
+      
+      // Update conversation context
+      const metadata = {
+        mood: analysis.primaryMood,
+        energyLevel: analysis.energyLevel,
+        confidence: analysis.confidence,
+        topics: analysis.conversationCues,
+        context: analysis.context
+      }
+      
+      contextService.current.addToHistory(message, 'patron', metadata)
+      
+      // Adapt conversation style
+      const adaptedStyle = emotionalEngine.current.adaptConversationStyle(message, analysis)
+      setConversationStyle(adaptedStyle)
+      
+      // Generate proactive suggestions
+      const timeOfDay = new Date().getHours()
+      const conversationHistory = contextService.current.conversationHistory
+      const suggestions = emotionalEngine.current.generateProactiveSuggestions(
+        analysis, 
+        timeOfDay, 
+        conversationHistory
+      )
+      setProactiveSuggestions(suggestions)
+      
+      // Build dynamic personality profile
+      const personality = emotionalEngine.current.buildPersonalityProfile(analysis, suggestions)
+      setPatronPersonality(personality)
+      
+      // Update patron profile in context service
+      contextService.current.updatePatronProfile(analysis, adaptedStyle)
+      
+      // Update contextual memory
+      const continuity = contextService.current.getContinuityContext()
+      setContextualMemory(continuity)
+      
+      // Update emotional state for avatar
+      handleEmotionDetected({
+        primary: analysis.primaryMood,
+        intensity: analysis.confidence,
+        context: analysis.context
+      })
+      
+      return { analysis, adaptedStyle, suggestions, personality }
+    } catch (error) {
+      console.error('Advanced emotional analysis failed:', error)
+      return null
+    }
+  }
+
+  // Generate contextually aware response using emotional intelligence
+  const generateContextualResponse = async (message, emotionalData) => {
+    try {
+      const response = emotionalEngine.current.generateContextualResponse(
+        message,
+        emotionalData.analysis,
+        emotionalData.personality,
+        emotionalData.suggestions
+      )
+      
+      // Add enhanced context to conversation service request
+      const enhancedContext = {
+        inputMode: 'text',
+        emotionalState: emotionalData.analysis,
+        conversationStyle: emotionalData.adaptedStyle,
+        proactiveSuggestions: emotionalData.suggestions,
+        patronPersonality: emotionalData.personality,
+        continuityContext: contextService.current.getContinuityContext(),
+        personalizedRecommendations: contextService.current.getPersonalizedRecommendations(),
+        shelfSystem: {
+          userAuthorization,
+          availableSpirits: availableSpirits.length,
+          maxAccessibleShelf: shelfLogic.getMaxAccessibleShelf(userAuthorization),
+          shelfBreakdown: shelfContext?.shelfBreakdown
+        }
+      }
+      
+      return { response, enhancedContext }
+    } catch (error) {
+      console.error('Contextual response generation failed:', error)
+      return null
+    }
+  }
+
+  // Handle voice input from speech recognition with advanced emotional intelligence
+  const handleVoiceInput = async (transcript) => {
+    if (!transcript.trim()) return
+
+    try {
+      setIsListening(false)
+      
+      // Perform advanced emotional analysis
+      const emotionalData = await analyzePatronInput(transcript, {
+        pitch: 0.5, // Could be extracted from speech recognition
+        speed: 0.6,
+        volume: 0.7,
+        clarity: 0.8
+      })
+      
+      const userMessage = {
+        id: messages.length + 1,
+        type: 'user',
+        content: transcript,
+        timestamp: new Date(),
+        emotion: emotionalData?.analysis?.primaryMood || currentEmotion,
+        inputMode: 'voice',
+        emotionalAnalysis: emotionalData?.analysis,
+        energyLevel: emotionalData?.analysis?.energyLevel
+      }
+
+      setMessages(prev => [...prev, userMessage])
+      setIsLoading(true)
+
+      // Generate contextually aware response
+      const contextualData = emotionalData ? 
+        await generateContextualResponse(transcript, emotionalData) : null
+      
+      // Check for ultra shelf requests in transcript
+      const ultraRequest = await checkForUltraShelfRequest(transcript)
+      
+      // Generate response with enhanced emotional context
+      const response = await conversationService.generateResponse(transcript, 
+        contextualData?.enhancedContext || {
+          inputMode: 'voice',
+          emotionalState: { primary: currentEmotion, intensity: emotionIntensity },
+          shelfSystem: {
+            userAuthorization,
+            availableSpirits: availableSpirits.length,
+            maxAccessibleShelf: shelfLogic.getMaxAccessibleShelf(userAuthorization)
+          }
+        }
+      )
+
+      if (response.success) {
+        // Add contextual response prefix if available
+        let enhancedResponse = response.response
+        if (contextualData?.response) {
+          enhancedResponse = contextualData.response + response.response
+        }
+        
+        const aiMessage = {
+          id: messages.length + 2,
+          type: 'assistant',
+          content: enhancedResponse,
+          timestamp: new Date(),
+          confidence: response.confidence,
+          actions: response.actions,
+          emotionalAdaptation: emotionalData?.adaptedStyle,
+          proactiveSuggestions: emotionalData?.suggestions
+        }
+
+        setMessages(prev => [...prev, aiMessage])
+        
+        // Add to conversation context
+        contextService.current.addToHistory(enhancedResponse, 'savannah', {
+          mood: 'helpful',
+          confidence: response.confidence,
+          topics: response.actions || []
+        })
+
+        // Speak the response with enhanced lip sync and emotional context
+        await speakResponseWithLipSync(enhancedResponse)
+
+        // Check for follow-up actions
+        if (response.actions?.includes('learn:interested_in_recommendations') || 
+            emotionalData?.suggestions?.actions?.includes('suggest_drink_pairing')) {
+          await getPersonalizedRecommendations()
+        }
+
+        if (response.actions?.includes('learn:expressed_preference')) {
+          await updatePatronProfile(transcript)
+        }
+        
+        // Handle proactive suggestions
+        if (emotionalData?.suggestions?.actions?.includes('offer_maritime_story')) {
+          setTimeout(() => {
+            setMessages(prev => [...prev, {
+              id: prev.length + 1,
+              type: 'assistant',
+              content: "Would you like to hear a maritime story from our harbor's history?",
+              timestamp: new Date(),
+              confidence: 0.8,
+              isProactive: true
+            }])
+          }, 3000)
+        }
+      }
+
+    } catch (error) {
+      console.error('Voice input processing failed:', error)
+      setMessages(prev => [...prev, {
+        id: messages.length + 2,
+        type: 'assistant',
+        content: "I'm sorry, I had trouble understanding that. Could you please try again?",
+        timestamp: new Date(),
+        confidence: 0.3
+      }])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Enhanced speech synthesis with emotional lip sync
+  const speakResponseWithLipSync = async (text) => {
+    if (isMuted || !text.trim()) return
+
+    try {
+      setIsPlaying(true)
+
+      // Process speech with emotional enhancement
+      const enhancedData = await lipSyncEngine.current.processEnhancedSpeech(text, {
+        emotionOverride: currentEmotion !== 'neutral' ? currentEmotion : undefined,
+        preserveEmotionalNuance: true
+      })
+
+      // Update emotional state based on text analysis
+      if (enhancedData.emotion) {
+        setCurrentEmotion(enhancedData.emotion.emotion)
+        setEmotionIntensity(enhancedData.emotion.intensity)
+      }
+
+      // Create speech synthesis utterance
+      const utterance = new SpeechSynthesisUtterance(text)
+      
+      if (selectedVoice) {
+        utterance.voice = selectedVoice
+      }
+      
+      utterance.rate = speechSettings.rate
+      utterance.pitch = speechSettings.pitch
+      utterance.volume = speechSettings.volume
+
+      // Enhanced viseme animation synchronized with speech
+      let visemeIndex = 0
+      const visemeDuration = 60000 / (speechSettings.rate * 300)
+      
+      const visemeInterval = setInterval(() => {
+        if (visemeIndex < enhancedData.visemes.length) {
+          setCurrentViseme(enhancedData.visemes[visemeIndex])
+          visemeIndex++
+        } else {
+          clearInterval(visemeInterval)
+          setCurrentViseme({ 0: 1.0 }) // Return to silence
+        }
+      }, visemeDuration)
+
+      currentSpeechRef.current = {
+        stop: () => {
+          clearInterval(visemeInterval)
+          setCurrentViseme({ 0: 1.0 })
+        }
+      }
+
+      utterance.onend = () => {
+        clearInterval(visemeInterval)
+        setCurrentViseme({ 0: 1.0 })
+        setIsPlaying(false)
+        // Gradually return to neutral emotion
+        setTimeout(() => {
+          setCurrentEmotion('neutral')
+          setEmotionIntensity(0)
+        }, 2000)
+        currentSpeechRef.current = null
+      }
+
+      utterance.onerror = (error) => {
+        console.error('Enhanced speech synthesis error:', error)
+        clearInterval(visemeInterval)
+        setCurrentViseme({ 0: 1.0 })
+        setIsPlaying(false)
+        currentSpeechRef.current = null
+      }
+
+      speechSynthesis.speak(utterance)
+
+    } catch (error) {
+      console.error('Enhanced speech processing error:', error)
+      setIsPlaying(false)
+    }
+  }
+
+  // Toggle speech recognition
+  const toggleListening = () => {
+    if (!speechRecognition.current) {
+      console.error('Speech recognition not supported')
+      return
+    }
+
+    if (isListening) {
+      speechRecognition.current.stop()
+      setIsListening(false)
+    } else {
+      speechRecognition.current.start()
+      setIsListening(true)
+    }
+  }
+
+  // Toggle mute
+  const toggleMute = () => {
+    if (isPlaying) {
+      speechSynthesis.cancel()
+      if (currentSpeechRef.current) {
+        currentSpeechRef.current.stop?.()
+      }
+      setIsPlaying(false)
+      setCurrentViseme({ 0: 1.0 })
+    }
+    setIsMuted(!isMuted)
+  }
+
+  // Cleanup function
+  const cleanup = async () => {
+    try {
+      if (speechRecognition.current) {
+        speechRecognition.current.stop()
+      }
+      
+      if (currentSpeechRef.current) {
+        currentSpeechRef.current.stop?.()
+      }
+      
+      speechSynthesis.cancel()
+      
+      if (sessionIdRef.current) {
+        await conversationService.endSession()
+      }
+
+    } catch (error) {
+      console.error('Cleanup failed:', error)
+    }
+  }
+
+  const handleConversationUpdate = (update) => {
+    setMessages(prev => [
+      ...prev,
+      {
+        id: prev.length + 1,
+        type: 'user',
+        content: update.userMessage,
+        timestamp: new Date(),
+        emotion: update.emotionalState?.primary,
+        inputMode: 'voice'
+      },
+      {
+        id: prev.length + 2,
+        type: 'assistant',
+        content: update.aiResponse,
+        timestamp: new Date(),
+        confidence: 0.9
+      }
+    ])
+    
+    scrollToBottom()
+  }
+
+  const sendMessage = async (message) => {
+    if (!message.trim() || !sessionActive) return
+
+    // Perform advanced emotional analysis for text input
+    const emotionalData = await analyzePatronInput(message)
+    
+    const userMessage = {
+      id: messages.length + 1,
+      type: 'user',
+      content: message,
+      timestamp: new Date(),
+      emotion: emotionalData?.analysis?.primaryMood || currentEmotion?.primary,
+      inputMode: 'text',
+      emotionalAnalysis: emotionalData?.analysis,
+      energyLevel: emotionalData?.analysis?.energyLevel
+    }
+
+    setMessages(prev => [...prev, userMessage])
+    setInputMessage('')
+    setIsLoading(true)
+
+    try {
+      // Generate contextually aware response
+      const contextualData = emotionalData ? 
+        await generateContextualResponse(message, emotionalData) : null
+      
+      // Check for ultra shelf requests in message
+      const ultraRequest = await checkForUltraShelfRequest(message)
+      
+      // Generate response with enhanced emotional context
+      const response = await conversationService.generateResponse(message, 
+        contextualData?.enhancedContext || {
+          inputMode: 'text',
+          emotionalState: currentEmotion,
+          shelfSystem: {
+            userAuthorization,
+            availableSpirits: availableSpirits.length,
+            maxAccessibleShelf: shelfLogic.getMaxAccessibleShelf(userAuthorization)
+          }
+        }
+      )
+
+      if (response.success) {
+        // Add contextual response prefix if available
+        let enhancedResponse = response.response
+        if (contextualData?.response) {
+          enhancedResponse = contextualData.response + response.response
+        }
+        
+        const aiMessage = {
+          id: messages.length + 2,
+          type: 'assistant',
+          content: enhancedResponse,
+          timestamp: new Date(),
+          confidence: response.confidence,
+          actions: response.actions,
+          emotionalAdaptation: emotionalData?.adaptedStyle,
+          proactiveSuggestions: emotionalData?.suggestions
+        }
+
+        setMessages(prev => [...prev, aiMessage])
+        
+        // Add to conversation context
+        contextService.current.addToHistory(enhancedResponse, 'savannah', {
+          mood: 'helpful',
+          confidence: response.confidence,
+          topics: response.actions || []
+        })
+
+        // Speak the response with enhanced lip sync and emotional context
+        await speakResponseWithLipSync(enhancedResponse)
+
+        // Check if response includes recommendations
+        if (response.actions?.includes('learn:interested_in_recommendations') || 
+            emotionalData?.suggestions?.actions?.includes('suggest_drink_pairing')) {
+          await getPersonalizedRecommendations()
+        }
+
+        // Update patron profile if preferences were expressed
+        if (response.actions?.includes('learn:expressed_preference')) {
+          await updatePatronProfile(message)
+        }
+        
+        // Handle proactive suggestions based on conversation flow
+        const continuity = contextService.current.getContinuityContext()
+        if (continuity.conversationFlow?.needsStoryPrompt) {
+          setTimeout(() => {
+            setMessages(prev => [...prev, {
+              id: prev.length + 1,
+              type: 'assistant',
+              content: "I sense you might enjoy one of our harbor's legendary tales. Shall I share one?",
+              timestamp: new Date(),
+              confidence: 0.8,
+              isProactive: true
+            }])
+          }, 4000)
+        }
+        
+        if (continuity.conversationFlow?.needsDrinkSuggestion) {
+          setTimeout(() => {
+            setMessages(prev => [...prev, {
+              id: prev.length + 1,
+              type: 'assistant',
+              content: "Based on our conversation, I have some beverage suggestions that might perfectly match your current mood. Would you like to hear them?",
+              timestamp: new Date(),
+              confidence: 0.8,
+              isProactive: true
+            }])
+          }, 5000)
+        }
+      } else {
+        // Fallback response
+        setMessages(prev => [...prev, {
+          id: messages.length + 2,
+          type: 'assistant',
+          content: "I apologize, but I'm having trouble processing your request. Could you please try again?",
+          timestamp: new Date(),
+          confidence: 0.5
+        }])
+      }
+    } catch (error) {
+      console.error('Message processing failed:', error)
+      setMessages(prev => [...prev, {
+        id: messages.length + 2,
+        type: 'assistant',
+        content: "I'm experiencing some technical difficulties. Let me try to help you in a different way.",
+        timestamp: new Date(),
+        confidence: 0.3
+      }])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const getPersonalizedRecommendations = async () => {
+    try {
+      // Get smart recommendations with shelf awareness
+      const smartRecs = await shelfLogic.getSmartRecommendations(
+        {
+          occasion: 'casual visit',
+          emotionalState: currentEmotion,
+          timeOfDay: new Date().getHours() < 12 ? 'morning' : 
+                     new Date().getHours() < 17 ? 'afternoon' : 'evening'
+        },
+        userAuthorization,
+        patronProfile?.id
+      )
+      
+      const result = await conversationService.getPersonalizedRecommendations({
+        occasion: 'casual visit',
+        emotionalState: currentEmotion,
+        timeOfDay: new Date().getHours() < 12 ? 'morning' : 
+                   new Date().getHours() < 17 ? 'afternoon' : 'evening',
+        shelfConstraints: {
+          maxAccessibleShelf: shelfLogic.getMaxAccessibleShelf(userAuthorization),
+          availableSpirits: smartRecs.available,
+          restrictedSpirits: smartRecs.restricted
+        }
+      })
+
+      if (result.success) {
+        // Enhance recommendations with shelf tier information
+        const enhancedRecs = result.recommendations.map(rec => 
+          spiritsService.formatSpiritWithShelf(rec)
+        )
+        setRecommendations(enhancedRecs)
+      }
+    } catch (error) {
+      console.error('Failed to get recommendations:', error)
+    }
+  }
+
+  const updatePatronProfile = async (message) => {
+    try {
+      // Extract preferences from message (simple keyword matching)
+      const preferences = {}
+      
+      if (message.toLowerCase().includes('sweet')) {
+        preferences.cocktails = { sweetness: 4 }
+      }
+      if (message.toLowerCase().includes('strong')) {
+        preferences.cocktails = { strength: 5 }
+      }
+      if (message.toLowerCase().includes('light')) {
+        preferences.cocktails = { strength: 2 }
+      }
+
+      if (Object.keys(preferences).length > 0) {
+        await conversationService.updatePatronPreferences(preferences)
+      }
+    } catch (error) {
+      console.error('Failed to update patron profile:', error)
+    }
+  }
+
+  const addToFavorites = async (beverage) => {
+    try {
+      await conversationService.addFavoriteBeverage({
+        id: beverage.id || beverage._id,
+        name: beverage.name,
+        category: beverage.category,
+        rating: 5
+      })
+      
+      // Update local state
+      setPatronProfile(prev => ({
+        ...prev,
+        favoriteBeverages: [...(prev.favoriteBeverages || []), beverage]
+      }))
+    } catch (error) {
+      console.error('Failed to add favorite:', error)
+    }
+  }
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    sendMessage(inputMessage)
+  }
+
+  const clearChat = async () => {
+    try {
+      if (sessionIdRef.current) {
+        await conversationService.endSession()
+      }
+      
+      setMessages([])
+      setRecommendations([])
+      setCurrentEmotion(null)
+      setConversationInsights(null)
+      setPendingUltraRequest(null)
+      
+      // Start new session
+      await initializeSession()
+    } catch (error) {
+      console.error('Failed to clear chat:', error)
+    }
+  }
+  
+  // Check for ultra shelf requests in user input
+  const checkForUltraShelfRequest = async (input) => {
+    try {
+      // Use simple keyword matching and context analysis
+      const ultraKeywords = ['ultra', 'exclusive', 'premium', 'rare', 'special', 'finest']
+      const spiritKeywords = ['whiskey', 'bourbon', 'scotch', 'rum', 'vodka', 'gin', 'cognac', 'brandy']
+      
+      const hasUltraKeyword = ultraKeywords.some(keyword => 
+        input.toLowerCase().includes(keyword)
+      )
+      const hasSpiritKeyword = spiritKeywords.some(keyword => 
+        input.toLowerCase().includes(keyword)
+      )
+      
+      if (hasUltraKeyword && hasSpiritKeyword && !userAuthorization?.ultraShelfAccess) {
+        // This might be requesting an ultra shelf spirit
+        const alternatives = await spiritsService.getAlternatives('ultra-request', patronProfile?.id)
+        return {
+          isUltraRequest: true,
+          requiresAuthorization: true,
+          alternatives
+        }
+      }
+      
+      return null
+    } catch (error) {
+      console.error('Error checking ultra shelf request:', error)
+      return null
+    }
+  }
+  
+  // Handle ultra shelf request flow
+  const handleUltraShelfRequest = async (spiritName, userMessage) => {
+    try {
+      if (!userAuthorization?.ultraShelfAccess) {
+        const requestResult = await shelfLogic.initiateUltraShelfRequest(
+          { name: spiritName, id: 'temp-ultra-request' },
+          patronProfile?.id,
+          { userName: patronProfile?.name, occasion: 'conversation request' }
+        )
+        
+        setPendingUltraRequest(requestResult)
+        
+        // Add Savannah's explanation message
+        const explanationMessage = {
+          id: messages.length + 1,
+          type: 'assistant',
+          content: requestResult.explanation || shelfLogic.generateShelfExplanation({ name: spiritName }),
+          timestamp: new Date(),
+          confidence: 0.9,
+          isUltraShelfExplanation: true
+        }
+        
+        setMessages(prev => [...prev, explanationMessage])
+        return true
+      }
+      
+      return false
+    } catch (error) {
+      console.error('Error handling ultra shelf request:', error)
+      return false
+    }
+  }
+
+  const handleEndSession = async () => {
+    try {
+      if (sessionIdRef.current) {
+        const result = await conversationService.endSession()
+        if (result.success) {
+          setConversationInsights(result.data?.summary)
+        }
+      }
+      setSessionActive(false)
+    } catch (error) {
+      console.error('Failed to end session:', error)
+    }
+  }
+
+  const getEmotionColor = (emotion) => {
+    const colors = {
+      happy: 'text-yellow-600',
+      sad: 'text-blue-600', 
+      excited: 'text-orange-600',
+      surprised: 'text-purple-600',
+      calm: 'text-green-600',
+      neutral: 'text-gray-600'
+    }
+    return colors[emotion] || 'text-gray-600'
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-bay-50 via-sand-50 to-oyster-50">
+      {/* Notification System */}
+      <NotificationSystem 
+        userId={patronProfile?.id} 
+        isOwner={false}
+        onUltraRequestUpdate={(update) => {
+          // Handle ultra shelf request updates
+          if (update.status === 'approved') {
+            setUserAuthorization(prev => ({ ...prev, ultraShelfAccess: true }));
+            initializeShelfSystem(); // Refresh available spirits
+          }
+        }}
+      />
+      
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-5xl font-bold text-bay-900 mb-4">
+            Enhanced IA Assistant
+          </h1>
+          <p className="text-xl text-bay-700 max-w-3xl mx-auto">
+            Your intelligent bartender with emotional awareness, memory, and personalized recommendations
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+          {/* Avatar & Profile Section */}
+          <div className="xl:col-span-4 space-y-6">
+            {/* Enhanced Avatar */}
+            <div className="card-bay">
+              <div className="relative h-96 bg-gradient-to-br from-teal-50 to-bay-100 rounded-lg overflow-hidden">
+                <Canvas 
+                  camera={{ position: [0, 1.6, 2.5], fov: 50 }}
+                  gl={{ preserveDrawingBuffer: false, antialias: true }}
+                >
+                  <ambientLight intensity={0.2} />
+                  <hemisphereLight 
+                    skyColor={'#fcf9d9'} 
+                    groundColor={'#fcf9d9'} 
+                    intensity={0.5} 
+                  />
+                  <directionalLight 
+                    position={[5, 10, 5]} 
+                    color={'#fcf9d9'} 
+                    intensity={2} 
+                  />
+                  
+                  <Suspense fallback={null}>
+                    <EnhancedSavannahAvatar 
+                      isPlaying={isPlaying}
+                      currentViseme={currentViseme}
+                      currentEmotion={currentEmotion}
+                      emotionIntensity={emotionIntensity}
+                      breathingEnabled={breathingEnabled}
+                      idleEnabled={idleEnabled}
+                      isListening={isListening}
+                      isMuted={isMuted}
+                    />
+                  </Suspense>
+                  
+                  <OrbitControls 
+                    enablePan={true}
+                    enableZoom={true}
+                    enableRotate={true}
+                    target={[0, 1.4, 0]}
+                    maxDistance={6}
+                    minDistance={1.5}
+                    maxPolarAngle={Math.PI * 0.8}
+                    minPolarAngle={Math.PI * 0.1}
+                    enableDamping={true}
+                    dampingFactor={0.05}
+                    rotateSpeed={0.8}
+                    zoomSpeed={1.2}
+                    panSpeed={0.8}
+                    zoomToCursor={true}
+                    autoRotate={false}
+                  />
+                </Canvas>
+                
+                {/* Avatar Status Overlay */}
+                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
+                  <div className="flex items-center space-x-2 text-sm font-medium">
+                    <div className={`w-3 h-3 rounded-full ${
+                      isPlaying ? 'bg-blue-500 animate-pulse' :
+                      isListening ? 'bg-green-500 animate-pulse' :
+                      'bg-gray-400'
+                    }`}></div>
+                    <span className="text-bay-800">
+                      {isPlaying ? 'Speaking' : 
+                       isListening ? 'Listening' : 
+                       'Ready'}
+                    </span>
+                  </div>
+                  {currentEmotion !== 'neutral' && (
+                    <div className="mt-2 text-xs text-bay-600">
+                      <span className="capitalize">{currentEmotion}</span>
+                      <span className="text-bay-400 ml-1">
+                        ({Math.round(emotionIntensity * 100)}%)
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Voice Controls */}
+                <div className="absolute bottom-4 right-4 flex space-x-2">
+                  <button
+                    onClick={toggleListening}
+                    disabled={isPlaying}
+                    className={`p-3 rounded-full transition-all duration-200 ${
+                      isListening 
+                        ? 'bg-green-500 hover:bg-green-600 text-white animate-pulse' 
+                        : 'bg-bay-500 hover:bg-bay-600 text-white disabled:opacity-50'
+                    }`}
+                    title={isListening ? 'Stop listening' : 'Start voice chat'}
+                  >
+                    {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                  </button>
+
+                  <button
+                    onClick={toggleMute}
+                    className={`p-3 rounded-full transition-all duration-200 ${
+                      isMuted 
+                        ? 'bg-gray-500 hover:bg-gray-600 text-white' 
+                        : 'bg-blue-500 hover:bg-blue-600 text-white'
+                    }`}
+                    title={isMuted ? 'Unmute' : 'Mute voice responses'}
+                  >
+                    {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Advanced Emotional Intelligence Display */}
+            {(currentEmotion !== 'neutral' || emotionalAnalysis) && (
+              <div className="card-bay">
+                <h3 className="text-lg font-bold text-bay-800 mb-4 flex items-center">
+                  <Heart className="h-5 w-5 mr-2" />
+                  Emotional Intelligence
+                </h3>
+                <div className="space-y-4">
+                  {/* Current Emotion */}
+                  <div className="text-center">
+                    <div className={`text-3xl font-bold ${getEmotionColor(currentEmotion)} mb-2`}>
+                      {(currentEmotion || 'neutral').charAt(0).toUpperCase() + (currentEmotion || 'neutral').slice(1)}
+                    </div>
+                    <div className="text-sm text-bay-600">
+                      Intensity: {Math.round(emotionIntensity * 100)}%
+                    </div>
+                    <div className="mt-3">
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div 
+                          className={`h-3 rounded-full transition-all duration-500 ${
+                            currentEmotion === 'happy' ? 'bg-yellow-500' :
+                            currentEmotion === 'sad' ? 'bg-blue-500' :
+                            currentEmotion === 'excited' ? 'bg-orange-500' :
+                            currentEmotion === 'surprised' ? 'bg-purple-500' :
+                            currentEmotion === 'calm' ? 'bg-green-500' :
+                            'bg-gray-500'
+                          }`}
+                          style={{ width: `${emotionIntensity * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Advanced Analysis */}
+                  {emotionalAnalysis && (
+                    <div className="border-t border-bay-200 pt-4 space-y-3">
+                      {emotionalAnalysis.energyLevel && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-bay-600">Energy Level:</span>
+                          <span className="text-bay-800 capitalize font-medium">
+                            {emotionalAnalysis.energyLevel}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {emotionalAnalysis.context && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-bay-600">Context:</span>
+                          <span className="text-bay-800 capitalize font-medium">
+                            {emotionalAnalysis.context}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {emotionalAnalysis.conversationCues?.length > 0 && (
+                        <div className="text-sm">
+                          <span className="text-bay-600">Communication Style:</span>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {emotionalAnalysis.conversationCues.slice(0, 3).map((cue, index) => (
+                              <span key={index} className="bg-bay-100 text-bay-700 px-2 py-1 rounded-full text-xs">
+                                {cue.replace('_', ' ')}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  <div className="text-xs text-bay-500 text-center">
+                    Savannah adapts her personality and responses based on your emotional state
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Conversation Context & Memory */}
+            {contextualMemory?.recentMessages?.length > 0 && (
+              <div className="card-bay">
+                <h3 className="text-lg font-bold text-bay-800 mb-4 flex items-center">
+                  <Brain className="h-5 w-5 mr-2" />
+                  Conversation Context
+                </h3>
+                <div className="space-y-3 text-sm">
+                  {contextualMemory.activeTopics?.length > 0 && (
+                    <div>
+                      <span className="text-bay-600 font-medium">Active Topics:</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {contextualMemory.activeTopics.slice(0, 4).map((topic, index) => (
+                          <span key={index} className="bg-teal-100 text-teal-800 px-2 py-1 rounded-full text-xs">
+                            {topic}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {contextualMemory.engagementTrend && (
+                    <div className="flex justify-between">
+                      <span className="text-bay-600">Engagement:</span>
+                      <span className={`font-medium ${
+                        contextualMemory.engagementTrend === 'increasing' ? 'text-green-600' :
+                        contextualMemory.engagementTrend === 'decreasing' ? 'text-orange-600' :
+                        'text-bay-600'
+                      }`}>
+                        {contextualMemory.engagementTrend}
+                      </span>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between">
+                    <span className="text-bay-600">Session Duration:</span>
+                    <span className="text-bay-800">
+                      {Math.round((contextualMemory.sessionLength || 0) / 60000)}m
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Proactive Suggestions */}
+            {proactiveSuggestions && (
+              <div className="card-bay">
+                <h3 className="text-lg font-bold text-bay-800 mb-4 flex items-center">
+                  <Star className="h-5 w-5 mr-2" />
+                  Smart Suggestions
+                </h3>
+                <div className="space-y-3">
+                  {proactiveSuggestions.drinks?.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-bay-700 mb-2">Mood-Based Drinks:</h4>
+                      <div className="space-y-1">
+                        {proactiveSuggestions.drinks.slice(0, 3).map((drink, index) => (
+                          <div key={index} className="text-xs text-bay-600 bg-bay-50 rounded px-2 py-1">
+                            {drink}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {proactiveSuggestions.conversationTopics?.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-bay-700 mb-2">Conversation Starters:</h4>
+                      <div className="space-y-1">
+                        {proactiveSuggestions.conversationTopics.slice(0, 2).map((topic, index) => (
+                          <div key={index} className="text-xs text-bay-600 bg-sand-50 rounded px-2 py-1">
+                            {topic}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Animation Settings */}
+            <div className="card-bay">
+              <h3 className="text-lg font-bold text-bay-800 mb-4 flex items-center">
+                <Brain className="h-5 w-5 mr-2" />
+                Avatar Settings
+              </h3>
+              <div className="space-y-3">
+                <label className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={breathingEnabled}
+                    onChange={(e) => setBreathingEnabled(e.target.checked)}
+                    className="form-checkbox h-4 w-4 text-bay-600"
+                  />
+                  <span className="text-sm text-bay-700">Breathing Animation</span>
+                </label>
+                
+                <label className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={idleEnabled}
+                    onChange={(e) => setIdleEnabled(e.target.checked)}
+                    className="form-checkbox h-4 w-4 text-bay-600"
+                  />
+                  <span className="text-sm text-bay-700">Idle Movements</span>
+                </label>
+                
+                <div className="pt-2 border-t border-bay-200">
+                  <div className="text-xs text-bay-500 space-y-1">
+                    <div>Speech Rate: {speechSettings.rate.toFixed(1)}x</div>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2.0"
+                      step="0.1"
+                      value={speechSettings.rate}
+                      onChange={(e) => setSpeechSettings(prev => ({ ...prev, rate: parseFloat(e.target.value) }))}
+                      className="w-full h-2 bg-bay-200 rounded-lg appearance-none slider"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Patron Profile */}
+            {patronProfile && (
+              <div className="card-bay">
+                <h3 className="text-lg font-bold text-bay-800 mb-4 flex items-center">
+                  <Brain className="h-5 w-5 mr-2" />
+                  Your Profile
+                </h3>
+                <div className="space-y-3">
+                  {patronProfile.favoriteBeverages?.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-bay-700">Favorite Beverages:</h4>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {patronProfile.favoriteBeverages.slice(0, 3).map((beverage, index) => (
+                          <span key={index} className="bg-bay-100 text-bay-800 px-2 py-1 rounded-full text-xs">
+                            {beverage.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <h4 className="font-semibold text-bay-700">Communication Style:</h4>
+                    <span className="text-bay-600 capitalize">
+                      {patronProfile.communicationStyle?.formality || 'Friendly'}
+                    </span>
+                  </div>
+                  
+                  {patronProfile.personalNotes?.dietaryRestrictions?.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-bay-700">Dietary Notes:</h4>
+                      <div className="text-bay-600 text-sm">
+                        {patronProfile.personalNotes.dietaryRestrictions.join(', ')}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Session Controls */}
+            <div className="space-y-3">
+              <button
+                onClick={clearChat}
+                className="w-full btn-secondary flex items-center justify-center"
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                New Session
+              </button>
+              
+              <div className="text-center text-xs text-bay-600">
+                Session Status: 
+                <span className={`ml-1 font-semibold ${sessionActive ? 'text-green-600' : 'text-red-600'}`}>
+                  {sessionActive ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Chat Section */}
+          <div className="xl:col-span-8 space-y-6">
+            <div className="card-bay flex flex-col" style={{ height: '600px' }}>
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
+                        message.type === 'user'
+                          ? 'bg-bay-600 text-white'
+                          : 'bg-sand-100 text-bay-900'
+                      }`}
+                    >
+                      <p className="text-sm">{message.content}</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <p className={`text-xs ${
+                          message.type === 'user' ? 'text-bay-100' : 'text-bay-500'
+                        }`}>
+                          {message.timestamp.toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </p>
+                        {message.emotion && message.emotion !== 'neutral' && (
+                          <span className={`text-xs ${getEmotionColor(message.emotion)} bg-white/20 px-1 rounded`}>
+                            {message.emotion}
+                          </span>
+                        )}
+                        {message.energyLevel && (
+                          <span className="text-xs text-bay-300 bg-white/10 px-1 rounded ml-1">
+                            {message.energyLevel}
+                          </span>
+                        )}
+                        {message.isProactive && (
+                          <span className="text-xs text-purple-400 bg-white/10 px-1 rounded ml-1">
+                            proactive
+                          </span>
+                        )}
+                        {message.confidence && (
+                          <span className="text-xs text-bay-400">
+                            {Math.round(message.confidence * 100)}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-sand-100 text-bay-900 max-w-xs lg:max-w-md px-4 py-3 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 bg-bay-400 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-bay-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-bay-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        </div>
+                        <span className="text-sm text-bay-500">
+                          {currentEmotion !== 'neutral' 
+                            ? `Bay AI is crafting an ${currentEmotion} response...`
+                            : 'Bay AI is thinking...'
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Input */}
+              <div className="border-t border-bay-200 p-4">
+                <form onSubmit={handleSubmit} className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    placeholder="Tell me about your mood, preferences, or what you're looking for..."
+                    className="flex-1 input-field"
+                    disabled={isLoading || !sessionActive}
+                  />
+                  <button
+                    type="submit"
+                    disabled={isLoading || !inputMessage.trim() || !sessionActive}
+                    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Send className="h-5 w-5" />
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            {/* Personalized Recommendations */}
+            {recommendations.length > 0 && (
+              <div className="card-bay">
+                <h3 className="text-lg font-bold text-bay-800 mb-4 flex items-center">
+                  <TrendingUp className="h-5 w-5 mr-2" />
+                  Personalized Recommendations
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {recommendations.slice(0, 4).map((beverage, index) => (
+                    <div key={index} className="bg-bay-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-bay-800">{beverage.name}</h4>
+                      <p className="text-sm text-bay-600 mt-1">
+                        {beverage.description?.substring(0, 100)}...
+                      </p>
+                      <div className="flex items-center justify-between mt-3">
+                        <div className="flex items-center space-x-2">
+                          {beverage.shelfInfo && (
+                            <span 
+                              className={`text-xs px-2 py-1 rounded-full ${beverage.shelfInfo.color ? `bg-opacity-20` : 'bg-gray-100'}`}
+                              style={{
+                                backgroundColor: beverage.shelfInfo.color ? `${beverage.shelfInfo.color}20` : undefined,
+                                color: beverage.shelfInfo.color || '#666'
+                              }}
+                            >
+                              {beverage.shelfInfo.icon} {beverage.shelfInfo.name}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => addToFavorites(beverage)}
+                          className="flex items-center text-xs text-bay-600 hover:text-bay-800"
+                        >
+                          <Star className="h-4 w-4 mr-1" />
+                          Add to Favorites
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Conversation Insights */}
+        {conversationInsights && (
+          <div className="mt-8 card-bay">
+            <h3 className="text-lg font-bold text-bay-800 mb-4 flex items-center">
+              <MessageSquare className="h-5 w-5 mr-2" />
+              Session Summary
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-bay-700">
+                  {conversationInsights.messageCount}
+                </div>
+                <div className="text-sm text-bay-600">Messages</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-bay-700">
+                  {conversationInsights.keyTopics?.length || 0}
+                </div>
+                <div className="text-sm text-bay-600">Topics Discussed</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-bay-700">
+                  {conversationInsights.recommendationsMade || 0}
+                </div>
+                <div className="text-sm text-bay-600">Recommendations Made</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default EnhancedIAPage

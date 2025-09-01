@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avatar Visibility Fix</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+        .log {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+        }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .info { color: #007bff; }
+        .warning { color: #ffc107; font-weight: bold; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        button.active { background: #28a745; }
+        #canvas { 
+            width: 100%; 
+            height: 500px; 
+            border: 1px solid #dee2e6; 
+            border-radius: 5px;
+            margin: 10px 0;
+            display: block;
+        }
+        .mesh-list {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .mesh-item {
+            padding: 5px;
+            margin: 2px 0;
+            border-left: 3px solid #007bff;
+            cursor: pointer;
+        }
+        .mesh-item:hover {
+            background: #e9ecef;
+        }
+        .mesh-item.hidden {
+            border-left-color: #dc3545;
+            color: #dc3545;
+        }
+        .mesh-item.visible {
+            border-left-color: #28a745;
+            color: #28a745;
+        }
+        label {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎭 Avatar Visibility Fix</h1>
+        <p>Diagnose and fix invisible mesh issues in party-f-0013.glb</p>
+        
+        <div class="controls">
+            <button onclick="loadAvatar()">Load Avatar</button>
+            <button onclick="fixVisibility()">Fix All Visibility Issues</button>
+            <button onclick="toggleWireframe()">Toggle Wireframe</button>
+            <button onclick="toggleBounds()">Toggle Bounding Boxes</button>
+            <button onclick="resetMaterials()">Reset Materials</button>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+        
+        <div class="controls">
+            <label>
+                <input type="checkbox" id="doubleSide" onchange="updateMaterials()">
+                Double-sided rendering
+            </label>
+            <label>
+                <input type="checkbox" id="depthWrite" checked onchange="updateMaterials()">
+                Depth write
+            </label>
+            <label>
+                <input type="checkbox" id="depthTest" checked onchange="updateMaterials()">
+                Depth test
+            </label>
+            <label>
+                <input type="checkbox" id="transparent" onchange="updateMaterials()">
+                Force transparency
+            </label>
+        </div>
+        
+        <canvas id="canvas"></canvas>
+        
+        <div id="log" class="log">Initializing visibility diagnostic tool...\n</div>
+        
+        <h3>Mesh List (click to toggle visibility):</h3>
+        <div id="meshList" class="mesh-list">No meshes loaded yet</div>
+    </div>
+    
+    <!-- Load Three.js from CDN -->
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+        }
+    }
+    </script>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        
+        window.THREE = THREE;
+        
+        let scene, camera, renderer, controls;
+        let model, meshes = [];
+        let wireframeMode = false;
+        let showBounds = false;
+        let boundingBoxes = [];
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            logDiv.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+        
+        window.clearLog = function() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        function initThree() {
+            const canvas = document.getElementById('canvas');
+            
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x282c34);
+            
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(
+                45,
+                canvas.clientWidth / canvas.clientHeight,
+                0.01,
+                1000
+            );
+            camera.position.set(0, 1.5, 3);
+            
+            // Renderer setup with proper settings
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: canvas,
+                antialias: true,
+                alpha: true,
+                logarithmicDepthBuffer: true // Better depth handling
+            });
+            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.0;
+            
+            // Controls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 1, 0);
+            controls.update();
+            
+            // Multiple lights for better visibility
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.4);
+            directionalLight1.position.set(5, 10, 5);
+            directionalLight1.castShadow = true;
+            scene.add(directionalLight1);
+            
+            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.3);
+            directionalLight2.position.set(-5, 10, -5);
+            scene.add(directionalLight2);
+            
+            // Add hemisphere light for better ambient
+            const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.3);
+            scene.add(hemisphereLight);
+            
+            // Grid helper
+            const gridHelper = new THREE.GridHelper(10, 10);
+            scene.add(gridHelper);
+            
+            log('✅ Three.js scene initialized with enhanced lighting', 'success');
+        }
+        
+        window.loadAvatar = async function() {
+            try {
+                log('🔄 Loading party-f-0013.glb...', 'info');
+                
+                if (!scene) {
+                    initThree();
+                }
+                
+                // Clear previous model
+                if (model) {
+                    scene.remove(model);
+                    boundingBoxes.forEach(box => scene.remove(box));
+                    boundingBoxes = [];
+                }
+                meshes = [];
+                
+                const loader = new GLTFLoader();
+                
+                const gltf = await new Promise((resolve, reject) => {
+                    loader.load(
+                        '/assets/party-f-0013.glb',
+                        (gltf) => {
+                            log('✅ GLB file loaded', 'success');
+                            resolve(gltf);
+                        },
+                        (progress) => {
+                            if (progress.total > 0) {
+                                const percent = Math.round((progress.loaded / progress.total) * 100);
+                                log(`📥 Loading: ${percent}%`, 'info');
+                            }
+                        },
+                        reject
+                    );
+                });
+                
+                model = gltf.scene;
+                scene.add(model);
+                
+                // Analyze meshes
+                log('📊 Analyzing mesh visibility...', 'info');
+                const meshList = document.getElementById('meshList');
+                meshList.innerHTML = '';
+                
+                let visibleCount = 0;
+                let hiddenCount = 0;
+                let transparentCount = 0;
+                
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        meshes.push(child);
+                        
+                        // Check visibility issues
+                        const issues = [];
+                        
+                        if (!child.visible) {
+                            issues.push('hidden');
+                            hiddenCount++;
+                        } else {
+                            visibleCount++;
+                        }
+                        
+                        if (child.material) {
+                            if (child.material.transparent) {
+                                issues.push('transparent');
+                                transparentCount++;
+                            }
+                            if (child.material.opacity < 1) {
+                                issues.push(`opacity:${child.material.opacity.toFixed(2)}`);
+                            }
+                            if (child.material.alphaTest > 0) {
+                                issues.push(`alphaTest:${child.material.alphaTest}`);
+                            }
+                            if (!child.material.depthWrite) {
+                                issues.push('no-depth-write');
+                            }
+                            if (child.material.side === THREE.BackSide) {
+                                issues.push('back-side');
+                            }
+                            if (child.material.side === THREE.DoubleSide) {
+                                issues.push('double-side');
+                            }
+                        }
+                        
+                        // Log mesh info
+                        const issueStr = issues.length > 0 ? ` [${issues.join(', ')}]` : '';
+                        log(`🔍 Mesh: ${child.name || 'unnamed'}${issueStr}`, 
+                            issues.includes('hidden') ? 'error' : 'info');
+                        
+                        // Add to mesh list
+                        const div = document.createElement('div');
+                        div.className = `mesh-item ${child.visible ? 'visible' : 'hidden'}`;
+                        div.textContent = `${child.name || 'unnamed'} ${issueStr}`;
+                        div.onclick = () => toggleMeshVisibility(child, div);
+                        meshList.appendChild(div);
+                        
+                        // Log material details for problematic meshes
+                        if (issues.length > 0 && child.material) {
+                            log(`   Material: ${child.material.type}`, 'info');
+                            if (child.geometry) {
+                                const vertCount = child.geometry.attributes.position.count;
+                                log(`   Vertices: ${vertCount}`, 'info');
+                            }
+                        }
+                    }
+                });
+                
+                log(`📊 Summary: ${visibleCount} visible, ${hiddenCount} hidden, ${transparentCount} transparent`, 
+                    hiddenCount > 0 ? 'warning' : 'success');
+                
+                // Check for common issues
+                if (hiddenCount > 0) {
+                    log('⚠️ Some meshes are hidden! Click "Fix All Visibility Issues" to show them', 'warning');
+                }
+                
+                if (transparentCount > 0) {
+                    log('⚠️ Some meshes use transparency which may cause rendering issues', 'warning');
+                }
+                
+                // Start render loop
+                animate();
+                
+                // Adjust camera
+                const box = new THREE.Box3().setFromObject(model);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                
+                log(`📐 Model size: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}`, 'info');
+                
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const fov = camera.fov * (Math.PI / 180);
+                let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
+                
+                camera.position.set(center.x, center.y + size.y * 0.3, center.z + cameraZ);
+                controls.target.copy(center);
+                controls.update();
+                
+            } catch (error) {
+                log(`❌ Failed to load: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        window.fixVisibility = function() {
+            log('🔧 Fixing all visibility issues...', 'info');
+            let fixedCount = 0;
+            
+            meshes.forEach(mesh => {
+                // Make visible
+                if (!mesh.visible) {
+                    mesh.visible = true;
+                    fixedCount++;
+                    log(`   ✅ Made visible: ${mesh.name || 'unnamed'}`, 'success');
+                }
+                
+                // Fix material issues
+                if (mesh.material) {
+                    // Ensure opacity
+                    if (mesh.material.opacity < 1) {
+                        mesh.material.opacity = 1;
+                        fixedCount++;
+                    }
+                    
+                    // Fix transparency sorting
+                    if (mesh.material.transparent) {
+                        mesh.material.depthWrite = true;
+                        mesh.material.depthTest = true;
+                        mesh.renderOrder = 0;
+                    }
+                    
+                    // Fix culling
+                    if (mesh.material.side !== THREE.DoubleSide) {
+                        mesh.material.side = THREE.DoubleSide;
+                        fixedCount++;
+                    }
+                    
+                    // Remove alpha test if causing issues
+                    if (mesh.material.alphaTest > 0.5) {
+                        mesh.material.alphaTest = 0.1;
+                    }
+                    
+                    mesh.material.needsUpdate = true;
+                }
+                
+                // Ensure proper frustum culling
+                mesh.frustumCulled = true;
+                
+                // Update matrix
+                mesh.updateMatrix();
+                mesh.updateMatrixWorld(true);
+            });
+            
+            log(`✅ Fixed ${fixedCount} visibility issues`, 'success');
+            
+            // Update mesh list UI
+            updateMeshList();
+        }
+        
+        window.toggleWireframe = function() {
+            wireframeMode = !wireframeMode;
+            
+            meshes.forEach(mesh => {
+                if (mesh.material) {
+                    mesh.material.wireframe = wireframeMode;
+                }
+            });
+            
+            log(`🔲 Wireframe mode: ${wireframeMode ? 'ON' : 'OFF'}`, 'info');
+        }
+        
+        window.toggleBounds = function() {
+            showBounds = !showBounds;
+            
+            if (showBounds) {
+                // Create bounding boxes
+                meshes.forEach(mesh => {
+                    const box = new THREE.Box3().setFromObject(mesh);
+                    const helper = new THREE.Box3Helper(box, 0xffff00);
+                    scene.add(helper);
+                    boundingBoxes.push(helper);
+                });
+                log(`📦 Showing bounding boxes`, 'info');
+            } else {
+                // Remove bounding boxes
+                boundingBoxes.forEach(box => scene.remove(box));
+                boundingBoxes = [];
+                log(`📦 Hiding bounding boxes`, 'info');
+            }
+        }
+        
+        window.resetMaterials = function() {
+            log('🔄 Resetting all materials to standard...', 'info');
+            
+            meshes.forEach(mesh => {
+                if (mesh.material) {
+                    const oldMaterial = mesh.material;
+                    
+                    // Create new standard material
+                    const newMaterial = new THREE.MeshStandardMaterial({
+                        color: oldMaterial.color || 0xffffff,
+                        metalness: 0.1,
+                        roughness: 0.7,
+                        side: THREE.DoubleSide,
+                        transparent: false,
+                        opacity: 1,
+                        depthWrite: true,
+                        depthTest: true
+                    });
+                    
+                    // Copy texture if exists
+                    if (oldMaterial.map) newMaterial.map = oldMaterial.map;
+                    if (oldMaterial.normalMap) newMaterial.normalMap = oldMaterial.normalMap;
+                    
+                    mesh.material = newMaterial;
+                }
+            });
+            
+            log('✅ Materials reset', 'success');
+        }
+        
+        window.updateMaterials = function() {
+            const doubleSide = document.getElementById('doubleSide').checked;
+            const depthWrite = document.getElementById('depthWrite').checked;
+            const depthTest = document.getElementById('depthTest').checked;
+            const transparent = document.getElementById('transparent').checked;
+            
+            meshes.forEach(mesh => {
+                if (mesh.material) {
+                    mesh.material.side = doubleSide ? THREE.DoubleSide : THREE.FrontSide;
+                    mesh.material.depthWrite = depthWrite;
+                    mesh.material.depthTest = depthTest;
+                    mesh.material.transparent = transparent;
+                    mesh.material.needsUpdate = true;
+                }
+            });
+            
+            log('✅ Material settings updated', 'success');
+        }
+        
+        function toggleMeshVisibility(mesh, div) {
+            mesh.visible = !mesh.visible;
+            div.className = `mesh-item ${mesh.visible ? 'visible' : 'hidden'}`;
+            log(`👁️ ${mesh.name || 'unnamed'}: ${mesh.visible ? 'visible' : 'hidden'}`, 'info');
+        }
+        
+        function updateMeshList() {
+            const meshList = document.getElementById('meshList');
+            const items = meshList.getElementsByClassName('mesh-item');
+            
+            meshes.forEach((mesh, index) => {
+                if (items[index]) {
+                    items[index].className = `mesh-item ${mesh.visible ? 'visible' : 'hidden'}`;
+                }
+            });
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        // Initialize on load
+        window.addEventListener('load', () => {
+            log('✅ Visibility diagnostic tool ready', 'success');
+            log('📦 Three.js version: ' + THREE.REVISION, 'info');
+            log('🎯 Click "Load Avatar" to begin diagnosis', 'info');
+        });
+        
+        // Handle resize
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                const canvas = document.getElementById('canvas');
+                camera.aspect = canvas.clientWidth / canvas.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            }
+        });
+    </script>
+</body>
+</html>

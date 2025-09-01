@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Three.js Loading Test</title>
+    <!-- Three.js CDN Loading -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r158/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        canvas { border: 2px solid #333; }
+        .info { background: #f0f0f0; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Three.js Loading Test</h1>
+    <div id="results" class="info">Testing...</div>
+    <canvas id="canvas" width="600" height="400"></canvas>
+    
+    <script>
+        function testThreeJS() {
+            const results = document.getElementById('results');
+            
+            try {
+                // Test Three.js availability
+                console.log('🔍 Testing Three.js availability...');
+                
+                const tests = [
+                    { name: 'THREE', obj: window.THREE, check: () => window.THREE && window.THREE.Scene },
+                    { name: 'GLTFLoader', obj: window.THREE?.GLTFLoader, check: () => window.THREE?.GLTFLoader },
+                    { name: 'OrbitControls', obj: window.THREE?.OrbitControls, check: () => window.THREE?.OrbitControls }
+                ];
+                
+                let allPassed = true;
+                let resultHTML = '<h3>📋 Three.js Component Test:</h3>';
+                
+                tests.forEach(test => {
+                    const passed = test.check();
+                    const status = passed ? '✅' : '❌';
+                    resultHTML += `<div>${status} <strong>${test.name}:</strong> ${passed ? 'Available' : 'Missing'}</div>`;
+                    if (!passed) allPassed = false;
+                    
+                    console.log(`${status} ${test.name}:`, passed ? 'Available' : 'Missing', test.obj);
+                });
+                
+                if (allPassed) {
+                    resultHTML += '<div style="margin-top: 10px;"><strong>🎉 All components loaded successfully!</strong></div>';
+                    resultHTML += `<div>Three.js Version: r${window.THREE.REVISION}</div>`;
+                    results.className = 'info success';
+                    
+                    // Test basic rendering
+                    testRendering();
+                } else {
+                    resultHTML += '<div style="margin-top: 10px;"><strong>❌ Some components failed to load</strong></div>';
+                    results.className = 'info error';
+                }
+                
+                results.innerHTML = resultHTML;
+                
+            } catch (error) {
+                console.error('❌ Test failed:', error);
+                results.innerHTML = `<h3>❌ Test Failed:</h3><div>${error.message}</div>`;
+                results.className = 'info error';
+            }
+        }
+        
+        function testRendering() {
+            try {
+                console.log('🎯 Testing basic 3D rendering...');
+                
+                // Create basic scene
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(75, 600/400, 0.1, 1000);
+                const canvas = document.getElementById('canvas');
+                const renderer = new THREE.WebGLRenderer({ canvas: canvas });
+                
+                renderer.setSize(600, 400);
+                scene.background = new THREE.Color(0x333333);
+                
+                // Add test cube
+                const geometry = new THREE.BoxGeometry(1, 1, 1);
+                const material = new THREE.MeshBasicMaterial({ 
+                    color: 0x00ff00, 
+                    wireframe: true 
+                });
+                const cube = new THREE.Mesh(geometry, material);
+                scene.add(cube);
+                
+                // Add lights
+                const light = new THREE.PointLight(0xffffff, 1, 100);
+                light.position.set(10, 10, 10);
+                scene.add(light);
+                
+                // Position camera
+                camera.position.z = 3;
+                
+                // Render
+                renderer.render(scene, camera);
+                
+                console.log('✅ Basic 3D rendering test passed');
+                
+                // Animate
+                function animate() {
+                    requestAnimationFrame(animate);
+                    cube.rotation.x += 0.01;
+                    cube.rotation.y += 0.01;
+                    renderer.render(scene, camera);
+                }
+                animate();
+                
+                const results = document.getElementById('results');
+                results.innerHTML += '<div style="margin-top: 10px;"><strong>🎬 3D Rendering: ✅ Working (animated cube should be visible)</strong></div>';
+                
+            } catch (error) {
+                console.error('❌ Rendering test failed:', error);
+                const results = document.getElementById('results');
+                results.innerHTML += `<div style="margin-top: 10px;"><strong>❌ 3D Rendering Failed:</strong> ${error.message}</div>`;
+                results.className = 'info error';
+            }
+        }
+        
+        // Run test when page loads
+        window.onload = function() {
+            setTimeout(testThreeJS, 1000); // Wait a moment for scripts to load
+        };
+    </script>
+</body>
+</html>

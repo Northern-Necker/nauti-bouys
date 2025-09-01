@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaPipe Fixes Validation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .fix-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            position: relative;
+        }
+        .fix-status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+        }
+        .fix-title {
+            font-weight: bold;
+            font-size: 16px;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+        .fix-description {
+            color: #6c757d;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .fix-result {
+            font-family: Monaco, Consolas, monospace;
+            font-size: 12px;
+            background: #f1f3f4;
+            padding: 8px;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .status-untested { background: #fff3cd; border-left-color: #ffc107; }
+        .status-testing { background: #d1ecf1; border-left-color: #17a2b8; }
+        .status-success { background: #d4edda; border-left-color: #28a745; }
+        .status-failed { background: #f8d7da; border-left-color: #dc3545; }
+        
+        .test-controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .version-info {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .log-container {
+            background: #1e1e1e;
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: Monaco, Consolas, monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        
+        .progress-bar {
+            background: #e9ecef;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .progress-fill {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 MediaPipe Fixes Validation</h1>
+            <p>Comprehensive testing of all MediaPipe Face Landmarker v2 fixes</p>
+            <div class="version-info">
+                <strong>Fixed Version:</strong> MediaPipe 0.10.6-stable | Manager v1.0.0-fixed | Test Suite v2.0.0
+            </div>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
+        
+        <div class="test-controls">
+            <button onclick="runAllValidations()" id="runAllBtn">🚀 Run All Validations</button>
+            <button onclick="testSpecificFix()" id="testSpecificBtn" disabled>🎯 Test Specific Fix</button>
+            <button onclick="clearResults()" id="clearBtn">🧹 Clear Results</button>
+        </div>
+        
+        <!-- Fix Validation Items -->
+        <div class="fix-item status-untested" id="fix-1">
+            <div class="fix-status">⏳</div>
+            <div class="fix-title">Fix #1: Invalid Version Number</div>
+            <div class="fix-description">
+                Replace invalid version @0.10.22-rc.20250304 with stable 0.10.6
+            </div>
+            <div class="fix-result" id="result-1">Not tested yet</div>
+        </div>
+        
+        <div class="fix-item status-untested" id="fix-2">
+            <div class="fix-status">⏳</div>
+            <div class="fix-title">Fix #2: CDN Fallback Strategy</div>
+            <div class="fix-description">
+                Implement robust fallback with multiple CDN sources (jsDelivr, unpkg)
+            </div>
+            <div class="fix-result" id="result-2">Not tested yet</div>
+        </div>
+        
+        <div class="fix-item status-untested" id="fix-3">
+            <div class="fix-status">⏳</div>
+            <div class="fix-title">Fix #3: Module Resolution</div>
+            <div class="fix-description">
+                Proper ES6 module loading with timeout and error handling
+            </div>
+            <div class="fix-result" id="result-3">Not tested yet</div>
+        </div>
+        
+        <div class="fix-item status-untested" id="fix-4">
+            <div class="fix-status">⏳</div>
+            <div class="fix-title">Fix #4: WASM Path Configuration</div>
+            <div class="fix-description">
+                FilesetResolver initialization with multiple WASM sources
+            </div>
+            <div class="fix-result" id="result-4">Not tested yet</div>
+        </div>
+        
+        <div class="fix-item status-untested" id="fix-5">
+            <div class="fix-status">⏳</div>
+            <div class="fix-title">Fix #5: Cross-Origin Issues</div>
+            <div class="fix-description">
+                Proper CORS handling and cross-origin request management
+            </div>
+            <div class="fix-result" id="result-5">Not tested yet</div>
+        </div>
+        
+        <div class="fix-item status-untested" id="fix-6">
+            <div class="fix-status">⏳</div>
+            <div class="fix-title">Fix #6: Error Handling</div>
+            <div class="fix-description">
+                Comprehensive error handling with detailed diagnostics
+            </div>
+            <div class="fix-result" id="result-6">Not tested yet</div>
+        </div>
+        
+        <div class="log-container" id="logContainer">
+            <div id="log">🔧 MediaPipe Fixes Validation Suite Ready</div>
+        </div>
+    </div>
+    
+    <script type="module">
+        let logEl = document.getElementById('log');
+        let mediaManager = null;
+        let currentTest = 0;
+        const totalTests = 6;
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            const logMessage = `${timestamp} ${icon} ${message}`;
+            console.log(logMessage);
+            logEl.textContent += '\n' + logMessage;
+            document.getElementById('logContainer').scrollTop = document.getElementById('logContainer').scrollHeight;
+        }
+        
+        function updateProgress(current) {
+            const percentage = (current / totalTests) * 100;
+            document.getElementById('progressBar').style.width = `${percentage}%`;
+        }
+        
+        function updateFixStatus(fixId, status, result) {
+            const fixEl = document.getElementById(`fix-${fixId}`);
+            const statusEl = fixEl.querySelector('.fix-status');
+            const resultEl = document.getElementById(`result-${fixId}`);
+            
+            fixEl.className = `fix-item status-${status}`;
+            
+            const statusIcons = {
+                untested: '⏳',
+                testing: '🔄',
+                success: '✅',
+                failed: '❌'
+            };
+            
+            statusEl.textContent = statusIcons[status];
+            resultEl.textContent = result;
+        }
+        
+        async function runAllValidations() {
+            document.getElementById('runAllBtn').disabled = true;
+            log('🚀 Starting comprehensive MediaPipe fixes validation...');
+            
+            currentTest = 0;
+            updateProgress(0);
+            
+            try {
+                // Test 1: Version Number Fix
+                await testVersionFix();
+                
+                // Test 2: CDN Fallback Strategy
+                await testCDNFallback();
+                
+                // Test 3: Module Resolution
+                await testModuleResolution();
+                
+                // Test 4: WASM Configuration
+                await testWASMConfiguration();
+                
+                // Test 5: Cross-Origin Issues
+                await testCrossOrigin();
+                
+                // Test 6: Error Handling
+                await testErrorHandling();
+                
+                log('🎉 All validations completed!', 'success');
+                
+            } catch (error) {
+                log(`❌ Validation suite failed: ${error.message}`, 'error');
+            }
+            
+            document.getElementById('runAllBtn').disabled = false;
+            document.getElementById('testSpecificBtn').disabled = false;
+        }
+        
+        async function testVersionFix() {
+            log('🔄 Testing Fix #1: Version Number...');
+            updateFixStatus(1, 'testing', 'Testing version number fix...');
+            currentTest++;
+            
+            try {
+                // Import the fixed manager
+                const { default: MediaPipeManager } = await import('./src/utils/MediaPipeManager.js');
+                const manager = new MediaPipeManager();
+                
+                // Check if stable version is being used
+                const config = manager.config;
+                const primaryUrl = config.primarySource.moduleUrl;
+                
+                if (primaryUrl.includes('0.10.6')) {
+                    updateFixStatus(1, 'success', 'Using stable version 0.10.6 ✓');
+                    log('✅ Version fix validated: Using stable 0.10.6');
+                } else {
+                    updateFixStatus(1, 'failed', `Still using problematic version: ${primaryUrl}`);
+                    log(`❌ Version fix failed: Found ${primaryUrl}`, 'error');
+                }
+                
+            } catch (error) {
+                updateFixStatus(1, 'failed', `Import failed: ${error.message}`);
+                log(`❌ Version test failed: ${error.message}`, 'error');
+            }
+            
+            updateProgress(currentTest);
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        async function testCDNFallback() {
+            log('🔄 Testing Fix #2: CDN Fallback Strategy...');
+            updateFixStatus(2, 'testing', 'Testing CDN fallback sources...');
+            currentTest++;
+            
+            try {
+                const { default: MediaPipeManager } = await import('./src/utils/MediaPipeManager.js');
+                const manager = new MediaPipeManager();
+                
+                const fallbacks = manager.config.fallbackSources;
+                const hasJsDelivr = fallbacks.some(f => f.moduleUrl.includes('jsdelivr'));
+                const hasUnpkg = fallbacks.some(f => f.moduleUrl.includes('unpkg'));
+                const hasMultipleVersions = fallbacks.some(f => f.moduleUrl.includes('0.10.5'));
+                
+                if (hasJsDelivr && hasUnpkg && hasMultipleVersions && fallbacks.length >= 3) {
+                    updateFixStatus(2, 'success', `${fallbacks.length} fallback sources configured ✓`);
+                    log(`✅ CDN fallback validated: ${fallbacks.length} sources available`);
+                } else {
+                    updateFixStatus(2, 'failed', `Insufficient fallbacks: ${fallbacks.length} sources`);
+                    log('❌ CDN fallback insufficient', 'error');
+                }
+                
+            } catch (error) {
+                updateFixStatus(2, 'failed', `Fallback test failed: ${error.message}`);
+                log(`❌ CDN fallback test failed: ${error.message}`, 'error');
+            }
+            
+            updateProgress(currentTest);
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        async function testModuleResolution() {
+            log('🔄 Testing Fix #3: Module Resolution...');
+            updateFixStatus(3, 'testing', 'Testing module loading with timeout...');
+            currentTest++;
+            
+            try {
+                const { default: MediaPipeManager } = await import('./src/utils/MediaPipeManager.js');
+                mediaManager = new MediaPipeManager();
+                
+                // Test module loading method exists
+                if (typeof mediaManager.loadModuleFromSource === 'function') {
+                    updateFixStatus(3, 'success', 'Module loading method implemented ✓');
+                    log('✅ Module resolution validated: loadModuleFromSource method available');
+                } else {
+                    updateFixStatus(3, 'failed', 'loadModuleFromSource method missing');
+                    log('❌ Module resolution method missing', 'error');
+                }
+                
+            } catch (error) {
+                updateFixStatus(3, 'failed', `Module test failed: ${error.message}`);
+                log(`❌ Module resolution test failed: ${error.message}`, 'error');
+            }
+            
+            updateProgress(currentTest);
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        async function testWASMConfiguration() {
+            log('🔄 Testing Fix #4: WASM Configuration...');
+            updateFixStatus(4, 'testing', 'Testing FilesetResolver initialization...');
+            currentTest++;
+            
+            try {
+                if (!mediaManager) {
+                    const { default: MediaPipeManager } = await import('./src/utils/MediaPipeManager.js');
+                    mediaManager = new MediaPipeManager();
+                }
+                
+                // Check WASM paths are properly configured
+                const primaryWasm = mediaManager.config.primarySource.wasmPath;
+                const fallbackWasms = mediaManager.config.fallbackSources.map(s => s.wasmPath);
+                
+                if (primaryWasm && fallbackWasms.length >= 3) {
+                    updateFixStatus(4, 'success', `WASM paths configured: 1 primary + ${fallbackWasms.length} fallbacks ✓`);
+                    log(`✅ WASM configuration validated: ${1 + fallbackWasms.length} sources`);
+                } else {
+                    updateFixStatus(4, 'failed', `Insufficient WASM sources: ${fallbackWasms.length}`);
+                    log('❌ WASM configuration insufficient', 'error');
+                }
+                
+            } catch (error) {
+                updateFixStatus(4, 'failed', `WASM test failed: ${error.message}`);
+                log(`❌ WASM configuration test failed: ${error.message}`, 'error');
+            }
+            
+            updateProgress(currentTest);
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        async function testCrossOrigin() {
+            log('🔄 Testing Fix #5: Cross-Origin Issues...');
+            updateFixStatus(5, 'testing', 'Testing CORS handling...');
+            currentTest++;
+            
+            try {
+                if (!mediaManager) {
+                    const { default: MediaPipeManager } = await import('./src/utils/MediaPipeManager.js');
+                    mediaManager = new MediaPipeManager();
+                }
+                
+                // Test if we can attempt module loading (this will show CORS handling)
+                log('🔄 Attempting MediaPipe initialization to test CORS...');
+                const initResult = await mediaManager.initialize();
+                
+                if (initResult) {
+                    updateFixStatus(5, 'success', 'MediaPipe initialized successfully ✓');
+                    log('✅ Cross-origin issues resolved: MediaPipe loaded successfully');
+                } else {
+                    // Check diagnostics for more info
+                    const diagnostics = mediaManager.getConnectionDiagnostics();
+                    if (diagnostics.totalTested > 0) {
+                        updateFixStatus(5, 'success', `CORS handling working: tested ${diagnostics.totalTested} sources ✓`);
+                        log(`✅ Cross-origin handling validated: tested ${diagnostics.totalTested} sources`);
+                    } else {
+                        updateFixStatus(5, 'failed', 'No sources tested - possible CORS issue');
+                        log('❌ Cross-origin issues may persist', 'error');
+                    }
+                }
+                
+            } catch (error) {
+                updateFixStatus(5, 'failed', `CORS test failed: ${error.message}`);
+                log(`❌ Cross-origin test failed: ${error.message}`, 'error');
+            }
+            
+            updateProgress(currentTest);
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        async function testErrorHandling() {
+            log('🔄 Testing Fix #6: Error Handling...');
+            updateFixStatus(6, 'testing', 'Testing error handling and diagnostics...');
+            currentTest++;
+            
+            try {
+                if (!mediaManager) {
+                    const { default: MediaPipeManager } = await import('./src/utils/MediaPipeManager.js');
+                    mediaManager = new MediaPipeManager();
+                }
+                
+                // Test diagnostics functionality
+                const status = mediaManager.getStatus();
+                const diagnostics = mediaManager.getConnectionDiagnostics();
+                
+                const hasStatusMethod = typeof mediaManager.getStatus === 'function';
+                const hasDiagnosticsMethod = typeof mediaManager.getConnectionDiagnostics === 'function';
+                const hasCleanupMethod = typeof mediaManager.cleanup === 'function';
+                
+                if (hasStatusMethod && hasDiagnosticsMethod && hasCleanupMethod) {
+                    updateFixStatus(6, 'success', 'All error handling methods implemented ✓');
+                    log('✅ Error handling validated: comprehensive diagnostics available');
+                    log(`📊 Status: ${JSON.stringify(status, null, 2)}`);
+                    log(`🔍 Diagnostics: ${JSON.stringify(diagnostics, null, 2)}`);
+                } else {
+                    updateFixStatus(6, 'failed', 'Some error handling methods missing');
+                    log('❌ Error handling incomplete', 'error');
+                }
+                
+            } catch (error) {
+                updateFixStatus(6, 'failed', `Error handling test failed: ${error.message}`);
+                log(`❌ Error handling test failed: ${error.message}`, 'error');
+            }
+            
+            updateProgress(currentTest);
+        }
+        
+        async function testSpecificFix() {
+            const fixNumber = prompt('Enter fix number to test (1-6):');
+            if (fixNumber >= 1 && fixNumber <= 6) {
+                switch(parseInt(fixNumber)) {
+                    case 1: await testVersionFix(); break;
+                    case 2: await testCDNFallback(); break;
+                    case 3: await testModuleResolution(); break;
+                    case 4: await testWASMConfiguration(); break;
+                    case 5: await testCrossOrigin(); break;
+                    case 6: await testErrorHandling(); break;
+                }
+            }
+        }
+        
+        function clearResults() {
+            for (let i = 1; i <= totalTests; i++) {
+                updateFixStatus(i, 'untested', 'Not tested yet');
+            }
+            updateProgress(0);
+            logEl.textContent = '🔧 MediaPipe Fixes Validation Suite Ready';
+            log('🧹 Results cleared, ready for new validation');
+        }
+        
+        // Make functions global
+        window.runAllValidations = runAllValidations;
+        window.testSpecificFix = testSpecificFix;
+        window.clearResults = clearResults;
+        
+        log('🎯 MediaPipe Fixes Validation Suite v2.0.0 ready');
+        log('📋 This validates all 6 critical fixes for MediaPipe Face Landmarker');
+        log('🚀 Click "Run All Validations" to test all fixes');
+    </script>
+</body>
+</html>

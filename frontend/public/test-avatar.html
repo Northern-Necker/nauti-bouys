@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avatar Loading Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .log {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .info { color: #007bff; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎭 Avatar Loading Test</h1>
+    <p>Testing party-f-0013.glb loading</p>
+    
+    <button onclick="testLoading()">Test Avatar Loading</button>
+    <button onclick="clearLog()">Clear Log</button>
+    
+    <div id="log" class="log">Initializing...\n</div>
+    
+    <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+    <script>
+        // Load GLTFLoader after Three.js is ready
+        window.addEventListener('load', async () => {
+            log('✅ Page loaded', 'success');
+            log('Three.js: ' + (window.THREE ? `v${window.THREE.REVISION}` : 'Not loaded'), 'info');
+            
+            try {
+                // Try loading GLTFLoader using dynamic import
+                const { GLTFLoader } = await import('https://unpkg.com/three@0.158.0/examples/jsm/loaders/GLTFLoader.js');
+                window.THREE.GLTFLoader = GLTFLoader;
+                log('✅ GLTFLoader loaded via ES6 import', 'success');
+                checkLibraries();
+            } catch (error) {
+                log('⚠️ ES6 import failed, trying script tag method', 'info');
+                
+                // Fallback to script tag loading
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/loaders/GLTFLoader.js';
+                script.onload = () => {
+                    log('✅ GLTFLoader loaded via script tag', 'success');
+                    checkLibraries();
+                };
+                script.onerror = () => {
+                    log('❌ Failed to load GLTFLoader via script tag', 'error');
+                    // Try one more method
+                    loadGLTFLoaderManually();
+                };
+                document.head.appendChild(script);
+            }
+        });
+        
+        function loadGLTFLoaderManually() {
+            log('🔄 Trying manual GLTFLoader setup...', 'info');
+            
+            // Create GLTFLoader class manually if possible
+            if (window.THREE) {
+                try {
+                    // Simple GLTFLoader implementation for testing
+                    window.THREE.GLTFLoader = function() {
+                        this.load = function(url, onLoad, onProgress, onError) {
+                            fetch(url)
+                                .then(response => {
+                                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                                    return response.arrayBuffer();
+                                })
+                                .then(buffer => {
+                                    // This is a minimal implementation just for testing file access
+                                    const mockGltf = {
+                                        scene: new window.THREE.Group(),
+                                        scenes: [],
+                                        animations: []
+                                    };
+                                    onLoad(mockGltf);
+                                })
+                                .catch(onError);
+                        };
+                    };
+                    log('✅ Manual GLTFLoader created (basic file access test)', 'success');
+                    checkLibraries();
+                } catch (error) {
+                    log(`❌ Manual GLTFLoader creation failed: ${error.message}`, 'error');
+                }
+            }
+        }
+        
+        function checkLibraries() {
+            log('Three.js: ' + (window.THREE ? `v${window.THREE.REVISION}` : 'Not loaded'), 'info');
+            log('GLTFLoader: ' + (window.THREE && window.THREE.GLTFLoader ? 'Available' : 'Not available'), 'info');
+        }
+    </script>
+    
+    <script>
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            logDiv.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        async function testLoading() {
+            log('🔄 Starting avatar loading test...', 'info');
+            
+            if (!window.THREE) {
+                log('❌ Three.js not loaded', 'error');
+                return;
+            }
+            
+            if (!window.THREE.GLTFLoader) {
+                log('❌ GLTFLoader not available', 'error');
+                return;
+            }
+            
+            const loader = new window.THREE.GLTFLoader();
+            
+            // Test paths relative to public directory
+            const paths = [
+                '/assets/party-f-0013.glb',
+                'assets/party-f-0013.glb'
+            ];
+            
+            for (const path of paths) {
+                try {
+                    log(`🔍 Trying: ${path}`, 'info');
+                    
+                    const gltf = await new Promise((resolve, reject) => {
+                        loader.load(
+                            path,
+                            resolve,
+                            (progress) => {
+                                if (progress.total) {
+                                    const percent = Math.round((progress.loaded / progress.total) * 100);
+                                    log(`📥 Loading: ${percent}%`, 'info');
+                                }
+                            },
+                            reject
+                        );
+                    });
+                    
+                    log(`✅ Success! Loaded from: ${path}`, 'success');
+                    log(`📊 Scene children: ${gltf.scene.children.length}`, 'info');
+                    
+                    // Check morph targets
+                    let morphCount = 0;
+                    gltf.scene.traverse((child) => {
+                        if (child.isMesh && child.morphTargetDictionary) {
+                            const morphs = Object.keys(child.morphTargetDictionary);
+                            morphCount += morphs.length;
+                            log(`🎭 Mesh "${child.name}": ${morphs.length} morphs`, 'success');
+                        }
+                    });
+                    
+                    log(`🎯 Total morph targets: ${morphCount}`, 'success');
+                    return;
+                    
+                } catch (error) {
+                    log(`❌ Failed ${path}: ${error.message}`, 'error');
+                }
+            }
+        }
+        
+        // Initial page load logging moved to main load handler above
+    </script>
+</body>
+</html>

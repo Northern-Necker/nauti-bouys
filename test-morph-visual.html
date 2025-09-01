@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GLB Morph Visual Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/loaders/GLTFLoader.js"></script>
+    <style>
+        body { margin: 0; background: #000; color: white; font-family: Arial; }
+        .container { display: flex; height: 100vh; }
+        .viewer { flex: 1; }
+        .controls { width: 300px; padding: 20px; background: #333; overflow-y: auto; }
+        .btn { display: block; width: 100%; margin: 5px 0; padding: 10px; background: #555; color: white; border: none; cursor: pointer; }
+        .btn:hover { background: #777; }
+        .btn.active { background: #00ff00; }
+        .status { padding: 10px; background: #666; margin: 10px 0; }
+        canvas { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="viewer">
+            <div id="canvas-container"></div>
+        </div>
+        <div class="controls">
+            <div class="status" id="status">Initializing...</div>
+            <button class="btn" onclick="loadModel()">🔄 Load GLB Model</button>
+            <div id="viseme-buttons"></div>
+            <div id="morph-info"></div>
+            <button class="btn" onclick="testAllVisemes()">🚀 Test All Visemes</button>
+            <button class="btn" onclick="captureScreenshot()">📸 Capture Screenshot</button>
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, avatar, morphTargets = [], currentMorphs = {};
+        let testResults = [];
+
+        const visemes = {
+            'sil': 'Silence/Neutral',
+            'aa': 'Father - mouth wide open',
+            'ae': 'Cat - mouth stretched',
+            'ah': 'Hot - mouth open',
+            'ao': 'Thought - mouth rounded',
+            'b_m_p': 'Lips pressed together',
+            'ch_j_sh_zh': 'Church - rounded lips',
+            'd_s_t': 'Tongue tip up',
+            'eh': 'Pet - slightly open',
+            'er': 'Bird - R sound',
+            'f_v': 'Teeth on lower lip',
+            'g_k': 'Back of tongue up',
+            'hh': 'Hot - breathy',
+            'ih': 'Bit - slightly open',
+            'iy': 'Beat - smile',
+            'l': 'Tongue tip up',
+            'n': 'Tongue tip up',
+            'ng': 'Back tongue up',
+            'ow': 'Boat - rounded',
+            'oy': 'Boy - round to smile',
+            'r': 'Red - tongue curl',
+            'th': 'Tongue tip out',
+            'uh': 'Put - small round',
+            'uw': 'Boot - tight round',
+            'w': 'Way - tight round',
+            'y': 'Yes - slight smile',
+            'z': 'Zoo - teeth showing'
+        };
+
+        // Expected morph mappings for each viseme
+        const morphMappings = {
+            'sil': {},
+            'aa': { 'mouthOpen': 0.8, 'jawOpen': 0.6, 'Mouth_Open': 0.8, 'Jaw_Open': 0.6 },
+            'ae': { 'mouthStretch': 0.7, 'mouthOpen': 0.4, 'Mouth_Stretch_Left': 0.7, 'Mouth_Stretch_Right': 0.7 },
+            'ah': { 'mouthOpen': 0.9, 'jawOpen': 0.7, 'Mouth_Open': 0.9 },
+            'ao': { 'mouthFunnel': 0.8, 'mouthPucker': 0.6, 'Mouth_Funnel': 0.8, 'Mouth_Pucker_Lower': 0.6 },
+            'b_m_p': { 'mouthClose': 0.9, 'mouthPress': 0.8, 'Mouth_Press_Left': 0.8, 'Mouth_Press_Right': 0.8 },
+            'ch_j_sh_zh': { 'mouthFunnel': 0.6, 'mouthPucker': 0.7, 'Mouth_Funnel': 0.6 },
+            'd_s_t': { 'tongueUp': 0.8, 'mouthOpen': 0.3, 'Tongue_Tip_Up': 0.8 },
+            'eh': { 'mouthOpen': 0.5, 'mouthStretch': 0.4, 'Mouth_Open': 0.5 },
+            'er': { 'mouthFunnel': 0.5, 'tongueCurl': 0.7, 'Tongue_Curl': 0.7 },
+            'f_v': { 'mouthLowerDown': 0.6, 'Mouth_Lower_Down_Left': 0.6, 'Mouth_Lower_Down_Right': 0.6 },
+            'g_k': { 'mouthOpen': 0.4, 'tongueBack': 0.7, 'Tongue_Back': 0.7 },
+            'hh': { 'mouthOpen': 0.6, 'Mouth_Open': 0.6 },
+            'ih': { 'mouthOpen': 0.3, 'mouthStretch': 0.3, 'Mouth_Open': 0.3 },
+            'iy': { 'mouthSmile': 0.7, 'Mouth_Smile_Left': 0.7, 'Mouth_Smile_Right': 0.7 },
+            'l': { 'tongueUp': 0.9, 'mouthOpen': 0.4, 'Tongue_Tip_Up': 0.9 },
+            'n': { 'tongueUp': 0.8, 'mouthClose': 0.5, 'Tongue_Tip_Up': 0.8 },
+            'ng': { 'tongueBack': 0.8, 'mouthClose': 0.4, 'Tongue_Back': 0.8 },
+            'ow': { 'mouthFunnel': 0.8, 'mouthPucker': 0.8, 'Mouth_Funnel': 0.8 },
+            'oy': { 'mouthFunnel': 0.6, 'mouthSmile': 0.4, 'Mouth_Funnel': 0.6 },
+            'r': { 'tongueCurl': 0.9, 'mouthFunnel': 0.4, 'Tongue_Curl': 0.9 },
+            'th': { 'tongueOut': 0.8, 'mouthOpen': 0.5, 'Tongue_Out': 0.8 },
+            'uh': { 'mouthPucker': 0.6, 'mouthOpen': 0.3, 'Mouth_Pucker_Lower': 0.6 },
+            'uw': { 'mouthPucker': 0.9, 'mouthFunnel': 0.7, 'Mouth_Pucker_Lower': 0.9 },
+            'w': { 'mouthPucker': 0.8, 'mouthFunnel': 0.6, 'Mouth_Pucker_Lower': 0.8 },
+            'y': { 'mouthSmile': 0.5, 'Mouth_Smile_Left': 0.5, 'Mouth_Smile_Right': 0.5 },
+            'z': { 'mouthOpen': 0.2, 'mouthStretch': 0.4, 'Mouth_Open': 0.2 }
+        };
+
+        function init() {
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x222222);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1.6, 2.5);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ preserveDrawingBuffer: true, antialias: true });
+            renderer.setSize(window.innerWidth - 320, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(2, 2, 5);
+            scene.add(directionalLight);
+
+            // Create viseme buttons
+            createVisemeButtons();
+
+            animate();
+        }
+
+        function createVisemeButtons() {
+            const container = document.getElementById('viseme-buttons');
+            Object.entries(visemes).forEach(([code, desc]) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn';
+                btn.textContent = `${code.toUpperCase()} - ${desc}`;
+                btn.onclick = () => setViseme(code, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function updateStatus(msg, color = '#666') {
+            const status = document.getElementById('status');
+            status.textContent = msg;
+            status.style.background = color;
+        }
+
+        function loadModel() {
+            updateStatus('🔄 Loading GLB model...', '#ff9800');
+            
+            const loader = new THREE.GLTFLoader();
+            
+            const paths = [
+                './frontend/dist/assets/SavannahAvatar.glb',
+                './SavannahAvatar.glb',
+                '/assets/SavannahAvatar.glb'
+            ];
+
+            let currentPath = 0;
+            
+            function tryLoad() {
+                if (currentPath >= paths.length) {
+                    updateStatus('❌ Could not load any GLB model', '#f44336');
+                    return;
+                }
+
+                loader.load(
+                    paths[currentPath],
+                    (gltf) => {
+                        updateStatus('✅ GLB model loaded successfully!', '#4caf50');
+                        setupAvatar(gltf);
+                    },
+                    (progress) => {
+                        updateStatus(`📥 Loading... ${Math.round(progress.loaded/progress.total*100)}%`, '#2196f3');
+                    },
+                    (error) => {
+                        console.warn(`Failed ${paths[currentPath]}:`, error);
+                        currentPath++;
+                        setTimeout(tryLoad, 100);
+                    }
+                );
+            }
+
+            tryLoad();
+        }
+
+        function setupAvatar(gltf) {
+            if (avatar) scene.remove(avatar);
+            
+            avatar = gltf.scene;
+            scene.add(avatar);
+            
+            avatar.scale.setScalar(1);
+            avatar.position.set(0, -1, 0);
+            
+            morphTargets = [];
+            
+            avatar.traverse((child) => {
+                if (child.isMesh && child.morphTargetDictionary) {
+                    console.log(`Found mesh: ${child.name}`, child.morphTargetDictionary);
+                    
+                    if (!child.morphTargetInfluences) {
+                        child.morphTargetInfluences = new Array(Object.keys(child.morphTargetDictionary).length).fill(0);
+                    }
+                    
+                    Object.entries(child.morphTargetDictionary).forEach(([name, index]) => {
+                        morphTargets.push({
+                            name: name,
+                            mesh: child,
+                            index: index
+                        });
+                    });
+                }
+            });
+            
+            updateStatus(`✅ Found ${morphTargets.length} morph targets`, '#4caf50');
+            displayMorphInfo();
+        }
+
+        function displayMorphInfo() {
+            const container = document.getElementById('morph-info');
+            container.innerHTML = `<h4>Available Morphs (${morphTargets.length}):</h4>`;
+            
+            const morphNames = morphTargets.map(m => m.name).slice(0, 10);
+            morphNames.forEach(name => {
+                const div = document.createElement('div');
+                div.textContent = name;
+                div.style.fontSize = '12px';
+                div.style.color = '#ccc';
+                container.appendChild(div);
+            });
+            
+            if (morphTargets.length > 10) {
+                const more = document.createElement('div');
+                more.textContent = `... and ${morphTargets.length - 10} more`;
+                more.style.fontSize = '12px';
+                more.style.color = '#999';
+                container.appendChild(more);
+            }
+        }
+
+        function setViseme(visemeCode, button) {
+            if (!avatar) {
+                updateStatus('❌ No avatar loaded', '#f44336');
+                return;
+            }
+
+            // Clear active states
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            button.classList.add('active');
+
+            // Reset all morphs
+            resetMorphs();
+
+            // Apply morphs for this viseme
+            const morphs = morphMappings[visemeCode] || {};
+            let appliedCount = 0;
+
+            Object.entries(morphs).forEach(([morphName, value]) => {
+                const morph = morphTargets.find(m => 
+                    m.name.toLowerCase().includes(morphName.toLowerCase()) ||
+                    morphName.toLowerCase().includes(m.name.toLowerCase())
+                );
+
+                if (morph) {
+                    morph.mesh.morphTargetInfluences[morph.index] = value;
+                    
+                    // Force update
+                    morph.mesh.geometry.morphAttributesNeedUpdate = true;
+                    morph.mesh.updateMatrix();
+                    morph.mesh.updateMatrixWorld(true);
+                    
+                    appliedCount++;
+                    console.log(`Applied ${morph.name}: ${value}`);
+                }
+            });
+
+            currentMorphs[visemeCode] = { applied: appliedCount, expected: Object.keys(morphs).length };
+            updateStatus(`🎭 ${visemeCode.toUpperCase()}: ${appliedCount} morphs applied`, '#2196f3');
+        }
+
+        function resetMorphs() {
+            morphTargets.forEach(morph => {
+                morph.mesh.morphTargetInfluences[morph.index] = 0;
+                morph.mesh.geometry.morphAttributesNeedUpdate = true;
+            });
+        }
+
+        function captureScreenshot() {
+            if (!avatar) return;
+            
+            const canvas = renderer.domElement;
+            const dataURL = canvas.toDataURL('image/png');
+            
+            // Create download link
+            const a = document.createElement('a');
+            a.href = dataURL;
+            a.download = `morph-test-${Date.now()}.png`;
+            a.click();
+            
+            updateStatus('📸 Screenshot captured!', '#4caf50');
+            
+            return dataURL;
+        }
+
+        async function testAllVisemes() {
+            if (!avatar) {
+                updateStatus('❌ Load a model first', '#f44336');
+                return;
+            }
+            
+            updateStatus('🚀 Testing all visemes...', '#ff9800');
+            testResults = [];
+            
+            const visemeKeys = Object.keys(visemes);
+            
+            for (let i = 0; i < visemeKeys.length; i++) {
+                const viseme = visemeKeys[i];
+                const button = document.querySelector(`button:nth-child(${i + 2})`); // +2 for load button
+                
+                updateStatus(`Testing ${i + 1}/${visemeKeys.length}: ${viseme}`, '#2196f3');
+                
+                // Set viseme
+                setViseme(viseme, button);
+                
+                // Wait for render
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Analyze current state
+                const analysis = analyzeMorphState(viseme);
+                testResults.push(analysis);
+                
+                console.log(`${viseme}: ${analysis.visualChange ? '✅' : '❌'} ${analysis.activeMorphs} active morphs`);
+                
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            
+            displayResults();
+            updateStatus(`✅ Test complete! ${testResults.filter(r => r.visualChange).length}/${testResults.length} showing changes`, '#4caf50');
+        }
+
+        function analyzeMorphState(viseme) {
+            const activeMorphs = morphTargets.filter(m => 
+                m.mesh.morphTargetInfluences[m.index] > 0.01
+            );
+            
+            const maxInfluence = Math.max(...morphTargets.map(m => 
+                m.mesh.morphTargetInfluences[m.index]
+            ));
+            
+            return {
+                viseme: viseme,
+                activeMorphs: activeMorphs.length,
+                maxInfluence: maxInfluence,
+                visualChange: maxInfluence > 0.05,
+                morphNames: activeMorphs.map(m => m.name),
+                timestamp: Date.now()
+            };
+        }
+
+        function displayResults() {
+            const container = document.getElementById('results');
+            const successful = testResults.filter(r => r.visualChange).length;
+            const total = testResults.length;
+            
+            container.innerHTML = `
+                <h4>📊 Test Results</h4>
+                <p><strong>Success Rate:</strong> ${successful}/${total} (${Math.round(successful/total*100)}%)</p>
+                <p><strong>Visual Changes:</strong> ${successful}</p>
+                <p><strong>No Changes:</strong> ${total - successful}</p>
+                <div style="max-height: 200px; overflow-y: auto; font-size: 12px;">
+                    ${testResults.map(r => 
+                        `<div style="color: ${r.visualChange ? '#4caf50' : '#f44336'}">
+                            ${r.viseme}: ${r.visualChange ? '✅' : '❌'} ${r.activeMorphs} morphs, max: ${r.maxInfluence.toFixed(2)}
+                        </div>`
+                    ).join('')}
+                </div>
+            `;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+
+        // Initialize
+        init();
+        updateStatus('Ready! Click "Load GLB Model" to begin', '#4caf50');
+    </script>
+</body>
+</html>

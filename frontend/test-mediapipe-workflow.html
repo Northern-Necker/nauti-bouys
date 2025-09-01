@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MediaPipe Autonomous Viseme Workflow Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f8f9fa; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .test-section { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .result { background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 4px; border-left: 4px solid #6c757d; }
+        .success { border-left-color: #28a745; background: #d4edda; }
+        .error { border-left-color: #dc3545; background: #f8d7da; }
+        .warning { border-left-color: #ffc107; background: #fff3e0; }
+        .info { border-left-color: #17a2b8; background: #d1ecf1; }
+        input, button, select { padding: 10px; margin: 5px; border-radius: 4px; border: 1px solid #ccc; }
+        button { background: #007bff; color: white; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        .test-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .status-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .status-item { padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; }
+        .status-pass { background: #d4edda; color: #155724; }
+        .status-fail { background: #f8d7da; color: #721c24; }
+        .status-unknown { background: #e2e3e5; color: #383d41; }
+        .viseme-test { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 15px 0; }
+        .viseme-card { padding: 10px; background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 6px; text-align: center; }
+        .viseme-card.tested { border-color: #28a745; background: #d4edda; }
+        .viseme-card.testing { border-color: #ffc107; background: #fff3e0; }
+        canvas { border: 1px solid #ccc; margin: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 MediaPipe Autonomous Viseme Workflow Test</h1>
+        <p><strong>Testing geometric facial analysis vs subjective AI vision for precise morph recommendations</strong></p>
+        
+        <div class="test-section">
+            <h3>🔧 System Status</h3>
+            <div class="status-grid" id="statusGrid">
+                <div class="status-item status-unknown">MediaPipe: Loading...</div>
+                <div class="status-item status-unknown">Advanced Morph Engine: Unknown</div>
+                <div class="status-item status-unknown">Face Detection: Unknown</div>
+                <div class="status-item status-unknown">Geometric Analysis: Unknown</div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🧪 Test Controls</h3>
+            <div class="test-grid">
+                <div>
+                    <button onclick="testMediaPipeInitialization()">🚀 Test MediaPipe Init</button>
+                    <button onclick="testSingleVisemeAnalysis()">🎯 Test Single Viseme</button>
+                    <button onclick="testFullWorkflow()">⚡ Complete Workflow Test</button>
+                </div>
+                <div>
+                    <label>Test Viseme:</label>
+                    <select id="testViseme">
+                        <option value="pp">PP - Bilabial (P, B, M)</option>
+                        <option value="ff">FF - Labiodental (F, V)</option>
+                        <option value="th">TH - Dental (TH)</option>
+                        <option value="aa">AA - Open vowel (AH)</option>
+                        <option value="oh">OH - Rounded vowel (O)</option>
+                    </select>
+                    <button onclick="clearResults()">🧹 Clear Results</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 Viseme Test Progress</h3>
+            <div class="viseme-test" id="visemeProgress">
+                <div class="viseme-card" data-viseme="pp">PP<br><small>Bilabial</small></div>
+                <div class="viseme-card" data-viseme="ff">FF<br><small>Labiodental</small></div>
+                <div class="viseme-card" data-viseme="th">TH<br><small>Dental</small></div>
+                <div class="viseme-card" data-viseme="aa">AA<br><small>Open</small></div>
+                <div class="viseme-card" data-viseme="oh">OH<br><small>Rounded</small></div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🖼️ Test Image Generation</h3>
+            <div id="testImages" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <!-- Load required dependencies -->
+    <script src="https://unpkg.com/three@0.154.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.6"></script>
+    <script src="mediapipe-viseme-analyzer.js"></script>
+    <script src="advanced-morph-engine.js"></script>
+
+    <script>
+        let mediaPipeAnalyzer = null;
+        let advancedMorphEngine = null;
+        let testResults = {};
+        let testMorphTargets = []; // Mock morph targets for testing
+        
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}:</strong> ${message}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+        
+        function updateStatus(component, status) {
+            const statusGrid = document.getElementById('statusGrid');
+            const items = statusGrid.children;
+            
+            const componentMap = {
+                'mediapipe': 0, 'morph-engine': 1, 'face-detection': 2, 'geometric': 3
+            };
+            
+            const index = componentMap[component];
+            if (index !== undefined && items[index]) {
+                const item = items[index];
+                item.className = `status-item status-${status}`;
+                const componentName = item.textContent.split(':')[0];
+                item.textContent = `${componentName}: ${status.charAt(0).toUpperCase() + status.slice(1)}`;
+            }
+        }
+        
+        function updateVisemeProgress(viseme, status) {
+            const card = document.querySelector(`[data-viseme="${viseme}"]`);
+            if (card) {
+                card.className = `viseme-card ${status}`;
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            testResults = {};
+            // Reset status
+            ['mediapipe', 'morph-engine', 'face-detection', 'geometric'].forEach(comp => {
+                updateStatus(comp, 'unknown');
+            });
+            // Reset viseme progress
+            document.querySelectorAll('.viseme-card').forEach(card => {
+                card.className = 'viseme-card';
+            });
+        }
+        
+        // Create mock morph targets for testing
+        function createMockMorphTargets() {
+            const morphNames = [
+                'V_Explosive', 'Mouth_Close', 'Mouth_Pucker', 'Jaw_Open', 
+                'Mouth_Stretch_L', 'Mouth_Stretch_R', 'Lip_Tighten',
+                'Tongue_Up', 'Tongue_Out', 'Jaw_Up'
+            ];
+            
+            testMorphTargets = morphNames.map((name, index) => ({
+                name: name,
+                index: index,
+                mesh: {
+                    morphTargetInfluences: new Array(morphNames.length).fill(0)
+                }
+            }));
+            
+            addResult(`📊 Created ${testMorphTargets.length} mock morph targets for testing`);
+        }
+        
+        // Create realistic test face images for different visemes
+        function createVisemeTestImage(viseme) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 300;
+            canvas.height = 400;
+            const ctx = canvas.getContext('2d');
+            
+            // Clear with skin tone background
+            ctx.fillStyle = '#f4c2a1';
+            ctx.fillRect(0, 0, 300, 400);
+            
+            // Draw basic face outline
+            ctx.fillStyle = '#f4c2a1';
+            ctx.beginPath();
+            ctx.ellipse(150, 200, 100, 140, 0, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Draw eyes
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.ellipse(120, 160, 8, 12, 0, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(180, 160, 8, 12, 0, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Draw nose
+            ctx.strokeStyle = '#d4a574';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(150, 180);
+            ctx.lineTo(145, 210);
+            ctx.stroke();
+            
+            // Draw mouth based on viseme
+            ctx.fillStyle = '#8b4513';
+            ctx.beginPath();
+            
+            switch (viseme) {
+                case 'pp': // Bilabial - closed lips
+                    ctx.ellipse(150, 250, 20, 3, 0, 0, 2 * Math.PI);
+                    break;
+                case 'ff': // Labiodental - bottom lip to upper teeth
+                    ctx.ellipse(150, 250, 25, 8, 0, 0, Math.PI);
+                    ctx.fillRect(140, 245, 20, 5);
+                    break;
+                case 'th': // Dental - tongue visible
+                    ctx.ellipse(150, 250, 30, 12, 0, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#ff9999';
+                    ctx.ellipse(150, 250, 15, 6, 0, 0, 2 * Math.PI);
+                    break;
+                case 'aa': // Open vowel - wide open
+                    ctx.ellipse(150, 250, 35, 25, 0, 0, 2 * Math.PI);
+                    break;
+                case 'oh': // Rounded vowel - circular
+                    ctx.ellipse(150, 250, 15, 20, 0, 0, 2 * Math.PI);
+                    break;
+                default:
+                    ctx.ellipse(150, 250, 20, 8, 0, 0, 2 * Math.PI);
+            }
+            ctx.fill();
+            
+            // Add label
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${viseme.toUpperCase()} Viseme`, 150, 350);
+            
+            // Add to display
+            canvas.style.maxWidth = '150px';
+            canvas.style.height = 'auto';
+            canvas.title = `${viseme.toUpperCase()} viseme test image`;
+            
+            const container = document.getElementById('testImages');
+            // Remove existing canvas for this viseme
+            const existing = container.querySelector(`[data-viseme="${viseme}"]`);
+            if (existing) existing.remove();
+            
+            canvas.dataset.viseme = viseme;
+            container.appendChild(canvas);
+            
+            return canvas.toDataURL('image/png');
+        }
+        
+        async function testMediaPipeInitialization() {
+            addResult('🚀 Testing MediaPipe Face Landmarker initialization...');
+            updateStatus('mediapipe', 'unknown');
+            
+            try {
+                if (!window.MediaPipeVisemeAnalyzer) {
+                    throw new Error('MediaPipeVisemeAnalyzer class not loaded');
+                }
+                
+                addResult('📦 MediaPipeVisemeAnalyzer class found');
+                
+                mediaPipeAnalyzer = new window.MediaPipeVisemeAnalyzer();
+                addResult('🔧 MediaPipe analyzer instance created');
+                
+                addResult('🔄 Initializing MediaPipe Face Landmarker...');
+                const success = await mediaPipeAnalyzer.initialize();
+                
+                if (success) {
+                    addResult('✅ MediaPipe Face Landmarker initialized successfully!', 'success');
+                    updateStatus('mediapipe', 'pass');
+                    testResults.mediapipe = true;
+                    
+                    // Test debug info
+                    const debugInfo = mediaPipeAnalyzer.getDebugInfo();
+                    addResult(`📊 Debug info: ${JSON.stringify(debugInfo)}`, 'info');
+                    
+                    return true;
+                } else {
+                    throw new Error('MediaPipe initialization returned false');
+                }
+                
+            } catch (error) {
+                addResult(`❌ MediaPipe initialization failed: ${error.message}`, 'error');
+                updateStatus('mediapipe', 'fail');
+                testResults.mediapipe = false;
+                return false;
+            }
+        }
+        
+        async function testAdvancedMorphEngine() {
+            addResult('🔧 Testing Advanced Morph Engine...');
+            
+            try {
+                if (!window.AdvancedMorphEngine) {
+                    throw new Error('AdvancedMorphEngine class not loaded');
+                }
+                
+                // Create mock conversation logger
+                const mockLogger = (message, type) => {
+                    addResult(`[Morph Engine] ${message}`, type === 'error' ? 'error' : 'info');
+                };
+                
+                advancedMorphEngine = new window.AdvancedMorphEngine(testMorphTargets, mockLogger);
+                addResult('✅ Advanced Morph Engine initialized with mock morph targets', 'success');
+                updateStatus('morph-engine', 'pass');
+                testResults.morphEngine = true;
+                
+                return true;
+                
+            } catch (error) {
+                addResult(`❌ Advanced Morph Engine failed: ${error.message}`, 'error');
+                updateStatus('morph-engine', 'fail');
+                testResults.morphEngine = false;
+                return false;
+            }
+        }
+        
+        async function testSingleVisemeAnalysis() {
+            const viseme = document.getElementById('testViseme').value;
+            addResult(`🎯 Testing single viseme analysis: ${viseme.toUpperCase()}`);
+            
+            if (!testResults.mediapipe) {
+                addResult('⚠️ MediaPipe not initialized, testing initialization first...', 'warning');
+                const success = await testMediaPipeInitialization();
+                if (!success) {
+                    addResult('❌ Cannot proceed without MediaPipe', 'error');
+                    return;
+                }
+            }
+            
+            try {
+                updateVisemeProgress(viseme, 'testing');
+                
+                // Create test image for this viseme
+                addResult(`📷 Creating test image for ${viseme.toUpperCase()} viseme...`);
+                const imageDataURL = createVisemeTestImage(viseme);
+                addResult(`✅ Test image created (${Math.round(imageDataURL.length/1000)}KB)`);
+                
+                // Analyze with MediaPipe
+                addResult(`🔬 Analyzing ${viseme.toUpperCase()} viseme with MediaPipe...`);
+                const result = await mediaPipeAnalyzer.analyzeViseme(imageDataURL, viseme);
+                
+                addResult(`📊 Analysis complete! Score: ${result.score.toFixed(1)}%`, 
+                    result.score > 70 ? 'success' : result.score > 40 ? 'warning' : 'error');
+                
+                addResult(`🎯 Found ${result.recommendations.length} precise morph recommendations`);
+                
+                // Show detailed results
+                result.recommendations.forEach((rec, index) => {
+                    addResult(`   ${index + 1}. ${rec.reason}: ${rec.morphName} → ${rec.targetValue.toFixed(3)}`, 'info');
+                });
+                
+                updateStatus('face-detection', 'pass');
+                updateStatus('geometric', 'pass');
+                updateVisemeProgress(viseme, 'tested');
+                
+                return result;
+                
+            } catch (error) {
+                addResult(`❌ Single viseme analysis failed: ${error.message}`, 'error');
+                updateStatus('face-detection', 'fail');
+                updateVisemeProgress(viseme, '');
+                return null;
+            }
+        }
+        
+        async function testFullWorkflow() {
+            addResult('🚀 Starting complete MediaPipe autonomous viseme workflow test...');
+            clearResults();
+            addResult('🚀 Starting complete MediaPipe autonomous viseme workflow test...');
+            
+            // Initialize components
+            createMockMorphTargets();
+            
+            const success1 = await testMediaPipeInitialization();
+            const success2 = await testAdvancedMorphEngine();
+            
+            if (!success1 || !success2) {
+                addResult('❌ Cannot proceed - critical components failed', 'error');
+                return;
+            }
+            
+            // Test all visemes
+            const visemes = ['pp', 'ff', 'th', 'aa', 'oh'];
+            const results = [];
+            
+            addResult(`🔄 Testing ${visemes.length} visemes with complete workflow...`);
+            
+            for (const viseme of visemes) {
+                try {
+                    addResult(`\n--- Testing ${viseme.toUpperCase()} Viseme ---`);
+                    updateVisemeProgress(viseme, 'testing');
+                    
+                    // 1. Create realistic test image
+                    const imageDataURL = createVisemeTestImage(viseme);
+                    addResult(`📷 Created test image for ${viseme.toUpperCase()}`);
+                    
+                    // 2. MediaPipe geometric analysis
+                    const analysis = await mediaPipeAnalyzer.analyzeViseme(imageDataURL, viseme);
+                    addResult(`🔬 Geometric analysis: ${analysis.score.toFixed(1)}% accuracy`);
+                    
+                    // 3. Advanced morph processing
+                    const mockRecommendation = {
+                        recommendations: analysis.recommendations.map(rec => 
+                            `${rec.action} ${rec.morphName} to ${rec.targetValue.toFixed(2)}: ${rec.reason}`
+                        ).join('. ')
+                    };
+                    
+                    const changes = advancedMorphEngine.parseAdvancedRecommendations(
+                        mockRecommendation, viseme, { morphs: testMorphTargets.map(m => m.name) }
+                    );
+                    
+                    addResult(`⚡ Processed ${changes.length} morph changes`);
+                    
+                    // 4. Apply changes (simulation)
+                    let appliedCount = 0;
+                    changes.forEach(change => {
+                        if (change.morphTarget && change.value !== undefined) {
+                            change.morphTarget.mesh.morphTargetInfluences[change.morphTarget.index] = change.value;
+                            appliedCount++;
+                        }
+                    });
+                    
+                    addResult(`✅ Applied ${appliedCount} morph adjustments`);
+                    
+                    results.push({
+                        viseme: viseme,
+                        score: analysis.score,
+                        recommendations: analysis.recommendations.length,
+                        changes: changes.length,
+                        applied: appliedCount,
+                        success: true
+                    });
+                    
+                    updateVisemeProgress(viseme, 'tested');
+                    
+                    // Brief delay to show progress
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                } catch (error) {
+                    addResult(`❌ Workflow failed for ${viseme.toUpperCase()}: ${error.message}`, 'error');
+                    results.push({
+                        viseme: viseme,
+                        error: error.message,
+                        success: false
+                    });
+                    updateVisemeProgress(viseme, '');
+                }
+            }
+            
+            // Generate comprehensive report
+            addResult('\n📊 === COMPLETE WORKFLOW TEST RESULTS ===');
+            
+            const successful = results.filter(r => r.success);
+            const failed = results.filter(r => !r.success);
+            
+            addResult(`✅ Successful: ${successful.length}/${visemes.length} visemes`);
+            addResult(`❌ Failed: ${failed.length}/${visemes.length} visemes`);
+            
+            if (successful.length > 0) {
+                const avgScore = successful.reduce((sum, r) => sum + r.score, 0) / successful.length;
+                const totalRecommendations = successful.reduce((sum, r) => sum + r.recommendations, 0);
+                const totalApplied = successful.reduce((sum, r) => sum + r.applied, 0);
+                
+                addResult(`📈 Average geometric accuracy: ${avgScore.toFixed(1)}%`, 'success');
+                addResult(`🎯 Total recommendations: ${totalRecommendations}`, 'success');
+                addResult(`⚡ Total morphs applied: ${totalApplied}`, 'success');
+                
+                if (avgScore > 70 && totalApplied > 0) {
+                    addResult('🎉 WORKFLOW TEST PASSED! MediaPipe geometric analysis provides precise, consistent morph recommendations.', 'success');
+                    addResult('🚀 Ready to replace subjective AI vision with objective geometric measurements!', 'success');
+                } else {
+                    addResult('⚠️ Workflow partially successful but needs tuning', 'warning');
+                }
+            } else {
+                addResult('❌ Workflow test failed - no successful analyses', 'error');
+            }
+            
+            // Show comparison benefit
+            addResult('\n💡 === MEDIAPIPE VS AI VISION COMPARISON ===');
+            addResult('✅ MediaPipe: Consistent geometric measurements, repeatable results');
+            addResult('✅ MediaPipe: No API costs, works offline, precise landmark detection');
+            addResult('✅ MediaPipe: Mathematical scoring vs subjective AI interpretation');
+            addResult('❌ AI Vision: Subjective analysis, inconsistent recommendations, API costs');
+        }
+        
+        // Initialize on page load
+        window.onload = async function() {
+            addResult('🚀 MediaPipe Autonomous Viseme Workflow Test initialized');
+            addResult('💡 Click "Test MediaPipe Init" to verify geometric analysis is working');
+            
+            // Check if scripts loaded
+            if (window.MediaPipeVisemeAnalyzer) {
+                addResult('✅ MediaPipe Viseme Analyzer loaded');
+            } else {
+                addResult('❌ MediaPipe Viseme Analyzer not loaded', 'error');
+            }
+            
+            if (window.AdvancedMorphEngine) {
+                addResult('✅ Advanced Morph Engine loaded');
+            } else {
+                addResult('❌ Advanced Morph Engine not loaded', 'error');
+            }
+        };
+    </script>
+</body>
+</html>

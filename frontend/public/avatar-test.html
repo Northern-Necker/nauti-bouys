@@ -1,0 +1,31 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Avatar Test</title>
+</head>
+<body>
+    <div id="test-status"></div>
+    <script type="module">
+        // Simple test to check if avatar can be loaded
+        const testResult = {
+            canLoadGLB: false,
+            error: null
+        };
+        
+        try {
+            const response = await fetch('/assets/SavannahAvatar.glb');
+            if (response.ok) {
+                testResult.canLoadGLB = true;
+                console.log('✅ Avatar GLB can be fetched');
+            }
+        } catch (error) {
+            testResult.error = error.message;
+            console.error('❌ Avatar fetch failed:', error);
+        }
+        
+        // Report result
+        document.getElementById('test-status').textContent = JSON.stringify(testResult);
+    </script>
+</body>
+</html>

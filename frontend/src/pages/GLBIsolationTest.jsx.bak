@@ -1,0 +1,153 @@
+import React, { useState, useEffect } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { useGLTF } from '@react-three/drei';
+import * as THREE from 'three';
+
+// Minimal GLB component with detailed logging
+function SimpleGLB() {
+  const [status, setStatus] = useState('Loading...');
+  
+  try {
+    const gltf = useGLTF('/assets/SavannahAvatar.glb');
+    
+    useEffect(() => {
+      if (gltf && gltf.scene) {
+        console.log('✅ GLB loaded successfully:', gltf);
+        setStatus('GLB Loaded Successfully');
+        
+        // Scale and position
+        const box = new THREE.Box3().setFromObject(gltf.scene);
+        const size = box.getSize(new THREE.Vector3());
+        console.log('GLB size:', size);
+        
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scale = 2 / maxDim;
+        gltf.scene.scale.setScalar(scale);
+        
+        // Ensure materials are visible
+        let materialCount = 0;
+        gltf.scene.traverse((child) => {
+          if (child.isMesh && child.material) {
+            materialCount++;
+            if (Array.isArray(child.material)) {
+              child.material.forEach(mat => {
+                mat.transparent = false;
+                mat.opacity = 1;
+                mat.needsUpdate = true;
+              });
+            } else {
+              child.material.transparent = false;
+              child.material.opacity = 1;
+              child.material.needsUpdate = true;
+            }
+          }
+        });
+        
+        console.log(`✅ Processed ${materialCount} materials`);
+        setStatus(`Ready - ${materialCount} materials processed`);
+      }
+    }, [gltf]);
+    
+    if (!gltf?.scene) {
+      return <mesh><boxGeometry args={[1, 1, 1]} /><meshBasicMaterial color="orange" /></mesh>;
+    }
+    
+    return <primitive object={gltf.scene} />;
+    
+  } catch (error) {
+    console.error('GLB loading error:', error);
+    setStatus(`Error: ${error.message}`);
+    return <mesh><boxGeometry args={[1, 1, 1]} /><meshBasicMaterial color="red" /></mesh>;
+  }
+}
+
+export default function GLBIsolationTest() {
+  const [canvasStatus, setCanvasStatus] = useState('Initializing...');
+  const [renderCount, setRenderCount] = useState(0);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRenderCount(prev => prev + 1);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  const handleCanvasCreated = ({ gl, scene, camera }) => {
+    console.log('✅ Canvas created successfully');
+    console.log('WebGL Renderer:', gl);
+    console.log('Scene:', scene);
+    console.log('Camera:', camera);
+    setCanvasStatus('Canvas Ready');
+  };
+  
+  const handleCanvasError = (error) => {
+    console.error('❌ Canvas error:', error);
+    setCanvasStatus(`Canvas Error: ${error.message}`);
+  };
+  
+  return (
+    <div style={{ 
+      width: '100vw', 
+      height: '100vh', 
+      background: '#000',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      overflow: 'hidden' // Prevent scrollbars that cause shifts
+    }}>
+      {/* Status overlay - fixed size to prevent CLS */}
+      <div style={{
+        position: 'fixed',
+        top: 10,
+        left: 10,
+        background: 'rgba(0,0,0,0.8)',
+        color: 'white',
+        padding: '10px',
+        borderRadius: '5px',
+        zIndex: 1000,
+        fontFamily: 'monospace',
+        fontSize: '12px',
+        width: '200px', // Fixed width prevents shifts
+        height: '60px'   // Fixed height prevents shifts
+      }}>
+        <div>Canvas: {canvasStatus}</div>
+        <div>Render Count: {renderCount}</div>
+        <div>Time: {new Date().toLocaleTimeString()}</div>
+      </div>
+      
+      {/* Pure Canvas test - fixed positioning prevents CLS */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%'
+      }}>
+        <Canvas
+          onCreated={handleCanvasCreated}
+          onError={handleCanvasError}
+          camera={{ position: [0, 0, 5], fov: 50 }}
+          style={{ 
+            background: '#222',
+            width: '100%',
+            height: '100%',
+            display: 'block'
+          }}
+        >
+          <ambientLight intensity={0.5} />
+          <directionalLight position={[5, 5, 5]} intensity={1} />
+          
+          <React.Suspense fallback={
+            <mesh>
+              <sphereGeometry args={[0.5, 32, 32]} />
+              <meshBasicMaterial color="yellow" wireframe />
+            </mesh>
+          }>
+            <SimpleGLB />
+          </React.Suspense>
+        </Canvas>
+      </div>
+    </div>
+  );
+}

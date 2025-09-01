@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLB Morph Target Test - Fixed</title>
+    <!-- Fixed Three.js imports using the correct CDN paths -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <style>
+        body { 
+            margin: 0; 
+            background: #000; 
+            color: white; 
+            font-family: Arial, sans-serif; 
+            overflow: hidden; 
+        }
+        .container { 
+            display: flex; 
+            height: 100vh; 
+        }
+        .viewer { 
+            flex: 1; 
+            position: relative; 
+        }
+        .controls { 
+            width: 350px; 
+            padding: 20px; 
+            background: #222; 
+            overflow-y: auto; 
+        }
+        .viseme-btn { 
+            display: block; 
+            width: 100%; 
+            margin: 3px 0; 
+            padding: 12px; 
+            background: #444; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            transition: all 0.2s;
+        }
+        .viseme-btn:hover { background: #666; }
+        .viseme-btn.active { background: #00ff00; color: #000; font-weight: bold; }
+        .status { 
+            padding: 15px; 
+            background: #333; 
+            border-radius: 6px; 
+            margin: 15px 0; 
+        }
+        .section { 
+            margin: 20px 0; 
+        }
+        .section h3 { 
+            margin: 10px 0; 
+            color: #fff; 
+            border-bottom: 2px solid #444; 
+            padding-bottom: 5px; 
+        }
+        .morph-info { 
+            font-size: 11px; 
+            color: #aaa; 
+            max-height: 150px; 
+            overflow-y: auto; 
+            background: #111; 
+            padding: 10px; 
+            border-radius: 4px; 
+        }
+        .test-controls { 
+            text-align: center; 
+            margin: 15px 0; 
+        }
+        .test-btn { 
+            background: #007bff; 
+            padding: 12px 20px; 
+            margin: 5px; 
+            border: none; 
+            color: white; 
+            border-radius: 6px; 
+            cursor: pointer; 
+        }
+        .test-btn:hover { background: #0056b3; }
+        .auto-btn { background: #28a745; }
+        .auto-btn:hover { background: #1e7e34; }
+        canvas { display: block; }
+        .intensity-control { margin: 15px 0; }
+        .intensity-slider { width: 100%; margin: 10px 0; }
+        .coords { font-size: 12px; color: #888; margin: 5px 0; }
+        .error-display {
+            background: #dc3545;
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            display: none;
+        }
+        .loading {
+            background: #ff9800;
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="viewer">
+            <div id="three-container"></div>
+        </div>
+        
+        <div class="controls">
+            <div class="status" id="status">Ready to load GLB model</div>
+            <div class="error-display" id="error-display"></div>
+            <div class="loading" id="loading-display">Loading...</div>
+            
+            <div class="test-controls">
+                <button class="test-btn" onclick="loadGLB()">🔄 Load GLB Model</button>
+                <button class="test-btn auto-btn" onclick="runAutoTest()">🚀 Auto Test All Visemes</button>
+                <button class="test-btn" onclick="resetAll()">🔄 Reset All</button>
+            </div>
+            
+            <div class="intensity-control">
+                <label>Morph Intensity:</label>
+                <input type="range" class="intensity-slider" id="intensity" min="0" max="1" step="0.1" value="0.8" oninput="updateIntensity(this.value)">
+                <span id="intensity-value">0.8</span>
+            </div>
+            
+            <div class="section">
+                <h3>🎭 ARKit Visemes</h3>
+                <div id="viseme-controls"></div>
+            </div>
+            
+            <div class="section">
+                <h3>📊 Model Info</h3>
+                <div class="morph-info" id="morph-info">Load a GLB model to see available morphs</div>
+            </div>
+            
+            <div class="section">
+                <h3>🎯 Current State</h3>
+                <div class="coords" id="current-morphs">No active morphs</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        let scene, camera, renderer, avatar, morphTargets = [], currentIntensity = 0.8;
+        let isAutoTesting = false;
+
+        // Make functions globally accessible
+        window.loadGLB = loadGLB;
+        window.runAutoTest = runAutoTest;
+        window.updateIntensity = updateIntensity;
+        window.resetAll = resetAll;
+
+        // Enhanced viseme mappings based on your research
+        const CALIBRATED_VISEME_MORPHS = {
+            'sil': {},
+            'aa': { 'Mouth_Open': 0.85, 'Jaw_Open': 0.75, 'V_Open': 0.8, 'V_Wide': 0.6 },
+            'ae': { 'Mouth_Stretch_Left': 0.8, 'Mouth_Stretch_Right': 0.8, 'V_Wide': 0.9, 'Mouth_Open': 0.4 },
+            'ah': { 'Mouth_Open': 0.9, 'Jaw_Open': 0.8, 'V_Open': 0.85 },
+            'ao': { 'Mouth_Funnel': 0.85, 'V_Oh': 0.9, 'Mouth_Pucker_Lower': 0.7, 'Mouth_Pucker_Upper': 0.6 },
+            'aw': { 'Mouth_Open': 0.8, 'Jaw_Open': 0.7, 'V_Wide': 0.5 },
+            'ay': { 'Mouth_Smile_Left': 0.6, 'Mouth_Smile_Right': 0.6, 'V_Wide': 0.3 },
+            'b_m_p': { 'V_M': 0.95, 'Mouth_Close': 0.95, 'Mouth_Press_Left': 0.8, 'Mouth_Press_Right': 0.8 },
+            'ch_j_sh_zh': { 'V_CH': 0.9, 'Mouth_Funnel': 0.7, 'V_Oh': 0.6 },
+            'd_s_t': { 'V_T': 0.9, 'Tongue_Tip_Up': 0.9, 'V_S': 0.8, 'Mouth_Open': 0.35 },
+            'eh': { 'V_E': 0.8, 'Mouth_Open': 0.5, 'V_Wide': 0.4 },
+            'er': { 'V_R': 0.95, 'Tongue_Curl': 0.85, 'V_Oh': 0.4 },
+            'f_v': { 'V_F': 0.9, 'Mouth_Lower_Down_Left': 0.7, 'Mouth_Lower_Down_Right': 0.7 },
+            'g_k': { 'V_K': 0.9, 'Tongue_Back': 0.8, 'V_Open': 0.4 },
+            'hh': { 'V_H': 0.8, 'Mouth_Open': 0.6, 'Jaw_Open': 0.4 },
+            'ih': { 'V_I': 0.8, 'Mouth_Open': 0.3, 'V_Wide': 0.3 },
+            'iy': { 'V_I': 0.95, 'Mouth_Smile_Left': 0.8, 'Mouth_Smile_Right': 0.8, 'V_Wide': 0.4 },
+            'l': { 'V_L': 0.95, 'Tongue_Tip_Up': 0.95, 'V_Open': 0.4 },
+            'n': { 'V_N': 0.9, 'Tongue_Tip_Up': 0.9, 'V_M': 0.3 },
+            'ng': { 'V_NG': 0.9, 'Tongue_Back': 0.9, 'V_M': 0.5 },
+            'ow': { 'V_Oh': 0.95, 'Mouth_Funnel': 0.9, 'V_U': 0.7 },
+            'oy': { 'V_Oh': 0.6, 'V_I': 0.4, 'Mouth_Funnel': 0.6 },
+            'r': { 'V_R': 0.95, 'Tongue_Curl': 0.95, 'V_Oh': 0.5 },
+            'th': { 'V_TH': 0.95, 'Tongue_Out': 0.9, 'V_Open': 0.5 },
+            'uh': { 'V_U': 0.8, 'Mouth_Pucker_Lower': 0.7, 'V_Oh': 0.4 },
+            'uw': { 'V_U': 0.95, 'Mouth_Pucker_Lower': 0.95, 'Mouth_Pucker_Upper': 0.9 },
+            'w': { 'V_W': 0.9, 'Mouth_Pucker_Lower': 0.85, 'V_U': 0.8 },
+            'y': { 'V_I': 0.5, 'Mouth_Smile_Left': 0.5, 'Mouth_Smile_Right': 0.5 },
+            'z': { 'V_S': 0.8, 'V_Z': 0.9, 'Mouth_Open': 0.25, 'V_Wide': 0.4 }
+        };
+
+        const VISEME_DESCRIPTIONS = {
+            'sil': 'Silence/Neutral',
+            'aa': 'Father - wide open mouth',
+            'ae': 'Cat - mouth stretched wide',
+            'ah': 'Hot - mouth very open',
+            'ao': 'Thought - rounded mouth',
+            'aw': 'Loud - wide open with stretch',
+            'ay': 'Hide - smile transition',
+            'b_m_p': 'Lips pressed together',
+            'ch_j_sh_zh': 'Church - rounded lips',
+            'd_s_t': 'Tongue tip to teeth ridge',
+            'eh': 'Pet - mid-open mouth',
+            'er': 'Bird - R sound with curl',
+            'f_v': 'Teeth on lower lip',
+            'g_k': 'Back of tongue raised',
+            'hh': 'Breathy H sound',
+            'ih': 'Bit - small opening',
+            'iy': 'Beat - wide smile',
+            'l': 'Tongue tip up for L',
+            'n': 'Tongue tip up, closed',
+            'ng': 'Back tongue up, closed',
+            'ow': 'Boat - strong rounding',
+            'oy': 'Boy - round to smile',
+            'r': 'Red - strong tongue curl',
+            'th': 'Tongue tip protruding',
+            'uh': 'Put - small round opening',
+            'uw': 'Boot - tight lip rounding',
+            'w': 'Way - tight protrusion',
+            'y': 'Yes - slight smile',
+            'z': 'Zoo - teeth showing'
+        };
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-display');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            console.error(message);
+        }
+
+        function hideError() {
+            document.getElementById('error-display').style.display = 'none';
+        }
+
+        function showLoading(message) {
+            const loadingDiv = document.getElementById('loading-display');
+            loadingDiv.textContent = message;
+            loadingDiv.style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading-display').style.display = 'none';
+        }
+
+        function init() {
+            try {
+                hideError();
+                updateStatus('Initializing Three.js...', '#17a2b8');
+                
+                // Create Three.js scene
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x222222);
+
+                const containerWidth = window.innerWidth - 350;
+                const containerHeight = window.innerHeight;
+                
+                camera = new THREE.PerspectiveCamera(50, containerWidth / containerHeight, 0.1, 1000);
+                camera.position.set(0, 1.6, 2.5);
+
+                renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+                renderer.setSize(containerWidth, containerHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                
+                const container = document.getElementById('three-container');
+                container.appendChild(renderer.domElement);
+
+                // Enhanced lighting setup for better model visibility
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+                directionalLight.position.set(2, 2, 5);
+                directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 2048;
+                directionalLight.shadow.mapSize.height = 2048;
+                scene.add(directionalLight);
+
+                const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+                fillLight.position.set(-2, 1, 2);
+                scene.add(fillLight);
+
+                // Add rim lighting for better definition
+                const rimLight = new THREE.DirectionalLight(0x4a90e2, 0.3);
+                rimLight.position.set(0, 2, -3);
+                scene.add(rimLight);
+
+                createVisemeControls();
+                animate();
+                
+                updateStatus('✅ Three.js initialized! Click "Load GLB Model" to begin testing', '#28a745');
+                
+            } catch (error) {
+                showError(`Failed to initialize Three.js: ${error.message}`);
+            }
+        }
+
+        function createVisemeControls() {
+            const container = document.getElementById('viseme-controls');
+            Object.entries(CALIBRATED_VISEME_MORPHS).forEach(([viseme, morphs]) => {
+                const btn = document.createElement('button');
+                btn.className = 'viseme-btn';
+                btn.textContent = `${viseme.toUpperCase()} - ${VISEME_DESCRIPTIONS[viseme]}`;
+                btn.onclick = () => setViseme(viseme, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function updateStatus(message, color = '#444') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.background = color;
+            console.log('Status:', message);
+        }
+
+        function loadGLB() {
+            try {
+                hideError();
+                showLoading('Loading GLB model...');
+                updateStatus('🔄 Loading GLB model...', '#ff9800');
+                
+                const loader = new GLTFLoader();
+                
+                // Enhanced GLB path list with more possibilities
+                const glbPaths = [
+                    './frontend/public/assets/SavannahAvatar.glb',
+                    './frontend/dist/assets/SavannahAvatar.glb', 
+                    './SavannahAvatar.glb',
+                    './assets/SavannahAvatar.glb',
+                    './frontend/public/assets/party-f-0013-fixed.glb',
+                    './party-f-0013-fixed.glb',
+                    'https://models.readyplayer.me/638b9e90f3c32c854aa05d1a.glb', // Fallback public model
+                    'https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb' // Three.js example
+                ];
+
+                let pathIndex = 0;
+                
+                function tryLoadPath() {
+                    if (pathIndex >= glbPaths.length) {
+                        hideLoading();
+                        showError('❌ Could not load GLB model from any path. Please ensure you have a GLB file with morph targets available.');
+                        updateStatus('❌ GLB model loading failed', '#dc3545');
+                        return;
+                    }
+
+                    const currentPath = glbPaths[pathIndex];
+                    updateStatus(`📥 Trying: ${currentPath.split('/').pop()}`, '#17a2b8');
+
+                    loader.load(
+                        currentPath,
+                        (gltf) => {
+                            hideLoading();
+                            hideError();
+                            updateStatus('✅ GLB model loaded successfully!', '#28a745');
+                            setupAvatar(gltf);
+                        },
+                        (progress) => {
+                            if (progress.total > 0) {
+                                const percent = Math.round((progress.loaded / progress.total) * 100);
+                                showLoading(`Loading... ${percent}%`);
+                                updateStatus(`📥 Loading... ${percent}%`, '#17a2b8');
+                            }
+                        },
+                        (error) => {
+                            console.warn(`Failed to load ${currentPath}:`, error);
+                            pathIndex++;
+                            setTimeout(tryLoadPath, 500);
+                        }
+                    );
+                }
+
+                tryLoadPath();
+                
+            } catch (error) {
+                hideLoading();
+                showError(`Failed to start GLB loading: ${error.message}`);
+            }
+        }
+
+        function setupAvatar(gltf) {
+            try {
+                if (avatar) {
+                    scene.remove(avatar);
+                    avatar = null;
+                }
+                
+                avatar = gltf.scene;
+                scene.add(avatar);
+                
+                // Auto-scale and center the model
+                const box = new THREE.Box3().setFromObject(avatar);
+                const size = box.getSize(new THREE.Vector3());
+                const center = box.getCenter(new THREE.Vector3());
+                
+                // Scale to fit in view (assuming face height around 0.3 units)
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const targetSize = 2;
+                const scale = targetSize / maxDim;
+                avatar.scale.setScalar(scale);
+                
+                // Center the model
+                avatar.position.copy(center).multiplyScalar(-scale);
+                avatar.position.y -= 0.5; // Move down a bit
+                
+                // Find and catalog morph targets
+                morphTargets = [];
+                let totalMorphs = 0;
+                let meshCount = 0;
+                
+                avatar.traverse((child) => {
+                    if (child.isMesh && child.morphTargetDictionary) {
+                        meshCount++;
+                        console.log(`Found mesh with morphs: ${child.name}`, child.morphTargetDictionary);
+                        
+                        // Ensure morphTargetInfluences array exists and is properly sized
+                        const morphCount = Object.keys(child.morphTargetDictionary).length;
+                        if (!child.morphTargetInfluences) {
+                            child.morphTargetInfluences = new Array(morphCount).fill(0);
+                        } else if (child.morphTargetInfluences.length !== morphCount) {
+                            // Resize array if needed
+                            const newInfluences = new Array(morphCount).fill(0);
+                            for (let i = 0; i < Math.min(child.morphTargetInfluences.length, morphCount); i++) {
+                                newInfluences[i] = child.morphTargetInfluences[i];
+                            }
+                            child.morphTargetInfluences = newInfluences;
+                        }
+                        
+                        Object.entries(child.morphTargetDictionary).forEach(([morphName, index]) => {
+                            morphTargets.push({
+                                name: morphName,
+                                mesh: child,
+                                meshName: child.name,
+                                index: index,
+                                currentValue: 0
+                            });
+                            totalMorphs++;
+                        });
+                    }
+                });
+                
+                updateStatus(`✅ Ready! Found ${totalMorphs} morph targets in ${meshCount} meshes`, '#28a745');
+                displayMorphInfo();
+                
+                // Position camera for optimal viewing
+                if (meshCount > 0) {
+                    camera.position.set(0, center.y * scale, 3);
+                    camera.lookAt(0, center.y * scale, 0);
+                }
+                
+            } catch (error) {
+                showError(`Failed to setup avatar: ${error.message}`);
+            }
+        }
+
+        function displayMorphInfo() {
+            const container = document.getElementById('morph-info');
+            if (morphTargets.length === 0) {
+                container.innerHTML = '<strong style="color: #dc3545;">No morph targets found in loaded model</strong><br><br>The loaded GLB file does not contain morph targets. Please ensure you are using a model with facial blend shapes/morph targets.';
+                return;
+            }
+            
+            const morphsByMesh = {};
+            morphTargets.forEach(morph => {
+                if (!morphsByMesh[morph.meshName]) {
+                    morphsByMesh[morph.meshName] = [];
+                }
+                morphsByMesh[morph.meshName].push(morph.name);
+            });
+            
+            let html = `<strong>Total Morphs: ${morphTargets.length}</strong><br><br>`;
+            Object.entries(morphsByMesh).forEach(([meshName, morphs]) => {
+                html += `<strong>${meshName} (${morphs.length}):</strong><br>`;
+                morphs.slice(0, 8).forEach(name => {
+                    html += `  • ${name}<br>`;
+                });
+                if (morphs.length > 8) {
+                    html += `  ... and ${morphs.length - 8} more<br>`;
+                }
+                html += '<br>';
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function setViseme(viseme, button) {
+            if (!avatar || morphTargets.length === 0) {
+                showError('Please load a GLB model with morph targets first');
+                return;
+            }
+
+            try {
+                // Clear all button states
+                document.querySelectorAll('.viseme-btn').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+
+                // Reset all morphs first
+                resetAllMorphs();
+
+                // Apply calibrated morphs for this viseme
+                const morphsToApply = CALIBRATED_VISEME_MORPHS[viseme] || {};
+                let appliedCount = 0;
+                let appliedMorphs = [];
+
+                Object.entries(morphsToApply).forEach(([morphName, baseValue]) => {
+                    // Smart morph name matching
+                    const targetMorphs = morphTargets.filter(m => {
+                        const name = m.name.toLowerCase().replace(/[_\s-]/g, '');
+                        const target = morphName.toLowerCase().replace(/[_\s-]/g, '');
+                        
+                        return name === target || 
+                               name.includes(target) || 
+                               target.includes(name) ||
+                               // Handle common variations
+                               (name.startsWith('v') && name.slice(1) === target) ||
+                               (target.startsWith('v') && target.slice(1) === name);
+                    });
+
+                    targetMorphs.forEach(morph => {
+                        const finalValue = Math.min(Math.max(baseValue * currentIntensity, 0), 1);
+                        morph.mesh.morphTargetInfluences[morph.index] = finalValue;
+                        morph.currentValue = finalValue;
+                        
+                        // Force updates for proper rendering
+                        if (morph.mesh.geometry) {
+                            if (morph.mesh.geometry.morphAttributes) {
+                                morph.mesh.geometry.morphAttributesNeedUpdate = true;
+                            }
+                            if (morph.mesh.geometry.morphAttributes && morph.mesh.geometry.morphAttributes.normal) {
+                                morph.mesh.geometry.morphNormalsNeedUpdate = true;
+                            }
+                        }
+                        
+                        morph.mesh.updateMatrix();
+                        morph.mesh.updateMatrixWorld(true);
+                        
+                        appliedCount++;
+                        appliedMorphs.push(`${morph.name}: ${finalValue.toFixed(2)}`);
+                        
+                        if (finalValue > 0.05) {
+                            console.log(`Applied ${morph.name} on ${morph.meshName}: ${finalValue.toFixed(3)}`);
+                        }
+                    });
+                });
+
+                updateStatus(`🎭 ${viseme.toUpperCase()}: ${appliedCount} morphs applied`, '#17a2b8');
+                updateCurrentMorphsDisplay(appliedMorphs);
+                
+            } catch (error) {
+                showError(`Error applying viseme ${viseme}: ${error.message}`);
+            }
+        }
+
+        function resetAllMorphs() {
+            try {
+                morphTargets.forEach(morph => {
+                    morph.mesh.morphTargetInfluences[morph.index] = 0;
+                    morph.currentValue = 0;
+                    
+                    if (morph.mesh.geometry && morph.mesh.geometry.morphAttributes) {
+                        morph.mesh.geometry.morphAttributesNeedUpdate = true;
+                    }
+                });
+                
+                updateCurrentMorphsDisplay([]);
+            } catch (error) {
+                showError(`Error resetting morphs: ${error.message}`);
+            }
+        }
+
+        function resetAll() {
+            try {
+                resetAllMorphs();
+                document.querySelectorAll('.viseme-btn').forEach(btn => btn.classList.remove('active'));
+                updateStatus('🔄 All morphs reset', '#17a2b8');
+                isAutoTesting = false;
+            } catch (error) {
+                showError(`Error during reset: ${error.message}`);
+            }
+        }
+
+        function updateIntensity(value) {
+            currentIntensity = parseFloat(value);
+            document.getElementById('intensity-value').textContent = value;
+            
+            // Re-apply current viseme if any is active
+            const activeBtn = document.querySelector('.viseme-btn.active');
+            if (activeBtn) {
+                const viseme = activeBtn.textContent.split(' ')[0].toLowerCase();
+                setViseme(viseme, activeBtn);
+            }
+        }
+
+        function updateCurrentMorphsDisplay(morphs) {
+            const container = document.getElementById('current-morphs');
+            if (morphs.length === 0) {
+                container.textContent = 'No active morphs';
+                return;
+            }
+            
+            const displayCount = Math.min(morphs.length, 10);
+            container.innerHTML = morphs.slice(0, displayCount).map(morph => 
+                `<div style="font-size: 11px; margin: 2px 0; color: #4CAF50;">${morph}</div>`
+            ).join('') + (morphs.length > displayCount ? 
+                `<div style="font-size: 10px; color: #666; margin-top: 5px;">...and ${morphs.length - displayCount} more</div>` : '');
+        }
+
+        async function runAutoTest() {
+            if (!avatar || morphTargets.length === 0) {
+                showError('Load GLB model with morph targets first');
+                return;
+            }
+
+            try {
+                isAutoTesting = true;
+                updateStatus('🚀 Running auto test...', '#ff9800');
+                
+                const visemes = Object.keys(CALIBRATED_VISEME_MORPHS);
+                
+                for (let i = 0; i < visemes.length && isAutoTesting; i++) {
+                    const viseme = visemes[i];
+                    const button = document.querySelectorAll('.viseme-btn')[i];
+                    
+                    updateStatus(`Testing ${i + 1}/${visemes.length}: ${viseme.toUpperCase()}`, '#17a2b8');
+                    setViseme(viseme, button);
+                    
+                    await new Promise(resolve => setTimeout(resolve, 1200)); // 1.2 seconds per viseme
+                }
+                
+                if (isAutoTesting) {
+                    updateStatus('✅ Auto test completed!', '#28a745');
+                    resetAll();
+                }
+            } catch (error) {
+                showError(`Error during auto test: ${error.message}`);
+            } finally {
+                isAutoTesting = false;
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                const width = window.innerWidth - 350;
+                const height = window.innerHeight;
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+            }
+        });
+
+        // Stop auto test on page unload
+        window.addEventListener('beforeunload', () => {
+            isAutoTesting = false;
+        });
+
+        // Initialize when page loads
+        init();
+    </script>
+</body>
+</html>

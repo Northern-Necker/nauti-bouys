@@ -125,7 +125,9 @@ router.get('/:category', [
       query.$text = { $search: search };
     }
     
-    if (minPrice || maxPrice) {
+    // Note: Price filtering removed for spirits (shelf tier system)
+    // Other beverage types may still use price filtering
+    if ((minPrice || maxPrice) && category !== 'spirits') {
       query.price = {};
       if (minPrice) query.price.$gte = parseFloat(minPrice);
       if (maxPrice) query.price.$lte = parseFloat(maxPrice);
@@ -229,7 +231,7 @@ router.post('/:category', [
   bartenderOnly,
   body('name').trim().isLength({ min: 1, max: 100 }).withMessage('Name is required and must be under 100 characters'),
   body('description').trim().isLength({ min: 1, max: 500 }).withMessage('Description is required and must be under 500 characters'),
-  body('price').isFloat({ min: 0 }).withMessage('Price must be a positive number')
+  body('price').optional().isFloat({ min: 0 }).withMessage('Price must be a positive number')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

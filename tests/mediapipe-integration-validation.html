@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaPipe Face Landmarker v2 - Integration Validation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .video-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        #videoElement {
+            width: 100%;
+            max-width: 640px;
+            height: auto;
+            display: block;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .test-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .test-panel h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-pending {
+            background: #ffd93d;
+            animation: pulse 2s infinite;
+        }
+
+        .status-success {
+            background: #6bcf7f;
+        }
+
+        .status-error {
+            background: #ff6b6b;
+        }
+
+        .status-running {
+            background: #4ecdc4;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .test-result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .test-result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .test-result.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+
+        .landmark-info {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .landmark-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .landmark-item {
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            font-size: 0.8em;
+        }
+
+        .viseme-display {
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .viseme-current {
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .viseme-confidence {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .error-panel {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 20px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>MediaPipe Face Landmarker v2</h1>
+            <p>Integration Validation & Performance Testing Suite</p>
+        </div>
+
+        <div class="main-content">
+            <div class="video-section">
+                <div class="video-container">
+                    <video id="videoElement" autoplay muted playsinline></video>
+                    <canvas id="canvas"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <button id="startBtn" class="btn btn-primary">
+                        <span class="loading-spinner" id="loadingSpinner" style="display: none;"></span>
+                        Start Camera
+                    </button>
+                    <button id="stopBtn" class="btn btn-danger" disabled>Stop Camera</button>
+                    <button id="testBtn" class="btn btn-success" disabled>Run Tests</button>
+                    <button id="benchmarkBtn" class="btn btn-primary" disabled>Benchmark</button>
+                </div>
+
+                <div class="landmark-info">
+                    <h4>Face Landmarks Detection</h4>
+                    <div id="landmarkStatus" class="test-result info">Waiting for face detection...</div>
+                    <div class="landmark-grid" id="landmarkGrid"></div>
+                </div>
+
+                <div class="viseme-display">
+                    <div class="viseme-current" id="visemeCurrent">--</div>
+                    <div class="viseme-confidence">Confidence: <span id="visemeConfidence">0%</span></div>
+                </div>
+            </div>
+
+            <div class="results-section">
+                <div class="test-panel">
+                    <h3>
+                        <span class="status-indicator status-pending" id="initStatus"></span>
+                        MediaPipe Initialization
+                    </h3>
+                    <div id="initResults"></div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="initProgress" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="test-panel">
+                    <h3>
+                        <span class="status-indicator status-pending" id="detectionStatus"></span>
+                        Face Detection Accuracy
+                    </h3>
+                    <div id="detectionResults"></div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="detectionProgress" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="test-panel">
+                    <h3>
+                        <span class="status-indicator status-pending" id="visemeStatus"></span>
+                        Viseme Classification
+                    </h3>
+                    <div id="visemeResults"></div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="visemeProgress" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="test-panel">
+                    <h3>
+                        <span class="status-indicator status-pending" id="performanceStatus"></span>
+                        Performance Metrics
+                    </h3>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value" id="fpsValue">--</div>
+                            <div class="metric-label">FPS</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="latencyValue">--</div>
+                            <div class="metric-label">Latency (ms)</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="memoryValue">--</div>
+                            <div class="metric-label">Memory (MB)</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="accuracyValue">--</div>
+                            <div class="metric-label">Accuracy (%)</div>
+                        </div>
+                    </div>
+                    <div id="performanceResults"></div>
+                </div>
+
+                <div class="test-panel">
+                    <h3>
+                        <span class="status-indicator status-pending" id="compatibilityStatus"></span>
+                        Browser Compatibility
+                    </h3>
+                    <div id="compatibilityResults"></div>
+                </div>
+
+                <div id="errorPanel" class="error-panel" style="display: none;">
+                    <h4>Error Details</h4>
+                    <div id="errorDetails"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { FaceLandmarker, FilesetResolver } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0';
+
+        class MediaPipeIntegrationValidator {
+            constructor() {
+                this.faceLandmarker = null;
+                this.video = document.getElementById('videoElement');
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.stream = null;
+                this.isRunning = false;
+                this.metrics = {
+                    fps: 0,
+                    latency: 0,
+                    memory: 0,
+                    accuracy: 0,
+                    detectionCount: 0,
+                    successfulDetections: 0
+                };
+                this.frameCount = 0;
+                this.lastTime = performance.now();
+                this.visemeMap = this.createVisemeMap();
+                this.testResults = {
+                    initialization: false,
+                    detection: false,
+                    viseme: false,
+                    performance: false,
+                    compatibility: false
+                };
+                
+                this.bindEvents();
+                this.checkCompatibility();
+            }
+
+            bindEvents() {
+                document.getElementById('startBtn').addEventListener('click', () => this.startCamera());
+                document.getElementById('stopBtn').addEventListener('click', () => this.stopCamera());
+                document.getElementById('testBtn').addEventListener('click', () => this.runComprehensiveTests());
+                document.getElementById('benchmarkBtn').addEventListener('click', () => this.runPerformanceBenchmark());
+            }
+
+            async checkCompatibility() {
+                const results = [];
+                const statusElement = document.getElementById('compatibilityStatus');
+                const resultsElement = document.getElementById('compatibilityResults');
+
+                // Check WebAssembly support
+                const wasmSupported = typeof WebAssembly !== 'undefined';
+                results.push({ test: 'WebAssembly Support', result: wasmSupported, critical: true });
+
+                // Check MediaDevices API
+                const mediaDevicesSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+                results.push({ test: 'MediaDevices API', result: mediaDevicesSupported, critical: true });
+
+                // Check Canvas support
+                const canvasSupported = !!(document.createElement('canvas').getContext);
+                results.push({ test: 'Canvas API', result: canvasSupported, critical: true });
+
+                // Check WebGL support
+                const webglSupported = !!document.createElement('canvas').getContext('webgl2') || 
+                                     !!document.createElement('canvas').getContext('webgl');
+                results.push({ test: 'WebGL Support', result: webglSupported, critical: false });
+
+                // Browser detection
+                const userAgent = navigator.userAgent;
+                const browserInfo = {
+                    chrome: /Chrome/.test(userAgent),
+                    firefox: /Firefox/.test(userAgent),
+                    safari: /Safari/.test(userAgent) && !/Chrome/.test(userAgent),
+                    edge: /Edge/.test(userAgent)
+                };
+
+                results.push({ test: 'Browser Support', result: Object.values(browserInfo).some(b => b), critical: true });
+
+                // Display results
+                const allCriticalPassed = results.filter(r => r.critical).every(r => r.result);
+                const allPassed = results.every(r => r.result);
+
+                statusElement.className = `status-indicator ${allCriticalPassed ? 'status-success' : 'status-error'}`;
+                
+                resultsElement.innerHTML = results.map(r => 
+                    `<div class="test-result ${r.result ? 'success' : 'error'}">
+                        ${r.test}: ${r.result ? 'PASS' : 'FAIL'}${r.critical ? ' (Critical)' : ''}
+                    </div>`
+                ).join('');
+
+                this.testResults.compatibility = allCriticalPassed;
+                return allCriticalPassed;
+            }
+
+            async initializeMediaPipe() {
+                const statusElement = document.getElementById('initStatus');
+                const resultsElement = document.getElementById('initResults');
+                const progressElement = document.getElementById('initProgress');
+                
+                try {
+                    statusElement.className = 'status-indicator status-running';
+                    progressElement.style.width = '10%';
+                    
+                    this.addResult(resultsElement, 'info', 'Loading MediaPipe FilesetResolver...');
+                    
+                    const vision = await FilesetResolver.forVisionTasks(
+                        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+                    );
+                    progressElement.style.width = '40%';
+                    
+                    this.addResult(resultsElement, 'success', 'FilesetResolver loaded successfully');
+                    this.addResult(resultsElement, 'info', 'Initializing FaceLandmarker...');
+                    
+                    this.faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+                        baseOptions: {
+                            modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+                            delegate: "GPU"
+                        },
+                        outputFaceBlendshapes: true,
+                        outputFacialTransformationMatrixes: true,
+                        runningMode: "VIDEO",
+                        numFaces: 1
+                    });
+                    progressElement.style.width = '100%';
+                    
+                    this.addResult(resultsElement, 'success', 'MediaPipe FaceLandmarker initialized successfully');
+                    this.addResult(resultsElement, 'success', `Model loaded with GPU acceleration`);
+                    
+                    statusElement.className = 'status-indicator status-success';
+                    this.testResults.initialization = true;
+                    return true;
+                    
+                } catch (error) {
+                    progressElement.style.width = '0%';
+                    statusElement.className = 'status-indicator status-error';
+                    this.addResult(resultsElement, 'error', `Initialization failed: ${error.message}`);
+                    this.showError(error);
+                    this.testResults.initialization = false;
+                    return false;
+                }
+            }
+
+            async startCamera() {
+                const startBtn = document.getElementById('startBtn');
+                const stopBtn = document.getElementById('stopBtn');
+                const testBtn = document.getElementById('testBtn');
+                const benchmarkBtn = document.getElementById('benchmarkBtn');
+                const spinner = document.getElementById('loadingSpinner');
+                
+                try {
+                    startBtn.disabled = true;
+                    spinner.style.display = 'inline-block';
+                    
+                    // Initialize MediaPipe first
+                    const initialized = await this.initializeMediaPipe();
+                    if (!initialized) {
+                        throw new Error('MediaPipe initialization failed');
+                    }
+                    
+                    // Get camera access
+                    this.stream = await navigator.mediaDevices.getUserMedia({
+                        video: { 
+                            width: 640, 
+                            height: 480, 
+                            facingMode: 'user' 
+                        }
+                    });
+                    
+                    this.video.srcObject = this.stream;
+                    this.video.addEventListener('loadedmetadata', () => {
+                        this.canvas.width = this.video.videoWidth;
+                        this.canvas.height = this.video.videoHeight;
+                        this.startDetection();
+                    });
+                    
+                    startBtn.style.display = 'none';
+                    stopBtn.disabled = false;
+                    testBtn.disabled = false;
+                    benchmarkBtn.disabled = false;
+                    
+                } catch (error) {
+                    this.showError(error);
+                    startBtn.disabled = false;
+                    spinner.style.display = 'none';
+                }
+            }
+
+            startDetection() {
+                this.isRunning = true;
+                this.detectFrame();
+            }
+
+            detectFrame() {
+                if (!this.isRunning || !this.faceLandmarker) return;
+                
+                const startTime = performance.now();
+                
+                try {
+                    const results = this.faceLandmarker.detectForVideo(this.video, startTime);
+                    this.processResults(results, startTime);
+                } catch (error) {
+                    console.error('Detection error:', error);
+                    this.addResult(document.getElementById('detectionResults'), 'error', `Detection error: ${error.message}`);
+                }
+                
+                requestAnimationFrame(() => this.detectFrame());
+            }
+
+            processResults(results, startTime) {
+                const endTime = performance.now();
+                const latency = endTime - startTime;
+                
+                // Clear canvas
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Update metrics
+                this.frameCount++;
+                this.metrics.latency = latency;
+                this.metrics.detectionCount++;
+                
+                // Calculate FPS
+                if (this.frameCount % 30 === 0) {
+                    const currentTime = performance.now();
+                    this.metrics.fps = Math.round(1000 / ((currentTime - this.lastTime) / 30));
+                    this.lastTime = currentTime;
+                    this.updateMetricsDisplay();
+                }
+                
+                if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+                    this.metrics.successfulDetections++;
+                    this.drawLandmarks(results.faceLandmarks[0]);
+                    this.updateLandmarkInfo(results.faceLandmarks[0]);
+                    
+                    if (results.faceBlendshapes && results.faceBlendshapes.length > 0) {
+                        this.processVisemes(results.faceBlendshapes[0]);
+                    }
+                } else {
+                    document.getElementById('landmarkStatus').textContent = 'No face detected';
+                    document.getElementById('visemeCurrent').textContent = '--';
+                    document.getElementById('visemeConfidence').textContent = '0%';
+                }
+                
+                // Update accuracy
+                this.metrics.accuracy = this.metrics.detectionCount > 0 ? 
+                    Math.round((this.metrics.successfulDetections / this.metrics.detectionCount) * 100) : 0;
+            }
+
+            drawLandmarks(landmarks) {
+                this.ctx.fillStyle = '#FF0000';
+                this.ctx.strokeStyle = '#00FF00';
+                this.ctx.lineWidth = 2;
+                
+                // Draw face contour
+                this.ctx.beginPath();
+                const faceContour = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109, 10];
+                
+                for (let i = 0; i < faceContour.length; i++) {
+                    const point = landmarks[faceContour[i]];
+                    const x = point.x * this.canvas.width;
+                    const y = point.y * this.canvas.height;
+                    
+                    if (i === 0) {
+                        this.ctx.moveTo(x, y);
+                    } else {
+                        this.ctx.lineTo(x, y);
+                    }
+                }
+                this.ctx.closePath();
+                this.ctx.stroke();
+                
+                // Draw key landmarks
+                const keyLandmarks = [33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246]; // Eyes, nose, mouth
+                keyLandmarks.forEach(index => {
+                    if (landmarks[index]) {
+                        const x = landmarks[index].x * this.canvas.width;
+                        const y = landmarks[index].y * this.canvas.height;
+                        
+                        this.ctx.beginPath();
+                        this.ctx.arc(x, y, 3, 0, 2 * Math.PI);
+                        this.ctx.fill();
+                    }
+                });
+            }
+
+            updateLandmarkInfo(landmarks) {
+                const statusElement = document.getElementById('landmarkStatus');
+                const gridElement = document.getElementById('landmarkGrid');
+                
+                statusElement.textContent = `Face detected - ${landmarks.length} landmarks`;
+                statusElement.className = 'test-result success';
+                
+                // Show key landmark positions
+                const keyLandmarks = {
+                    'Left Eye': 33,
+                    'Right Eye': 362,
+                    'Nose Tip': 1,
+                    'Mouth Left': 61,
+                    'Mouth Right': 291,
+                    'Chin': 175
+                };
+                
+                gridElement.innerHTML = Object.entries(keyLandmarks)
+                    .map(([name, index]) => {
+                        const point = landmarks[index];
+                        return `<div class="landmark-item">
+                            <strong>${name}</strong><br>
+                            x: ${(point.x * 100).toFixed(1)}%<br>
+                            y: ${(point.y * 100).toFixed(1)}%
+                        </div>`;
+                    }).join('');
+            }
+
+            processVisemes(blendshapes) {
+                const visemeScores = this.calculateVisemeScores(blendshapes.categories);
+                const topViseme = this.getTopViseme(visemeScores);
+                
+                document.getElementById('visemeCurrent').textContent = topViseme.viseme;
+                document.getElementById('visemeConfidence').textContent = `${Math.round(topViseme.confidence * 100)}%`;
+                
+                // Update viseme test status
+                if (topViseme.confidence > 0.3) {
+                    const statusElement = document.getElementById('visemeStatus');
+                    if (!this.testResults.viseme) {
+                        statusElement.className = 'status-indicator status-success';
+                        this.testResults.viseme = true;
+                        this.addResult(document.getElementById('visemeResults'), 'success', 
+                            `Viseme classification working - detected: ${topViseme.viseme}`);
+                    }
+                }
+            }
+
+            createVisemeMap() {
+                return {
+                    // Vowels
+                    'A': ['jawOpen', 'mouthFunnel'],
+                    'E': ['mouthSmileLeft', 'mouthSmileRight', 'mouthStretchLeft', 'mouthStretchRight'],
+                    'I': ['mouthSmileLeft', 'mouthSmileRight'],
+                    'O': ['mouthFunnel', 'mouthPucker'],
+                    'U': ['mouthPucker', 'mouthFunnel'],
+                    
+                    // Consonants
+                    'B': ['mouthClose', 'mouthPressLeft', 'mouthPressRight'],
+                    'C': ['jawOpen'],
+                    'D': ['tongueOut'],
+                    'F': ['mouthFunnel'],
+                    'G': ['jawOpen'],
+                    'H': ['jawOpen', 'mouthOpen'],
+                    'J': ['mouthSmileLeft', 'mouthSmileRight'],
+                    'K': ['jawOpen'],
+                    'L': ['tongueOut'],
+                    'M': ['mouthClose', 'mouthPressLeft', 'mouthPressRight'],
+                    'N': ['mouthClose'],
+                    'P': ['mouthPressLeft', 'mouthPressRight'],
+                    'Q': ['mouthFunnel'],
+                    'R': ['mouthFunnel'],
+                    'S': ['mouthFunnel'],
+                    'T': ['tongueOut'],
+                    'V': ['mouthLowerDownLeft', 'mouthLowerDownRight'],
+                    'W': ['mouthPucker'],
+                    'X': ['jawOpen'],
+                    'Y': ['mouthSmileLeft', 'mouthSmileRight'],
+                    'Z': ['mouthFunnel'],
+                    
+                    // Special
+                    'SIL': [] // Silence
+                };
+            }
+
+            calculateVisemeScores(blendshapes) {
+                const scores = {};
+                
+                Object.keys(this.visemeMap).forEach(viseme => {
+                    const relevantShapes = this.visemeMap[viseme];
+                    let score = 0;
+                    
+                    relevantShapes.forEach(shapeName => {
+                        const shape = blendshapes.find(b => b.categoryName === shapeName);
+                        if (shape) {
+                            score += shape.score;
+                        }
+                    });
+                    
+                    scores[viseme] = relevantShapes.length > 0 ? score / relevantShapes.length : 0;
+                });
+                
+                return scores;
+            }
+
+            getTopViseme(scores) {
+                let maxScore = 0;
+                let topViseme = 'SIL';
+                
+                Object.entries(scores).forEach(([viseme, score]) => {
+                    if (score > maxScore) {
+                        maxScore = score;
+                        topViseme = viseme;
+                    }
+                });
+                
+                return { viseme: topViseme, confidence: maxScore };
+            }
+
+            updateMetricsDisplay() {
+                document.getElementById('fpsValue').textContent = this.metrics.fps;
+                document.getElementById('latencyValue').textContent = this.metrics.latency.toFixed(1);
+                document.getElementById('memoryValue').textContent = (performance.memory ? 
+                    (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1) : '--');
+                document.getElementById('accuracyValue').textContent = this.metrics.accuracy;
+            }
+
+            async runComprehensiveTests() {
+                const testBtn = document.getElementById('testBtn');
+                testBtn.disabled = true;
+                testBtn.innerHTML = '<span class="loading-spinner"></span> Running Tests...';
+                
+                // Test 1: Detection Accuracy
+                await this.testDetectionAccuracy();
+                
+                // Test 2: Viseme Classification
+                await this.testVisemeClassification();
+                
+                // Test 3: Performance
+                await this.testPerformance();
+                
+                testBtn.disabled = false;
+                testBtn.innerHTML = 'Run Tests';
+                
+                // Show overall results
+                this.showOverallResults();
+            }
+
+            async testDetectionAccuracy() {
+                const statusElement = document.getElementById('detectionStatus');
+                const resultsElement = document.getElementById('detectionResults');
+                const progressElement = document.getElementById('detectionProgress');
+                
+                statusElement.className = 'status-indicator status-running';
+                
+                return new Promise(resolve => {
+                    const startTime = Date.now();
+                    const testDuration = 5000; // 5 seconds
+                    let frameCount = 0;
+                    let detectionCount = 0;
+                    
+                    const testInterval = setInterval(() => {
+                        frameCount++;
+                        if (this.metrics.successfulDetections > 0) {
+                            detectionCount++;
+                        }
+                        
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min((elapsed / testDuration) * 100, 100);
+                        progressElement.style.width = `${progress}%`;
+                        
+                        if (elapsed >= testDuration) {
+                            clearInterval(testInterval);
+                            
+                            const accuracy = frameCount > 0 ? (detectionCount / frameCount) * 100 : 0;
+                            const isSuccess = accuracy > 70; // 70% threshold
+                            
+                            statusElement.className = `status-indicator ${isSuccess ? 'status-success' : 'status-error'}`;
+                            
+                            this.addResult(resultsElement, isSuccess ? 'success' : 'error',
+                                `Detection accuracy: ${accuracy.toFixed(1)}% (${detectionCount}/${frameCount} frames)`);
+                            
+                            if (isSuccess) {
+                                this.addResult(resultsElement, 'success', 'Face detection test passed');
+                                this.testResults.detection = true;
+                            } else {
+                                this.addResult(resultsElement, 'error', 'Face detection test failed - accuracy below threshold');
+                            }
+                            
+                            resolve();
+                        }
+                    }, 100);
+                });
+            }
+
+            async testVisemeClassification() {
+                return new Promise(resolve => {
+                    setTimeout(() => {
+                        const hasVisemeDetection = this.testResults.viseme;
+                        const statusElement = document.getElementById('visemeStatus');
+                        const resultsElement = document.getElementById('visemeResults');
+                        
+                        if (hasVisemeDetection) {
+                            statusElement.className = 'status-indicator status-success';
+                            this.addResult(resultsElement, 'success', 'Viseme classification test passed');
+                        } else {
+                            statusElement.className = 'status-indicator status-error';
+                            this.addResult(resultsElement, 'error', 'No viseme classifications detected - speak to test');
+                        }
+                        
+                        resolve();
+                    }, 1000);
+                });
+            }
+
+            async testPerformance() {
+                const statusElement = document.getElementById('performanceStatus');
+                const resultsElement = document.getElementById('performanceResults');
+                
+                const avgFps = this.metrics.fps;
+                const avgLatency = this.metrics.latency;
+                
+                const performanceScore = (avgFps >= 25 ? 25 : avgFps) + (avgLatency <= 50 ? 25 : Math.max(0, 50 - avgLatency));
+                const isSuccess = performanceScore >= 40;
+                
+                statusElement.className = `status-indicator ${isSuccess ? 'status-success' : 'status-error'}`;
+                
+                this.addResult(resultsElement, 'info', `Average FPS: ${avgFps}`);
+                this.addResult(resultsElement, 'info', `Average Latency: ${avgLatency.toFixed(1)}ms`);
+                this.addResult(resultsElement, isSuccess ? 'success' : 'error',
+                    `Performance score: ${performanceScore}/50 ${isSuccess ? 'PASS' : 'FAIL'}`);
+                
+                this.testResults.performance = isSuccess;
+            }
+
+            async runPerformanceBenchmark() {
+                const benchmarkBtn = document.getElementById('benchmarkBtn');
+                benchmarkBtn.disabled = true;
+                benchmarkBtn.innerHTML = '<span class="loading-spinner"></span> Benchmarking...';
+                
+                // Reset metrics
+                const startTime = performance.now();
+                let frameCount = 0;
+                let totalLatency = 0;
+                const benchmarkDuration = 10000; // 10 seconds
+                
+                const benchmarkInterval = setInterval(() => {
+                    frameCount++;
+                    totalLatency += this.metrics.latency;
+                    
+                    if (performance.now() - startTime >= benchmarkDuration) {
+                        clearInterval(benchmarkInterval);
+                        
+                        const avgFps = Math.round(frameCount / (benchmarkDuration / 1000));
+                        const avgLatency = totalLatency / frameCount;
+                        
+                        const resultsElement = document.getElementById('performanceResults');
+                        this.addResult(resultsElement, 'info', '=== BENCHMARK RESULTS ===');
+                        this.addResult(resultsElement, 'success', `Average FPS over 10s: ${avgFps}`);
+                        this.addResult(resultsElement, 'success', `Average Latency: ${avgLatency.toFixed(2)}ms`);
+                        this.addResult(resultsElement, 'success', `Total Frames Processed: ${frameCount}`);
+                        this.addResult(resultsElement, 'success', `Detection Success Rate: ${this.metrics.accuracy}%`);
+                        
+                        benchmarkBtn.disabled = false;
+                        benchmarkBtn.innerHTML = 'Benchmark';
+                    }
+                }, 100);
+            }
+
+            showOverallResults() {
+                const passed = Object.values(this.testResults).filter(Boolean).length;
+                const total = Object.keys(this.testResults).length;
+                
+                alert(`Overall Test Results: ${passed}/${total} tests passed\n\n` +
+                      `Initialization: ${this.testResults.initialization ? 'PASS' : 'FAIL'}\n` +
+                      `Detection: ${this.testResults.detection ? 'PASS' : 'FAIL'}\n` +
+                      `Visemes: ${this.testResults.viseme ? 'PASS' : 'FAIL'}\n` +
+                      `Performance: ${this.testResults.performance ? 'PASS' : 'FAIL'}\n` +
+                      `Compatibility: ${this.testResults.compatibility ? 'PASS' : 'FAIL'}`);
+            }
+
+            stopCamera() {
+                this.isRunning = false;
+                
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                    this.stream = null;
+                }
+                
+                this.video.srcObject = null;
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                document.getElementById('startBtn').style.display = 'inline-block';
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+                document.getElementById('testBtn').disabled = true;
+                document.getElementById('benchmarkBtn').disabled = true;
+                document.getElementById('loadingSpinner').style.display = 'none';
+            }
+
+            addResult(container, type, message) {
+                const div = document.createElement('div');
+                div.className = `test-result ${type}`;
+                div.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+                container.appendChild(div);
+                container.scrollTop = container.scrollHeight;
+            }
+
+            showError(error) {
+                const errorPanel = document.getElementById('errorPanel');
+                const errorDetails = document.getElementById('errorDetails');
+                
+                errorPanel.style.display = 'block';
+                errorDetails.textContent = error.message + '\n' + error.stack;
+            }
+        }
+
+        // Initialize the validator when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new MediaPipeIntegrationValidator();
+        });
+    </script>
+</body>
+</html>

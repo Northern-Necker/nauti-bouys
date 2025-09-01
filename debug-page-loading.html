@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Page Loading</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .debug { background: #f0f0f0; padding: 10px; margin: 10px 0; border-left: 3px solid #007bff; }
+        .error { background: #ffe6e6; border-left-color: #dc3545; }
+        .success { background: #e6ffe6; border-left-color: #28a745; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Page Loading</h1>
+    <div id="output"></div>
+
+    <script>
+        console.log('Script started');
+        
+        function addOutput(message, type = 'debug') {
+            console.log(message);
+            const output = document.getElementById('output');
+            if (output) {
+                const div = document.createElement('div');
+                div.className = type;
+                div.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+                output.appendChild(div);
+            }
+        }
+        
+        // Test 1: Basic DOM manipulation
+        document.addEventListener('DOMContentLoaded', function() {
+            addOutput('✅ DOM loaded successfully', 'success');
+            addOutput('✅ JavaScript is running', 'success');
+            
+            // Test 2: Check if we can access the output div
+            const outputDiv = document.getElementById('output');
+            if (outputDiv) {
+                addOutput('✅ Can access DOM elements', 'success');
+            } else {
+                addOutput('❌ Cannot access DOM elements', 'error');
+            }
+            
+            // Test 3: Try to load Three.js
+            addOutput('🔄 Testing Three.js loading...', 'debug');
+            
+            const script1 = document.createElement('script');
+            script1.src = 'https://unpkg.com/three@0.158.0/build/three.min.js';
+            script1.onload = function() {
+                addOutput('✅ Three.js loaded successfully', 'success');
+                if (window.THREE) {
+                    addOutput(`✅ THREE global available, version: ${window.THREE.REVISION}`, 'success');
+                } else {
+                    addOutput('❌ THREE global not available after loading', 'error');
+                }
+                
+                // Test GLTFLoader
+                const script2 = document.createElement('script');
+                script2.src = 'https://unpkg.com/three@0.158.0/examples/js/loaders/GLTFLoader.js';
+                script2.onload = function() {
+                    addOutput('✅ GLTFLoader script loaded', 'success');
+                    if (window.THREE && window.THREE.GLTFLoader) {
+                        addOutput('✅ GLTFLoader available', 'success');
+                    } else {
+                        addOutput('❌ GLTFLoader not available', 'error');
+                    }
+                    testFileAccess();
+                };
+                script2.onerror = function() {
+                    addOutput('❌ Failed to load GLTFLoader script', 'error');
+                    testFileAccess();
+                };
+                document.head.appendChild(script2);
+            };
+            script1.onerror = function() {
+                addOutput('❌ Failed to load Three.js script', 'error');
+                testFileAccess();
+            };
+            document.head.appendChild(script1);
+        });
+        
+        function testFileAccess() {
+            addOutput('🔄 Testing file access...', 'debug');
+            
+            // Test if we can fetch the GLB file
+            const paths = [
+                './public/assets/party-f-0013.glb',
+                '/assets/party-f-0013.glb',
+                './assets/party-f-0013.glb'
+            ];
+            
+            paths.forEach(path => {
+                fetch(path, { method: 'HEAD' })
+                    .then(response => {
+                        if (response.ok) {
+                            addOutput(`✅ File accessible: ${path} (${response.headers.get('content-length')} bytes)`, 'success');
+                        } else {
+                            addOutput(`❌ File not accessible: ${path} (Status: ${response.status})`, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        addOutput(`❌ File fetch error: ${path} - ${error.message}`, 'error');
+                    });
+            });
+        }
+        
+        addOutput('🔄 Script initialization complete', 'debug');
+    </script>
+</body>
+</html>

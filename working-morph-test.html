@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLB Morph Target Test - Working Version</title>
+    <script src="https://unpkg.com/three@0.154.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.154.0/examples/js/loaders/GLTFLoader.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            background: #000; 
+            color: white; 
+            font-family: Arial, sans-serif; 
+        }
+        .container { 
+            display: flex; 
+            height: 100vh; 
+        }
+        .viewer { 
+            flex: 1; 
+            position: relative; 
+            background: #111;
+        }
+        .controls { 
+            width: 300px; 
+            padding: 20px; 
+            background: #222; 
+            overflow-y: auto; 
+        }
+        .btn { 
+            display: block; 
+            width: 100%; 
+            margin: 5px 0; 
+            padding: 10px; 
+            background: #444; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 12px;
+        }
+        .btn:hover { 
+            background: #666; 
+        }
+        .btn.active { 
+            background: #00ff00; 
+            color: #000; 
+        }
+        .status { 
+            padding: 10px; 
+            background: #333; 
+            margin: 10px 0; 
+            border-radius: 4px; 
+        }
+        .section { 
+            margin: 15px 0; 
+        }
+        .section h3 { 
+            margin: 10px 0; 
+            color: #fff; 
+        }
+        #three-container {
+            width: 100%;
+            height: 100%;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="viewer">
+            <div id="three-container"></div>
+        </div>
+        
+        <div class="controls">
+            <div class="status" id="status">Loading Three.js...</div>
+            
+            <button class="btn" onclick="testBasicScene()">🔄 Test Basic Scene</button>
+            <button class="btn" onclick="loadGLBModel()">📦 Load GLB Model</button>
+            
+            <div class="section">
+                <h3>🎭 Basic Visemes</h3>
+                <button class="btn" onclick="testViseme('aa')">AA - Open Mouth</button>
+                <button class="btn" onclick="testViseme('uw')">UW - Rounded Lips</button>
+                <button class="btn" onclick="testViseme('th')">TH - Tongue Out</button>
+                <button class="btn" onclick="testViseme('sil')">SIL - Neutral</button>
+            </div>
+            
+            <div class="section">
+                <h3>📊 Debug Info</h3>
+                <div class="status" id="debug-info">Debug info will appear here</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, avatar;
+        let morphTargets = [];
+        
+        function updateStatus(msg, color = '#333') {
+            document.getElementById('status').textContent = msg;
+            document.getElementById('status').style.background = color;
+        }
+        
+        function updateDebug(msg) {
+            document.getElementById('debug-info').textContent = msg;
+        }
+
+        function init() {
+            try {
+                updateStatus('Initializing Three.js scene...', '#ff9800');
+                
+                // Create scene
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x333333);
+                
+                // Create camera
+                const container = document.getElementById('three-container');
+                const rect = container.getBoundingClientRect();
+                camera = new THREE.PerspectiveCamera(75, rect.width / rect.height, 0.1, 1000);
+                camera.position.set(0, 0, 3);
+                
+                // Create renderer
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(rect.width, rect.height);
+                container.appendChild(renderer.domElement);
+                
+                // Add lights
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(1, 1, 1);
+                scene.add(directionalLight);
+                
+                updateStatus('Three.js initialized successfully!', '#28a745');
+                updateDebug('Scene, camera, renderer, lights created');
+                
+                // Start render loop
+                animate();
+                
+            } catch (error) {
+                updateStatus('Failed to initialize Three.js: ' + error.message, '#dc3545');
+                updateDebug('Error: ' + error.toString());
+            }
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+        
+        function testBasicScene() {
+            try {
+                updateStatus('Creating test cube...', '#ff9800');
+                
+                // Remove existing objects
+                while(scene.children.length > 0) {
+                    const child = scene.children[0];
+                    if (child.type !== 'AmbientLight' && child.type !== 'DirectionalLight') {
+                        scene.remove(child);
+                    } else {
+                        break;
+                    }
+                }
+                
+                // Create a test cube
+                const geometry = new THREE.BoxGeometry(1, 1, 1);
+                const material = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
+                const cube = new THREE.Mesh(geometry, material);
+                scene.add(cube);
+                
+                // Animate the cube
+                function rotateCube() {
+                    cube.rotation.x += 0.01;
+                    cube.rotation.y += 0.01;
+                    requestAnimationFrame(rotateCube);
+                }
+                rotateCube();
+                
+                updateStatus('Test cube created and animated!', '#28a745');
+                updateDebug('Basic Three.js scene is working');
+                
+            } catch (error) {
+                updateStatus('Failed to create test scene: ' + error.message, '#dc3545');
+                updateDebug('Test error: ' + error.toString());
+            }
+        }
+        
+        function loadGLBModel() {
+            try {
+                updateStatus('Loading GLB model...', '#ff9800');
+                updateDebug('Attempting to load GLB file...');
+                
+                if (typeof THREE.GLTFLoader === 'undefined') {
+                    updateStatus('GLTFLoader not available', '#dc3545');
+                    updateDebug('THREE.GLTFLoader is undefined - check script loading');
+                    return;
+                }
+                
+                const loader = new THREE.GLTFLoader();
+                
+                const glbPaths = [
+                    './frontend/dist/assets/SavannahAvatar.glb',
+                    './SavannahAvatar.glb',
+                    'https://models.readyplayer.me/638b9e90f3c32c854aa05d1a.glb'
+                ];
+                
+                let pathIndex = 0;
+                
+                function tryNextPath() {
+                    if (pathIndex >= glbPaths.length) {
+                        updateStatus('Failed to load any GLB model', '#dc3545');
+                        updateDebug('All GLB paths failed');
+                        return;
+                    }
+                    
+                    const currentPath = glbPaths[pathIndex];
+                    updateStatus(`Trying: ${currentPath}`, '#17a2b8');
+                    updateDebug(`Loading from: ${currentPath}`);
+                    
+                    loader.load(
+                        currentPath,
+                        (gltf) => {
+                            updateStatus('GLB loaded successfully!', '#28a745');
+                            setupAvatar(gltf);
+                        },
+                        (progress) => {
+                            const percent = Math.round((progress.loaded / progress.total) * 100);
+                            updateStatus(`Loading... ${percent}%`, '#17a2b8');
+                        },
+                        (error) => {
+                            updateDebug(`Failed ${currentPath}: ${error.message}`);
+                            pathIndex++;
+                            setTimeout(tryNextPath, 500);
+                        }
+                    );
+                }
+                
+                tryNextPath();
+                
+            } catch (error) {
+                updateStatus('Error loading GLB: ' + error.message, '#dc3545');
+                updateDebug('Load error: ' + error.toString());
+            }
+        }
+        
+        function setupAvatar(gltf) {
+            try {
+                // Remove existing avatar
+                if (avatar) {
+                    scene.remove(avatar);
+                }
+                
+                avatar = gltf.scene;
+                scene.add(avatar);
+                
+                // Position avatar
+                avatar.scale.setScalar(1);
+                avatar.position.y = -1;
+                
+                // Find morph targets
+                morphTargets = [];
+                let meshCount = 0;
+                let totalMorphs = 0;
+                
+                avatar.traverse((child) => {
+                    if (child.isMesh) {
+                        meshCount++;
+                        if (child.morphTargetDictionary) {
+                            updateDebug(`Found mesh: ${child.name} with ${Object.keys(child.morphTargetDictionary).length} morphs`);
+                            
+                            // Initialize morphTargetInfluences if missing
+                            if (!child.morphTargetInfluences) {
+                                child.morphTargetInfluences = new Array(Object.keys(child.morphTargetDictionary).length).fill(0);
+                            }
+                            
+                            Object.entries(child.morphTargetDictionary).forEach(([morphName, index]) => {
+                                morphTargets.push({
+                                    name: morphName,
+                                    mesh: child,
+                                    meshName: child.name,
+                                    index: index
+                                });
+                                totalMorphs++;
+                            });
+                        }
+                    }
+                });
+                
+                updateStatus(`Avatar loaded! ${meshCount} meshes, ${totalMorphs} morphs`, '#28a745');
+                updateDebug(`Morph targets: ${morphTargets.map(m => m.name).slice(0, 5).join(', ')}${totalMorphs > 5 ? '...' : ''}`);
+                
+            } catch (error) {
+                updateStatus('Error setting up avatar: ' + error.message, '#dc3545');
+                updateDebug('Setup error: ' + error.toString());
+            }
+        }
+        
+        function testViseme(viseme) {
+            try {
+                if (!avatar || morphTargets.length === 0) {
+                    updateStatus('No avatar loaded with morphs', '#dc3545');
+                    return;
+                }
+                
+                updateStatus(`Testing viseme: ${viseme.toUpperCase()}`, '#17a2b8');
+                
+                // Clear active buttons
+                document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
+                event.target.classList.add('active');
+                
+                // Reset all morphs
+                morphTargets.forEach(morph => {
+                    morph.mesh.morphTargetInfluences[morph.index] = 0;
+                });
+                
+                // Simple morph mappings for testing
+                const testMorphs = {
+                    'aa': { 'Mouth_Open': 0.8, 'mouth': 0.8, 'open': 0.8 },
+                    'uw': { 'Mouth_Pucker': 0.9, 'pucker': 0.9, 'funnel': 0.7 },
+                    'th': { 'Tongue_Out': 0.9, 'tongue': 0.9 },
+                    'sil': {} // neutral
+                };
+                
+                const morphsToApply = testMorphs[viseme] || {};
+                let appliedCount = 0;
+                
+                Object.entries(morphsToApply).forEach(([morphKey, value]) => {
+                    const matchingMorphs = morphTargets.filter(m => 
+                        m.name.toLowerCase().includes(morphKey.toLowerCase())
+                    );
+                    
+                    matchingMorphs.forEach(morph => {
+                        morph.mesh.morphTargetInfluences[morph.index] = value;
+                        
+                        // Force update
+                        if (morph.mesh.geometry.morphAttributes) {
+                            morph.mesh.geometry.morphAttributesNeedUpdate = true;
+                        }
+                        morph.mesh.updateMatrix();
+                        morph.mesh.updateMatrixWorld(true);
+                        
+                        appliedCount++;
+                        console.log(`Applied ${morph.name}: ${value}`);
+                    });
+                });
+                
+                updateDebug(`Applied ${appliedCount} morphs for ${viseme}`);
+                
+                if (appliedCount === 0) {
+                    updateStatus(`No matching morphs found for ${viseme}`, '#ffc107');
+                    updateDebug(`Available morphs: ${morphTargets.map(m => m.name).slice(0, 3).join(', ')}...`);
+                } else {
+                    updateStatus(`${viseme.toUpperCase()}: ${appliedCount} morphs applied`, '#28a745');
+                }
+                
+            } catch (error) {
+                updateStatus('Error testing viseme: ' + error.message, '#dc3545');
+                updateDebug('Viseme error: ' + error.toString());
+            }
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                const container = document.getElementById('three-container');
+                const rect = container.getBoundingClientRect();
+                camera.aspect = rect.width / rect.height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(rect.width, rect.height);
+            }
+        });
+        
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            setTimeout(init, 100);
+        });
+        
+    </script>
+</body>
+</html>

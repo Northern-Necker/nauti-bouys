@@ -1,7 +1,7 @@
  import { useState } from 'react'
 import { Brain, Sparkles, MessageCircle, User, ArrowLeft } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import NautiBouysDIDAgent from '../components/d-id/NautiBouysDIDAgent'
+// Enhanced avatar system integrated - D-ID removed
 
 const SimpleIAPage = () => {
   const [agentReady, setAgentReady] = useState(false)
@@ -134,14 +134,18 @@ const SimpleIAPage = () => {
             </p>
           </div>
 
-          <NautiBouysDIDAgent
-            size="large"
-            showControls={true}
-            onAgentReady={handleAgentReady}
-            onAgentError={handleAgentError}
-            triggerMessage={suggestedMessage}
-            className="w-full"
-          />
+          <div className="bg-bay-50 rounded-lg p-8 text-center">
+            <p className="text-bay-600 mb-4">
+              Enhanced AI Assistant has been integrated into the main IA page.
+            </p>
+            <Link 
+              to="/ia" 
+              className="inline-flex items-center px-6 py-3 bg-bay-600 text-white rounded-lg hover:bg-bay-700 transition-colors"
+            >
+              <MessageCircle className="w-5 h-5 mr-2" />
+              Go to Enhanced AI Assistant
+            </Link>
+          </div>
         </div>
 
         {/* Interactive Service Boxes */}

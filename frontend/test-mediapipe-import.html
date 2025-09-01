@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaPipe Import Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .status { background: #f0f0f0; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <h1>🧪 MediaPipe Import Test</h1>
+    <div id="status" class="status">Loading...</div>
+    
+    <script type="module">
+        async function testMediaPipeImport() {
+            const statusDiv = document.getElementById('status');
+            
+            try {
+                statusDiv.innerHTML = '🔄 Testing MediaPipe import...<br>';
+                
+                // Test the exact import that's failing
+                const { FilesetResolver, FaceLandmarker } = await import('@mediapipe/tasks-vision');
+                
+                statusDiv.innerHTML += '✅ MediaPipe modules imported successfully!<br>';
+                statusDiv.innerHTML += `📦 FilesetResolver: ${typeof FilesetResolver}<br>`;
+                statusDiv.innerHTML += `📦 FaceLandmarker: ${typeof FaceLandmarker}<br>`;
+                
+                // Test initialization
+                statusDiv.innerHTML += '🔄 Testing MediaPipe initialization...<br>';
+                
+                const vision = await FilesetResolver.forVisionTasks(
+                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.6/wasm"
+                );
+                
+                statusDiv.innerHTML += '✅ MediaPipe FilesetResolver initialized!<br>';
+                statusDiv.innerHTML += '🎉 MediaPipe import test PASSED!<br>';
+                statusDiv.className = 'status success';
+                
+            } catch (error) {
+                console.error('❌ MediaPipe import test failed:', error);
+                
+                statusDiv.innerHTML = '❌ MediaPipe Import Test Failed:<br>';
+                statusDiv.innerHTML += `<strong>Error:</strong> ${error.message}<br>`;
+                statusDiv.innerHTML += `<strong>Stack:</strong> ${error.stack ? error.stack.substring(0, 300) + '...' : 'Not available'}<br>`;
+                statusDiv.className = 'status error';
+            }
+        }
+        
+        // Run test when page loads
+        testMediaPipeImport();
+    </script>
+</body>
+</html>

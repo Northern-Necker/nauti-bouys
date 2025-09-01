@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morph Target Diagnostic Tool</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+        }
+        
+        .viewer {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+        
+        .morph-list {
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        
+        .morph-item {
+            display: flex;
+            align-items: center;
+            justify-content: between;
+            margin: 8px 0;
+            padding: 8px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+        
+        .morph-name {
+            flex: 1;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .morph-slider {
+            width: 100px;
+            margin: 0 10px;
+        }
+        
+        .morph-value {
+            width: 40px;
+            font-size: 11px;
+        }
+        
+        .viseme-morphs {
+            background: #f0f8ff;
+            color: #0066cc;
+        }
+        
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-danger { background: #dc3545; color: white; }
+        
+        #morphCount { font-weight: bold; color: #28a745; }
+        
+        .filter-section {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="viewer">
+            <h2>3D Avatar - Morph Target Diagnostics</h2>
+            <div id="scene" style="width: 100%; height: 500px; background: #333; border-radius: 8px;"></div>
+            <div style="margin-top: 20px;">
+                <button class="btn-primary" onclick="resetAllMorphs()">Reset All</button>
+                <button class="btn-success" onclick="testVisemeSequence()">Test Viseme Sequence</button>
+                <button class="btn-warning" onclick="findVisemeMorphs()">Find Viseme Morphs</button>
+                <button class="btn-danger" onclick="showAppliedMorphs()">Show Applied Morphs</button>
+            </div>
+            <div id="diagnostics" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <h3>Diagnostics</h3>
+                <p>Total Morphs: <span id="morphCount">0</span></p>
+                <p>Applied Morphs: <span id="appliedCount">0</span></p>
+                <div id="appliedMorphsList"></div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <h3>Morph Target Controls</h3>
+            
+            <div class="filter-section">
+                <h4>Filters</h4>
+                <input type="text" id="morphFilter" placeholder="Filter morphs..." onkeyup="filterMorphs()" style="width: 100%; padding: 8px;">
+                <br>
+                <label><input type="checkbox" id="visemeOnly" onchange="filterMorphs()"> Viseme-related only</label>
+                <br>
+                <label><input type="checkbox" id="appliedOnly" onchange="filterMorphs()"> Applied morphs only</label>
+            </div>
+            
+            <div id="morphControls" class="morph-list">
+                <!-- Morph controls will be generated here -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Global variables
+        let scene, camera, renderer, avatar, morphTargets = [], controls;
+        let allMorphData = [];
+        
+        // Initialize Three.js
+        async function initializeThreeJS() {
+            try {
+                const THREE = await import('three');
+                const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+                const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
+                
+                window.THREE = THREE;
+                window.GLTFLoader = GLTFLoader;
+                window.OrbitControls = OrbitControls;
+                
+                initializeScene();
+                
+            } catch (error) {
+                console.error('Failed to initialize Three.js:', error);
+            }
+        }
+        
+        function initializeScene() {
+            scene = new window.THREE.Scene();
+            scene.background = new window.THREE.Color(0x404040);
+            
+            camera = new window.THREE.PerspectiveCamera(50, 800/500, 0.1, 1000);
+            camera.position.set(0, 1.6, 2.5);
+            
+            renderer = new window.THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(800, 500);
+            
+            const sceneDiv = document.getElementById('scene');
+            sceneDiv.innerHTML = '';
+            sceneDiv.appendChild(renderer.domElement);
+            
+            controls = new window.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.target.set(0, 1.6, 0);
+            
+            // Optimal lighting
+            const ambientLight = new window.THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+            
+            const keyLight = new window.THREE.DirectionalLight(0xffffff, 1.0);
+            keyLight.position.set(2, 3, 4);
+            scene.add(keyLight);
+            
+            function animate() {
+                requestAnimationFrame(animate);
+                if (controls) controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+            
+            loadAvatar();
+        }
+        
+        async function loadAvatar() {
+            console.log('Loading avatar...');
+            
+            const loader = new window.GLTFLoader();
+            const glbPaths = [
+                './assets/SavannahAvatar.glb',
+                './dist/assets/SavannahAvatar.glb', 
+                './public/assets/SavannahAvatar.glb'
+            ];
+            
+            for (const path of glbPaths) {
+                try {
+                    const gltf = await new Promise((resolve, reject) => {
+                        loader.load(path, resolve, null, reject);
+                    });
+                    
+                    console.log(`✅ Avatar loaded from ${path}`);
+                    setupAvatar(gltf);
+                    return;
+                    
+                } catch (error) {
+                    console.log(`Failed to load from ${path}`);
+                }
+            }
+            
+            console.error('❌ Failed to load avatar from any path');
+        }
+        
+        function setupAvatar(gltf) {
+            if (avatar) scene.remove(avatar);
+            
+            avatar = gltf.scene;
+            morphTargets = [];
+            allMorphData = [];
+            
+            // Fix visibility issues and collect morphs
+            avatar.traverse((child) => {
+                if (child.isMesh) {
+                    // Fix transparency
+                    child.visible = true;
+                    if (child.material) {
+                        child.material.transparent = false;
+                        child.material.opacity = 1.0;
+                        child.material.needsUpdate = true;
+                    }
+                    
+                    // Collect morph targets
+                    if (child.morphTargetDictionary) {
+                        const morphCount = Object.keys(child.morphTargetDictionary).length;
+                        if (!child.morphTargetInfluences) {
+                            child.morphTargetInfluences = new Array(morphCount).fill(0);
+                        }
+                        
+                        Object.entries(child.morphTargetDictionary).forEach(([name, index]) => {
+                            const morphData = {
+                                name: name,
+                                mesh: child,
+                                meshName: child.name,
+                                index: index,
+                                currentValue: 0
+                            };
+                            
+                            morphTargets.push(morphData);
+                            allMorphData.push(morphData);
+                        });
+                    }
+                }
+            });
+            
+            scene.add(avatar);
+            avatar.scale.setScalar(2.5);
+            avatar.position.y = 0;
+            
+            // Focus camera on head
+            const headY = 1.8 * 2.5 * 0.85;
+            camera.position.set(0, headY, 2.2);
+            controls.target.set(0, headY, 0);
+            controls.update();
+            
+            console.log(`Found ${morphTargets.length} morph targets`);
+            document.getElementById('morphCount').textContent = morphTargets.length;
+            
+            createMorphControls();
+            findVisemeMorphs();
+        }
+        
+        function createMorphControls() {
+            const container = document.getElementById('morphControls');
+            container.innerHTML = '';
+            
+            allMorphData.forEach((morph, index) => {
+                const div = document.createElement('div');
+                div.className = 'morph-item';
+                div.id = `morph-${index}`;
+                
+                div.innerHTML = `
+                    <div class="morph-name" title="${morph.meshName}">${morph.name}</div>
+                    <input type="range" class="morph-slider" min="0" max="1" step="0.01" value="0" 
+                           onchange="updateMorph(${index}, this.value)">
+                    <input type="number" class="morph-value" min="0" max="1" step="0.01" value="0"
+                           onchange="updateMorph(${index}, this.value)">
+                `;
+                
+                container.appendChild(div);
+            });
+        }
+        
+        window.updateMorph = function(index, value) {
+            const morph = allMorphData[index];
+            const floatValue = parseFloat(value);
+            
+            morph.mesh.morphTargetInfluences[morph.index] = floatValue;
+            morph.currentValue = floatValue;
+            
+            // Update both slider and number input
+            const morphDiv = document.getElementById(`morph-${index}`);
+            const slider = morphDiv.querySelector('.morph-slider');
+            const number = morphDiv.querySelector('.morph-value');
+            slider.value = floatValue;
+            number.value = floatValue;
+            
+            updateDiagnostics();
+        };
+        
+        window.resetAllMorphs = function() {
+            allMorphData.forEach((morph, index) => {
+                updateMorph(index, 0);
+            });
+        };
+        
+        window.findVisemeMorphs = function() {
+            const visemeKeywords = [
+                'V_', 'viseme', 'Viseme', 'VISEME',
+                'Mouth_', 'mouth_', 'MOUTH_',
+                'Tongue_', 'tongue_', 'TONGUE_',
+                'Jaw_', 'jaw_', 'JAW_',
+                'Lip_', 'lip_', 'LIP_',
+                'Teeth_', 'teeth_', 'TEETH_'
+            ];
+            
+            let found = 0;
+            allMorphData.forEach((morph, index) => {
+                const isVisemeRelated = visemeKeywords.some(keyword => 
+                    morph.name.includes(keyword)
+                );
+                
+                const morphDiv = document.getElementById(`morph-${index}`);
+                if (isVisemeRelated) {
+                    morphDiv.classList.add('viseme-morphs');
+                    found++;
+                } else {
+                    morphDiv.classList.remove('viseme-morphs');
+                }
+            });
+            
+            console.log(`Found ${found} potential viseme-related morphs`);
+            
+            // Show all found morphs
+            const visemeMorphs = allMorphData.filter((morph, index) => {
+                return visemeKeywords.some(keyword => morph.name.includes(keyword));
+            });
+            
+            console.log('Viseme-related morphs:', visemeMorphs.map(m => m.name));
+        };
+        
+        window.showAppliedMorphs = function() {
+            const appliedMorphs = allMorphData.filter(morph => morph.currentValue > 0);
+            const appliedList = document.getElementById('appliedMorphsList');
+            
+            appliedList.innerHTML = '<h4>Currently Applied Morphs:</h4>';
+            
+            if (appliedMorphs.length === 0) {
+                appliedList.innerHTML += '<p>No morphs currently applied</p>';
+            } else {
+                appliedMorphs.forEach(morph => {
+                    appliedList.innerHTML += `
+                        <div style="margin: 5px 0; padding: 5px; background: #e8f5e8; border-radius: 3px;">
+                            <strong>${morph.name}</strong>: ${morph.currentValue.toFixed(3)} (${morph.meshName})
+                        </div>
+                    `;
+                });
+            }
+        };
+        
+        window.testVisemeSequence = function() {
+            // Test sequence of common visemes
+            const testMorphs = [
+                { name: 'V_Open', value: 0.8 },
+                { name: 'V_Explosive', value: 0.8 },
+                { name: 'V_Dental_Lip', value: 0.8 },
+                { name: 'V_Tongue_Out', value: 0.8 },
+                { name: 'Mouth_Close', value: 0.8 },
+                { name: 'Jaw_Open', value: 0.8 }
+            ];
+            
+            let currentTest = 0;
+            
+            function runNextTest() {
+                if (currentTest >= testMorphs.length) {
+                    resetAllMorphs();
+                    return;
+                }
+                
+                resetAllMorphs();
+                
+                const test = testMorphs[currentTest];
+                const morph = allMorphData.find(m => m.name === test.name);
+                
+                if (morph) {
+                    const index = allMorphData.indexOf(morph);
+                    updateMorph(index, test.value);
+                    console.log(`Testing ${test.name}: ${test.value}`);
+                } else {
+                    console.log(`Morph ${test.name} not found`);
+                }
+                
+                currentTest++;
+                setTimeout(runNextTest, 2000);
+            }
+            
+            runNextTest();
+        };
+        
+        window.filterMorphs = function() {
+            const filter = document.getElementById('morphFilter').value.toLowerCase();
+            const visemeOnly = document.getElementById('visemeOnly').checked;
+            const appliedOnly = document.getElementById('appliedOnly').checked;
+            
+            allMorphData.forEach((morph, index) => {
+                const morphDiv = document.getElementById(`morph-${index}`);
+                let show = true;
+                
+                // Text filter
+                if (filter && !morph.name.toLowerCase().includes(filter)) {
+                    show = false;
+                }
+                
+                // Viseme filter
+                if (visemeOnly && !morphDiv.classList.contains('viseme-morphs')) {
+                    show = false;
+                }
+                
+                // Applied filter
+                if (appliedOnly && morph.currentValue === 0) {
+                    show = false;
+                }
+                
+                morphDiv.style.display = show ? 'flex' : 'none';
+            });
+        };
+        
+        function updateDiagnostics() {
+            const appliedCount = allMorphData.filter(m => m.currentValue > 0).length;
+            document.getElementById('appliedCount').textContent = appliedCount;
+        }
+        
+        // Initialize everything
+        initializeThreeJS();
+        
+    </script>
+</body>
+</html>

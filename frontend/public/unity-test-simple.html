@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unity WebGL Test - Simple</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        #unity-container {
+            width: 960px;
+            height: 600px;
+            margin: 20px auto;
+            border: 2px solid #444;
+            position: relative;
+        }
+        #unity-canvas {
+            width: 100%;
+            height: 100%;
+            background: #231F20;
+        }
+        #unity-loading-bar {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+        #unity-logo {
+            width: 154px;
+            height: 130px;
+            background: url('unity-logo-dark.png') no-repeat center;
+        }
+        #unity-progress-bar-empty {
+            width: 141px;
+            height: 18px;
+            margin-top: 10px;
+            background: url('progress-bar-empty-dark.png') no-repeat center;
+        }
+        #unity-progress-bar-full {
+            width: 0%;
+            height: 18px;
+            margin-top: 10px;
+            background: url('progress-bar-full-dark.png') no-repeat center;
+        }
+        .status {
+            text-align: center;
+            margin: 10px;
+            padding: 10px;
+            background: #333;
+            border-radius: 5px;
+        }
+        .error {
+            color: #ff6b6b;
+            background: #4a0000;
+        }
+        .success {
+            color: #51cf66;
+            background: #004a00;
+        }
+        .warning {
+            color: #ffd43b;
+            background: #4a4a00;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center;">Unity WebGL Simple Test</h1>
+    
+    <div id="status" class="status">
+        <div>Status: <span id="load-status">Initializing...</span></div>
+        <div>Progress: <span id="load-progress">0%</span></div>
+        <div id="error-message" style="display: none; color: #ff6b6b; margin-top: 10px;"></div>
+    </div>
+
+    <div id="unity-container">
+        <canvas id="unity-canvas" tabindex="-1"></canvas>
+        <div id="unity-loading-bar">
+            <div id="unity-logo"></div>
+            <div id="unity-progress-bar-empty">
+                <div id="unity-progress-bar-full"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status">
+        <h3>Debug Information:</h3>
+        <div id="debug-info">
+            <div>Build Files Location: /unity-build/Build/</div>
+            <div>Canvas Element: <span id="canvas-status">Not checked</span></div>
+            <div>WebGL Context: <span id="webgl-status">Not checked</span></div>
+            <div>Console Errors: <span id="console-errors">0</span></div>
+        </div>
+    </div>
+
+    <script>
+        let errorCount = 0;
+        const statusEl = document.getElementById('load-status');
+        const progressEl = document.getElementById('load-progress');
+        const errorEl = document.getElementById('error-message');
+        const debugEl = document.getElementById('debug-info');
+        
+        // Check WebGL support
+        function checkWebGL() {
+            const canvas = document.getElementById('unity-canvas');
+            const webglStatus = document.getElementById('webgl-status');
+            
+            try {
+                const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+                if (gl) {
+                    webglStatus.textContent = 'Supported ✓';
+                    webglStatus.style.color = '#51cf66';
+                    return true;
+                } else {
+                    webglStatus.textContent = 'Not supported ✗';
+                    webglStatus.style.color = '#ff6b6b';
+                    return false;
+                }
+            } catch (e) {
+                webglStatus.textContent = 'Error: ' + e.message;
+                webglStatus.style.color = '#ff6b6b';
+                return false;
+            }
+        }
+
+        // Check canvas element
+        function checkCanvas() {
+            const canvas = document.getElementById('unity-canvas');
+            const canvasStatus = document.getElementById('canvas-status');
+            
+            if (canvas) {
+                canvasStatus.textContent = 'Found ✓';
+                canvasStatus.style.color = '#51cf66';
+                return true;
+            } else {
+                canvasStatus.textContent = 'Not found ✗';
+                canvasStatus.style.color = '#ff6b6b';
+                return false;
+            }
+        }
+
+        // Override console.error to capture errors
+        const originalError = console.error;
+        console.error = function(...args) {
+            errorCount++;
+            document.getElementById('console-errors').textContent = errorCount;
+            document.getElementById('console-errors').style.color = '#ff6b6b';
+            
+            // Display first error
+            if (errorCount === 1) {
+                errorEl.textContent = 'Console Error: ' + args.join(' ');
+                errorEl.style.display = 'block';
+            }
+            
+            originalError.apply(console, args);
+        };
+
+        // Unity loader configuration
+        var buildUrl = "/unity-build/Build";
+        var loaderUrl = buildUrl + "/unity-webgl-lipsync.loader.js";
+        var config = {
+            dataUrl: buildUrl + "/unity-webgl-lipsync.data",
+            frameworkUrl: buildUrl + "/unity-webgl-lipsync.framework.js",
+            codeUrl: buildUrl + "/unity-webgl-lipsync.wasm",
+            streamingAssetsUrl: "StreamingAssets",
+            companyName: "NautiBouys",
+            productName: "LipSyncUnity",
+            productVersion: "1.0",
+            showBanner: function(msg, type) {
+                console.log('Unity Banner:', msg, type);
+                statusEl.textContent = msg;
+                if (type === 'error') {
+                    statusEl.style.color = '#ff6b6b';
+                    errorEl.textContent = msg;
+                    errorEl.style.display = 'block';
+                }
+            }
+        };
+
+        // Check prerequisites
+        console.log('Checking prerequisites...');
+        const canvasOk = checkCanvas();
+        const webglOk = checkWebGL();
+
+        if (!canvasOk || !webglOk) {
+            statusEl.textContent = 'Prerequisites check failed!';
+            statusEl.style.color = '#ff6b6b';
+        } else {
+            statusEl.textContent = 'Loading Unity loader script...';
+            
+            // Load Unity loader script
+            var script = document.createElement("script");
+            script.src = loaderUrl;
+            script.onload = function() {
+                console.log('Unity loader script loaded successfully');
+                statusEl.textContent = 'Unity loader loaded, creating instance...';
+                
+                // Create Unity instance
+                createUnityInstance(document.querySelector("#unity-canvas"), config, function(progress) {
+                    const percent = Math.round(100 * progress);
+                    progressEl.textContent = percent + "%";
+                    
+                    // Update progress bar if it exists
+                    const progressBarFull = document.getElementById('unity-progress-bar-full');
+                    if (progressBarFull) {
+                        progressBarFull.style.width = percent + "%";
+                    }
+                    
+                    if (progress === 1) {
+                        statusEl.textContent = 'Unity loaded successfully!';
+                        statusEl.style.color = '#51cf66';
+                        document.getElementById('unity-loading-bar').style.display = 'none';
+                    } else {
+                        statusEl.textContent = 'Loading Unity WebGL build...';
+                    }
+                }).then(function(unityInstance) {
+                    console.log('Unity instance created successfully!', unityInstance);
+                    window.unityInstance = unityInstance;
+                    
+                    // Try to call a test function if available
+                    setTimeout(() => {
+                        console.log('Unity is ready for communication');
+                    }, 1000);
+                }).catch(function(error) {
+                    console.error('Failed to create Unity instance:', error);
+                    statusEl.textContent = 'Failed to create Unity instance!';
+                    statusEl.style.color = '#ff6b6b';
+                    errorEl.textContent = 'Error: ' + (error.message || error);
+                    errorEl.style.display = 'block';
+                });
+            };
+            
+            script.onerror = function(error) {
+                console.error('Failed to load Unity loader script:', error);
+                statusEl.textContent = 'Failed to load Unity loader script!';
+                statusEl.style.color = '#ff6b6b';
+                errorEl.textContent = 'Could not load: ' + loaderUrl;
+                errorEl.style.display = 'block';
+            };
+            
+            document.body.appendChild(script);
+        }
+    </script>
+</body>
+</html>

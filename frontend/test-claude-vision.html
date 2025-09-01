@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Claude Vision API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .test-section { background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .result { background: white; padding: 15px; margin: 10px 0; border-radius: 4px; }
+        .success { border-left: 4px solid #28a745; }
+        .error { border-left: 4px solid #dc3545; }
+        input, button { padding: 10px; margin: 5px; }
+        #testImage { max-width: 200px; height: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Claude Vision API Test</h1>
+        
+        <div class="test-section">
+            <h3>API Configuration</h3>
+            <input type="password" id="claudeApiKey" placeholder="Enter Claude API Key" style="width: 400px;">
+            <br>
+            <button onclick="testClaudeAPI()">Test Claude Vision API</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test Image</h3>
+            <canvas id="testCanvas" width="200" height="200" style="border: 1px solid #ccc;"></canvas>
+            <p>Simple test image with colored shapes</p>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // Create a simple test image
+        function createTestImage() {
+            const canvas = document.getElementById('testCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(0, 0, 200, 200);
+            
+            // Draw some shapes to test vision
+            ctx.fillStyle = '#ff0000';
+            ctx.fillRect(50, 50, 50, 50);
+            
+            ctx.fillStyle = '#00ff00';
+            ctx.beginPath();
+            ctx.arc(150, 75, 25, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            ctx.fillStyle = '#0000ff';
+            ctx.beginPath();
+            ctx.moveTo(100, 150);
+            ctx.lineTo(75, 180);
+            ctx.lineTo(125, 180);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.fillStyle = '#000';
+            ctx.font = '16px Arial';
+            ctx.fillText('TEST', 80, 130);
+        }
+
+        function addResult(message, isSuccess = true) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${isSuccess ? 'success' : 'error'}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}:</strong> ${message}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        async function testClaudeAPI() {
+            const apiKey = document.getElementById('claudeApiKey').value.trim();
+            
+            if (!apiKey) {
+                addResult('❌ Please enter Claude API key', false);
+                return;
+            }
+            
+            addResult('🔄 Starting Claude Vision API test...');
+            
+            try {
+                // Get image data from canvas
+                const canvas = document.getElementById('testCanvas');
+                const imageDataURL = canvas.toDataURL('image/png');
+                const base64Image = imageDataURL.split(',')[1];
+                
+                addResult('📷 Test image captured');
+                
+                // Test the Claude API through proxy
+                const proxyUrl = 'http://localhost:3001';
+                const prompt = 'Describe what you see in this test image. What shapes and colors are present?';
+                
+                addResult('📡 Sending request to Claude API via proxy...');
+                
+                const response = await fetch(`${proxyUrl}/claude-proxy`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        model: 'claude-3-5-sonnet-20241022',
+                        max_tokens: 500,
+                        messages: [{
+                            role: 'user',
+                            content: [
+                                { type: 'text', text: prompt },
+                                { 
+                                    type: 'image', 
+                                    source: { 
+                                        type: 'base64', 
+                                        media_type: 'image/png', 
+                                        data: base64Image 
+                                    }
+                                }
+                            ]
+                        }]
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    addResult(`❌ HTTP Error ${response.status}: ${errorText}`, false);
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    addResult(`❌ API Error: ${data.error}`, false);
+                    return;
+                }
+                
+                if (data.content && data.content[0] && data.content[0].text) {
+                    addResult('✅ Claude API SUCCESS!');
+                    addResult(`🧠 Claude Response: ${data.content[0].text}`);
+                    addResult('🎉 Claude Vision API is working through proxy!');
+                } else {
+                    addResult(`❌ Unexpected response format: ${JSON.stringify(data)}`, false);
+                }
+                
+            } catch (error) {
+                addResult(`❌ Network Error: ${error.message}`, false);
+                console.error('Claude API test error:', error);
+            }
+        }
+
+        // Initialize test image on load
+        window.onload = function() {
+            createTestImage();
+            addResult('🚀 Claude Vision API test ready');
+        };
+    </script>
+</body>
+</html>

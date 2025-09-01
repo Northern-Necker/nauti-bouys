@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal GLB Test</title>
+</head>
+<body>
+    <h1>Minimal GLB Morph Test</h1>
+    
+    <div style="border: 2px solid red; padding: 20px; margin: 20px; background: #f0f0f0;">
+        <h2>🔧 Basic Test</h2>
+        <p>If you can see this text, the HTML is loading correctly.</p>
+        <button onclick="alert('JavaScript is working!')" style="padding: 10px 20px; font-size: 16px;">Click to Test JavaScript</button>
+    </div>
+
+    <div style="border: 2px solid blue; padding: 20px; margin: 20px; background: #e8f4fd;">
+        <h2>🎯 Three.js Test</h2>
+        <p id="threejs-status">Loading Three.js...</p>
+        <button onclick="testThreeJS()" style="padding: 10px 20px; font-size: 16px;">Test Three.js</button>
+        <div id="scene" style="width: 400px; height: 300px; border: 1px solid #ccc; background: #000; margin: 10px 0;"></div>
+    </div>
+
+    <div style="border: 2px solid green; padding: 20px; margin: 20px; background: #e8f5e8;">
+        <h2>📦 GLB Model Test</h2>
+        <p id="glb-status">Three.js required first</p>
+        <button onclick="testGLB()" style="padding: 10px 20px; font-size: 16px;">Test GLB Loading</button>
+        <div>
+            <p><strong>GLB File Paths to Try:</strong></p>
+            <ul>
+                <li><code>./SavannahAvatar.glb</code> (same folder as this HTML)</li>
+                <li><code>./frontend/dist/assets/SavannahAvatar.glb</code></li>
+                <li><code>./assets/SavannahAvatar.glb</code></li>
+                <li>Or any ReadyPlayerMe GLB URL</li>
+            </ul>
+        </div>
+    </div>
+
+    <div style="border: 2px solid orange; padding: 20px; margin: 20px; background: #fff3cd;">
+        <h2>🎭 Morph Test</h2>
+        <p id="morph-status">Load GLB model first</p>
+        <button onclick="testMorph('aa')" style="padding: 8px 15px; margin: 2px;">AA (Open)</button>
+        <button onclick="testMorph('uw')" style="padding: 8px 15px; margin: 2px;">UW (Round)</button>
+        <button onclick="testMorph('sil')" style="padding: 8px 15px; margin: 2px;">SIL (Reset)</button>
+    </div>
+
+    <!-- Use a different CDN approach for dev servers -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.154.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.154.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        // Modern ES6 module approach for dev servers
+        let scene, camera, renderer, avatar, morphTargets = [];
+
+        // Try to load Three.js multiple ways
+        async function loadThreeJS() {
+            try {
+                // Method 1: ES6 modules (works with modern dev servers)
+                const THREE = await import('three');
+                window.THREE = THREE;
+                document.getElementById('threejs-status').textContent = '✅ Three.js loaded via ES6 modules';
+                console.log('Three.js loaded via ES6 modules');
+                return true;
+            } catch (error) {
+                console.log('ES6 module loading failed, trying script tag...');
+                
+                // Method 2: Traditional script tag
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.onload = () => {
+                        if (typeof THREE !== 'undefined') {
+                            document.getElementById('threejs-status').textContent = '✅ Three.js loaded via script tag';
+                            resolve(true);
+                        } else {
+                            reject(new Error('THREE not available after script load'));
+                        }
+                    };
+                    script.onerror = reject;
+                    script.src = 'https://unpkg.com/three@0.154.0/build/three.min.js';
+                    document.head.appendChild(script);
+                });
+            }
+        }
+
+        window.testThreeJS = async function() {
+            try {
+                document.getElementById('threejs-status').textContent = '⏳ Loading Three.js...';
+                
+                await loadThreeJS();
+                
+                // Create basic scene
+                const THREE = window.THREE;
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x444444);
+                
+                camera = new THREE.PerspectiveCamera(75, 400/300, 0.1, 1000);
+                camera.position.z = 5;
+                
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(400, 300);
+                
+                const sceneDiv = document.getElementById('scene');
+                sceneDiv.innerHTML = '';
+                sceneDiv.appendChild(renderer.domElement);
+                
+                // Create spinning cube
+                const geometry = new THREE.BoxGeometry(1, 1, 1);
+                const material = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
+                const cube = new THREE.Mesh(geometry, material);
+                scene.add(cube);
+                
+                const light = new THREE.AmbientLight(0x404040);
+                scene.add(light);
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+                directionalLight.position.set(1, 1, 1);
+                scene.add(directionalLight);
+                
+                function animate() {
+                    requestAnimationFrame(animate);
+                    cube.rotation.x += 0.01;
+                    cube.rotation.y += 0.01;
+                    renderer.render(scene, camera);
+                }
+                animate();
+                
+                document.getElementById('threejs-status').textContent = '✅ Three.js working! See spinning cube above.';
+                document.getElementById('glb-status').textContent = 'Ready to test GLB loading';
+                
+            } catch (error) {
+                document.getElementById('threejs-status').textContent = '❌ Three.js failed: ' + error.message;
+                console.error('Three.js test failed:', error);
+            }
+        };
+
+        window.testGLB = async function() {
+            if (!window.THREE || !scene) {
+                alert('Run Three.js test first!');
+                return;
+            }
+
+            try {
+                document.getElementById('glb-status').textContent = '⏳ Loading GLTFLoader...';
+                
+                // Load GLTFLoader
+                const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+                const loader = new GLTFLoader();
+                
+                document.getElementById('glb-status').textContent = '⏳ Trying GLB paths...';
+                
+                const paths = [
+                    './SavannahAvatar.glb',
+                    './frontend/dist/assets/SavannahAvatar.glb',
+                    './assets/SavannahAvatar.glb',
+                    'https://models.readyplayer.me/638b9e90f3c32c854aa05d1a.glb'
+                ];
+                
+                for (let i = 0; i < paths.length; i++) {
+                    try {
+                        document.getElementById('glb-status').textContent = `⏳ Trying: ${paths[i]}`;
+                        
+                        const gltf = await new Promise((resolve, reject) => {
+                            loader.load(
+                                paths[i],
+                                resolve,
+                                (progress) => {
+                                    const percent = Math.round(progress.loaded / progress.total * 100);
+                                    document.getElementById('glb-status').textContent = `⏳ Loading ${paths[i]}... ${percent}%`;
+                                },
+                                reject
+                            );
+                        });
+                        
+                        // Success!
+                        setupAvatar(gltf);
+                        document.getElementById('glb-status').textContent = `✅ GLB loaded from: ${paths[i]}`;
+                        return;
+                        
+                    } catch (error) {
+                        console.log(`Failed to load ${paths[i]}:`, error.message);
+                        continue;
+                    }
+                }
+                
+                // All failed
+                document.getElementById('glb-status').textContent = '❌ All GLB paths failed. Put SavannahAvatar.glb in same folder as this HTML file.';
+                
+            } catch (error) {
+                document.getElementById('glb-status').textContent = '❌ GLB test failed: ' + error.message;
+                console.error('GLB test failed:', error);
+            }
+        };
+
+        function setupAvatar(gltf) {
+            // Clear scene of cubes
+            scene.children = scene.children.filter(child => 
+                child.type === 'AmbientLight' || child.type === 'DirectionalLight'
+            );
+            
+            avatar = gltf.scene;
+            scene.add(avatar);
+            avatar.position.y = -1;
+            
+            // Find morphs
+            morphTargets = [];
+            avatar.traverse((child) => {
+                if (child.isMesh && child.morphTargetDictionary) {
+                    if (!child.morphTargetInfluences) {
+                        child.morphTargetInfluences = new Array(Object.keys(child.morphTargetDictionary).length).fill(0);
+                    }
+                    
+                    Object.entries(child.morphTargetDictionary).forEach(([name, index]) => {
+                        morphTargets.push({
+                            name: name,
+                            mesh: child,
+                            index: index
+                        });
+                    });
+                }
+            });
+            
+            document.getElementById('morph-status').textContent = `✅ Avatar loaded! Found ${morphTargets.length} morph targets.`;
+            console.log('Available morphs:', morphTargets.map(m => m.name));
+        }
+
+        window.testMorph = function(viseme) {
+            if (morphTargets.length === 0) {
+                alert('Load GLB model first!');
+                return;
+            }
+            
+            // Reset all morphs
+            morphTargets.forEach(morph => {
+                morph.mesh.morphTargetInfluences[morph.index] = 0;
+            });
+            
+            if (viseme === 'sil') {
+                document.getElementById('morph-status').textContent = '✅ Reset to neutral (SIL)';
+                return;
+            }
+            
+            // Simple morph search
+            const searchTerms = {
+                'aa': ['mouth_open', 'open', 'jaw'],
+                'uw': ['pucker', 'funnel', 'round']
+            };
+            
+            const terms = searchTerms[viseme] || [];
+            let applied = 0;
+            
+            terms.forEach(term => {
+                morphTargets.forEach(morph => {
+                    if (morph.name.toLowerCase().includes(term)) {
+                        morph.mesh.morphTargetInfluences[morph.index] = 0.8;
+                        applied++;
+                        console.log(`Applied: ${morph.name} = 0.8`);
+                    }
+                });
+            });
+            
+            document.getElementById('morph-status').textContent = `✅ ${viseme.toUpperCase()}: Applied ${applied} morphs`;
+        };
+
+        // Auto-load Three.js when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Page loaded, ready for testing');
+        });
+    </script>
+</body>
+</html>
